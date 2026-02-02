@@ -34,7 +34,7 @@ Located in `streaming/`, this is a critical component that solves the challenge 
 *   **Smart Tracking:** 
     *   **Marathon Mode:** Automatically remembers the last watched show and resumes playback.
     *   **Episode Selection:** For specific series, allows granular selection of seasons and episodes tracked via local JSON databases.
-*   **The Control Bar:** A custom always-on-top Python overlay (`control_bar.py`) that acts as a universal remote. It ensures the user is never "trapped" in a full-screen video, providing accessible buttons for Play/Pause, Volume, Next Episode, and App Exit regardless of the content source.
+*   **The Control Bar:** A custom always-on-top Python overlay (`control_bar.py`) that acts as a universal remote. It ensures the user is never "trapped" in a full-screen video, providing accessible buttons for Play/Pause, Volume, Next Episode, and App Exit regardless of the content source. The control bar also allows for emergency communications to get in and out of the streaming app quickly or to request help immediately.
 
 ### 💬 Messenger (Discord Integration)
 *   **`ben_discord_app.py`:** A GUI wrapper for Discord.
