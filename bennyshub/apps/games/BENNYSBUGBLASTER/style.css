@@ -1,0 +1,11 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-color: #4caf50; /* Grass Green */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+canvas {
+    display: block;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}

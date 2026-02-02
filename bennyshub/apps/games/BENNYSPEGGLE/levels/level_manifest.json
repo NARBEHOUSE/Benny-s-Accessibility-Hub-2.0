@@ -1,0 +1,11 @@
+{
+  "packs": [
+    {
+      "id": "bennys_campaign",
+      "name": "Bennys_Campaign",
+      "file": "levels/Bennys_Campaign.json",
+      "description": "Custom levels"
+    }
+  ],
+  "default": "bennys_campaign"
+}

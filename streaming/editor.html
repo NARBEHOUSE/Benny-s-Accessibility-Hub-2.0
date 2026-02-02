@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streaming Editor</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Override app-style scrolling for the Editor page */
+        html, body {
+            height: auto !important;
+            min-height: 100vh !important;
+            overflow-y: auto !important;
+            overflow-x: hidden;
+            padding-bottom: 50px;
+        }
+        .editor-container {
+            height: auto !important;
+            overflow: visible !important;
+            padding-bottom: 500px; /* Massive space to ensure visibility */
+            margin-bottom: 100px;
+        }
+        
+        /* Make Video List table full width */
+        #data-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+        
+        #data-table th, #data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+        
+        #data-table th {
+            background: #1a1a1a;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        
+        /* Expanded Editor Row Styling */
+        .editor-row {
+            background: #1e1e1e !important;
+        }
+        
+        .editor-row > td {
+            padding: 30px 40px !important;
+        }
+        
+        /* Inner grid for expanded editor - utilize full width */
+        .editor-row .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .editor-row .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #ccc;
+        }
+        
+        .editor-row .form-group input,
+        .editor-row .form-group select,
+        .editor-row .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background: #2a2a2a;
+            color: white;
+            border: 1px solid #444;
+            border-radius: 6px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
+        
+        .editor-row .form-group input:focus,
+        .editor-row .form-group select:focus,
+        .editor-row .form-group textarea:focus {
+            border-color: #007bff;
+            outline: none;
+        }
+        
+        /* Make the inner 2-column grid spread evenly */
+        .editor-row > td > div:first-child {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        /* Poster and Trailer section uses full width */
+        .editor-row > td > div:nth-child(2) {
+            margin-top: 20px;
+        }
+        
+        /* Buttons at the bottom spread nicely */
+        .editor-row > td > div:last-child {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-container">
+        <header>
+            <h1>Streaming Editor</h1>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="password" id="tmdb-key" placeholder="TMDB API Key" style="padding: 5px; border-radius: 4px; border: none;">
+                <a id="editor-btn" href="index.html">Back to Hub</a>
+            </div>
+        </header>
+
+        <div class="editor-section">
+            <button class="accordion main-accordion">Add New Video</button>
+            <div class="panel main-panel">
+                <div class="editor-form" style="margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                         <h2 id="form-title" style="margin: 0;">Add New Video</h2>
+                         <div style="display: flex; gap: 10px;">
+                             <button id="btn-fetch-tmdb" class="btn btn-primary">Auto-Fill (TMDB)</button>
+                             <button onclick="clearForm()" class="btn" style="font-size: 0.8em;">Clear Form</button>
+                         </div>
+                    </div>
+                    <input type="hidden" id="item-id">
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <!-- Left Column -->
+                        <div>
+                            <div class="form-group">
+                                <label for="title">Title *</label>
+                                <input type="text" id="title" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="url">Video URL *</label>
+                                <input type="text" id="url" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Streaming Service</label>
+                                <div style="display: flex; gap: 10px; align-items: center;">
+                                     <select id="service" style="flex: 1; padding: 8px; background: #333; color: white; border: 1px solid #555;">
+                                        <option value="">Select Service...</option>
+                                        <option value="Netflix">Netflix</option>
+                                        <option value="Disney+">Disney+</option>
+                                        <option value="Hulu">Hulu</option>
+                                        <option value="Prime Video">Prime Video</option>
+                                        <option value="Max">Max / HBO</option>
+                                        <option value="Paramount+">Paramount+</option>
+                                        <option value="PlutoTV">Pluto TV</option>
+                                        <option value="Plex">Plex</option>
+                                        <option value="YouTube">YouTube</option>
+                                        <option value="Other">Other (Custom)</option>
+                                    </select>
+                                    <img id="service-icon-preview" src="" style="width: 40px; height: 40px; border-radius: 5px; background: #000; object-fit: contain; display:none;">
+                                </div>
+                            </div>
+
+                            <div class="form-group" id="custom-icon-group" style="display: none;">
+                                <label for="service_icon">Custom Service Icon URL</label>
+                                <input type="text" id="service_icon">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="year">Year</label>
+                                <input type="number" id="year">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="director">Director</label>
+                                <input type="text" id="director">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="actors">Actors</label>
+                                <input type="text" id="actors">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="genre">Genre</label>
+                                <input type="text" id="genre">
+                            </div>
+                        </div>
+                        
+                        <!-- Right Column -->
+                        <div>
+                            <div class="form-group">
+                                <label for="image">Poster Image URL</label>
+                                <input type="text" id="image">
+                                <img id="poster-preview" src="" style="width: 150px; display: none; margin: 10px 0; border-radius: 8px;">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="trailer">Trailer URL (YouTube)</label>
+                                <input type="text" id="trailer">
+                                <div id="trailer-preview" style="margin-top:10px; display:none;">
+                                   <iframe width="100%" height="180" src="" frameborder="0" allowfullscreen></iframe>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="description">Description</label>
+                                <textarea id="description" rows="5" style="width: 100%; background: #333; color: white; border: 1px solid #555;"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button id="save-btn" class="btn btn-success" style="padding: 15px 40px; font-size: 1.1em;">Add Video</button>
+                        <button id="cancel-btn" class="btn btn-danger" style="padding: 15px 30px;">Clear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="editor-section" style="margin-top: 20px;">
+            <button class="accordion main-accordion">Genre Images</button>
+            <div class="panel main-panel">
+                 <div class="genre-section" style="padding: 20px; background: #1e1e1e;">
+                    <div id="genre-manager-list" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;"></div>
+                    <button id="save-genres-btn" class="btn btn-primary" style="background-color: #007bff;">Save Genre Images</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="editor-section" style="margin-top: 20px;">
+            <button class="accordion main-accordion active">Video List</button>
+            <div class="panel main-panel" style="max-height: none; overflow: visible;"> <!-- Open by default with no limit -->
+                <div class="list-section" style="padding-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h2>Video List</h2>
+                <div>
+                    <button onclick="expandSelectedEditors()" class="btn btn-primary" style="margin-right: 5px;">Expand Selected</button>
+                    <button onclick="collapseAllEditors()" class="btn" style="background:#555; margin-right: 5px;">Collapse All</button>
+                    <button id="btn-batch-tmdb" class="btn btn-primary" style="margin-right: 5px;">Batch Update (Selected)</button>
+                    <button onclick="deleteSelectedItems()" class="btn btn-danger">Delete Selected</button>
+                </div>
+            </div>
+            <input type="text" id="table-search" placeholder="Filter list..." style="padding: 5px; width: 300px; margin-bottom: 10px;">
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"><input type="checkbox" id="select-all-checkbox"></th>
+                        <th>Title / Director</th>
+                        <th>Service</th>
+                        <th>Year</th>
+                        <th>Genre</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be injected here -->
+                </tbody>
+            </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="editor.js"></script>
+</body>
+</html>

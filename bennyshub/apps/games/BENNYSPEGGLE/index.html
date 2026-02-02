@@ -1,0 +1,3741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ben's P3GL Adventure v4.2 — Music + FX Edition</title>
+<style>
+  html, body { height:100%; margin:0; background:#111; overflow:hidden; }
+  canvas {
+    position: fixed; inset: 0;
+    display: block; width: 100%; height: 100%;
+    outline: none; background: #000;
+  }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+
+<script src="../../../shared/voice-manager.js"></script>
+<script src="../../../shared/ios-audio-fix.js"></script>
+<script src="../../../shared/scan-manager.js"></script>
+<script>
+const BASE_W=820, BASE_H=540;
+// Solid top HUD bar height (treat as wall)
+const HUD_H = 42;
+// Global tuning to reduce floatiness while staying frame-rate independent
+const TUNING = {
+  speed: 1.18,       // shot and multiball speed multiplier
+  gravity: 1.32,     // per-level gravity multiplier
+  bumperKick: 1.6,   // upward bumper impulse multiplier
+  minSpeed: 7.5,     // anti-stuck minimum ball speed
+  // New: slight global boost to restitution (bounce)
+  bounce: 1.06
+};
+
+// Mobile/low-power detection
+function isMobile(){ return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent); }
+const PERF = { lowPower: isMobile() };
+
+// --- Orientation gate: require landscape on mobile ---
+let canPlay = true;
+let _orientOverlay = null;
+function _ensureOrientOverlay(){
+  if (_orientOverlay) return _orientOverlay;
+  const el = document.createElement('div');
+  el.id = 'orientOverlay';
+  el.style.cssText = `
+    position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.92); color:#fff; z-index:99999; text-align:center; padding:24px;
+    font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  `;
+  el.innerHTML = `
+    <div>
+      <div style="font-size:22px; margin-bottom:10px;">Rotate your phone</div>
+      <div style="opacity:0.9;">Turn your phone horizontally to play.</div>
+    </div>
+  `;
+  document.body.appendChild(el);
+  _orientOverlay = el;
+  return el;
+}
+function isLandscape(){ try{ return window.innerWidth >= window.innerHeight; }catch(_){ return true; } }
+function updateOrientationGate(){
+  if (!isMobile()){
+    canPlay = true;
+    if (_orientOverlay) _orientOverlay.style.display = 'none';
+    return;
+  }
+  const ok = isLandscape();
+  canPlay = ok;
+  _ensureOrientOverlay().style.display = ok ? 'none' : 'flex';
+}
+window.addEventListener('resize', updateOrientationGate);
+window.addEventListener('orientationchange', updateOrientationGate);
+// --- end orientation gate ---
+
+/*******************
+ * Audio Graph + FX
+ *******************/
+const AudioGraph = {
+  ac: null, analyser: null, visBus: null, musicBus: null,
+  _pendingMediaEls: [],
+  
+  // Lazily create AudioContext on demand (must be from user gesture)
+  getContext() {
+    if (this.ac) {
+      // Always try to resume existing context
+      if (this.ac.state === 'suspended') {
+        this.ac.resume().catch(()=>{});
+      }
+      return this.ac;
+    }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    this.ac = new AC();
+    // Immediately try to resume (ios-audio-fix should also do this, but belt & suspenders)
+    if (this.ac.state === 'suspended') {
+      this.ac.resume().catch(()=>{});
+    }
+    // Set up routing
+    this.analyser = this.ac.createAnalyser();
+    this.analyser.fftSize = 2048;
+    this.analyser.smoothingTimeConstant = 0.85;
+    this.visBus = this.ac.createGain();
+    this.musicBus = this.ac.createGain();
+    this.visBus.gain.value = 0.9;
+    this.musicBus.gain.value = 1.0;
+    this.visBus.connect(this.analyser);
+    this.musicBus.connect(this.analyser);
+    const out = this.ac.createGain();
+    this.visBus.connect(out);
+    this.musicBus.connect(out);
+    out.connect(this.ac.destination);
+    // Connect any queued media elements
+    if (this._pendingMediaEls.length){
+      for(const el of this._pendingMediaEls){
+        try {
+          const src = this.ac.createMediaElementSource(el);
+          src.connect(this.musicBus);
+        } catch(e) {}
+      }
+      this._pendingMediaEls.length = 0;
+    }
+    return this.ac;
+  },
+  
+  // For backward compat
+  ensure() {
+    this.getContext();
+    return this;
+  },
+  
+  // Resume context if suspended
+  resume(){
+    if (this.ac && this.ac.state === 'suspended') {
+      this.ac.resume().catch(()=>{});
+    }
+    return Promise.resolve();
+  },
+  
+  // Hook a gain node to the visualizer bus
+  hookNode(gainNode){
+    const ctx = this.getContext();
+    if (!ctx) return false;
+    try {
+      gainNode.connect(this.visBus);
+      return true;
+    } catch(e){
+      try { gainNode.connect(ctx.destination); } catch(_){}
+      return false;
+    }
+  },
+  
+  hookMedia(el){
+    const isFile = location.protocol === 'file:';
+    if (isFile) return false;
+    const ctx = this.getContext();
+    if (!ctx) return false;
+    try {
+      const src = ctx.createMediaElementSource(el);
+      src.connect(this.musicBus);
+      return true;
+    } catch(e) { return false; }
+  }
+};
+
+class VisualFX {
+  constructor(){
+    this.wave = new Float32Array(2048);
+    this.freq = new Uint8Array(256);
+    this.pulses = [];
+    this.bursts = [];
+    this.theme = 1;
+    this.winShowUntil = 0;
+    this.gameWinShowUntil = 0; // big celebration window
+    this.t = 0;
+  }
+  setTheme(id){ this.theme = id; }
+  onPegHit(x,y){ this.pulses.push({x,y,life:0.4}); }
+  onExplosion(x,y){ this.bursts.push({x,y,life:1.0}); }
+  onLevelWin(){ this.winShowUntil = performance.now() + 2200; this.fireConfetti(); }
+  onGameWin(){
+    this.gameWinShowUntil = performance.now() + 6000;
+    // big confetti burst (reduced on mobile)
+    const count = (typeof PERF!=='undefined' && PERF.lowPower) ? 140 : 280;
+    for(let i=0;i<count;i++){
+      const a = Math.random()*Math.PI*2;
+      const sp = 2+Math.random()*8;
+      this.bursts.push({x:410,y:240,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-3.5,life:2.2,color:`hsl(${Math.random()*360},90%,60%)`});
+    }
+  }
+  fireConfetti(){
+    const count = (typeof PERF!=='undefined' && PERF.lowPower) ? 60 : 140;
+    for(let i=0;i<count;i++){
+      const a = Math.random()*Math.PI*2;
+      const sp = 2+Math.random()*5;
+      this.bursts.push({x:410,y:240,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-3,life:1.6,color:`hsl(${Math.random()*360},85%,60%)`});
+    }
+  }
+  // Clear any celebration visuals and pending banners (prevents intro confetti)
+  resetCelebration(){
+    this.pulses.length = 0;
+    this.bursts.length = 0;
+    this.winShowUntil = 0;
+    this.gameWinShowUntil = 0;
+  }
+  render(ctx, analyser, w=820, h=540, opts={}){
+    // Robust dt: default to 1/60 when missing/NaN, clamp to 50ms
+    const rawDt = (opts && Number.isFinite(opts.dtSec)) ? opts.dtSec : 1/60;
+    const dt = Math.max(0, Math.min(rawDt, 0.05));
+    this.t += dt;
+    const noCele = !!opts.noCelebration;
+
+    // Changed: always render; use zeros until audio is unlocked
+    if (analyser) {
+      analyser.getFloatTimeDomainData(this.wave);
+      analyser.getByteFrequencyData(this.freq);
+    } else {
+      this.wave.fill(0);
+      this.freq.fill(0);
+    }
+
+    // energy bands
+    let rms=0; for(let i=0;i<this.wave.length;i++){ const v=this.wave[i]; rms+=v*v; }
+    rms = Math.sqrt(rms/this.wave.length);
+    let bass=0; for(let i=0;i<24;i++) bass+=this.freq[i]||0; bass/=24;
+    let mids=0; for(let i=24;i<96;i++) mids+=this.freq[i]||0; mids/=72;
+    let highs=0; for(let i=96;i<192;i++) highs+=this.freq[i]||0; highs/=96;
+
+    const mode = (this.theme % 3); // 0 lasers, 1 bars, 2 nebula
+    const bgPulse = Math.min(0.6, (bass/255)*0.6);
+    const hue = (this.theme*37 + this.t*20) % 360;
+
+    // Background gradient wash
+    ctx.save();
+    const grad = ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0, `hsla(${hue},70%,${30+bgPulse*20}%,1)`);
+    grad.addColorStop(1, `hsla(${(hue+90)%360},70%,${18+bgPulse*10}%,1)`);
+    ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+
+    // Waveform ribbon (center)
+    ctx.globalAlpha = 0.65;
+    ctx.beginPath();
+    const mid = 180 + Math.sin(this.t*0.6)*18;
+    for(let i=0;i<820;i++){
+      const j = Math.floor(i/820*this.wave.length);
+      const y = mid + this.wave[j]*120;
+      if(i===0) ctx.moveTo(i,y); else ctx.lineTo(i,y);
+    }
+    ctx.strokeStyle = `hsla(${(hue+180)%360},90%,70%,0.85)`;
+    ctx.lineWidth = 3; ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Always show rainbow bar visualizer on every level
+    const cols = (typeof PERF!=='undefined' && PERF.lowPower) ? 24 : 64;
+    const bw = w/cols;
+    for(let i=0;i<cols;i++){
+      const v = this.freq[Math.min(255, i*4)]/255;
+      const barH = v*(h*0.38) + 8;
+      ctx.fillStyle = `hsla(${hue + i*3},90%,${30+v*40}%,0.9)`;
+      ctx.fillRect(i*bw, h-barH, bw-1, barH);
+    }
+
+    // Peg-hit pulses
+    if(!noCele){
+      for(let i=this.pulses.length-1;i>=0;i--){
+        const p = this.pulses[i]; p.life -= dt;
+        const a = Math.max(0, p.life*2);
+        if(a<=0){ this.pulses.splice(i,1); continue; }
+        ctx.strokeStyle = `rgba(255,255,255,${a})`;
+        ctx.lineWidth = 6*a;
+        ctx.beginPath(); ctx.arc(p.x,p.y,24*(1.4-p.life),0,Math.PI*2); ctx.stroke();
+      }
+    } else {
+      // clear out any pending celebration fx when not in game
+      this.pulses.length = 0;
+    }
+
+    // Bursts / confetti
+    if(!noCele){
+      for(let i=this.bursts.length-1;i>=0;i--){
+        const b = this.bursts[i]; b.life -= dt;
+        if(b.vx!==undefined){
+          // scale with dt (was per-frame)
+          const f = dt*60;
+          b.vy += 0.12 * f; b.x += b.vx * f; b.y += b.vy * f;
+          ctx.fillStyle = b.color || 'rgba(255,255,255,0.9)';
+          ctx.fillRect(b.x, b.y, 3, 8);
+        } else {
+          const a = Math.max(0, b.life);
+          ctx.fillStyle = `rgba(255,120,30,${a})`;
+          ctx.beginPath(); ctx.arc(b.x,b.y, 12*(1.2-b.life),0,Math.PI*2); ctx.fill();
+        }
+        if(b.life<=0){ this.bursts.splice(i,1); }
+      }
+    } else {
+      this.bursts.length = 0;
+    }
+
+    ctx.restore();
+  }
+}
+const VIS = new VisualFX();
+
+/*******************
+ * Themes
+ *******************/
+const THEMES = {
+  1: { name:"Sunny Start", colors:["#fff7ba","#ffe27a","#ffd166"], palette:["#ffad60","#ffd166","#fff1a8","#ffa852"] },
+  2: { name:"Rainbow Road", colors:["#a1c4fd","#c2e9fb","#fbc2eb","#a6c1ee"], palette:["#7ea1ff","#ff85c1","#9be7ff","#c29bff"] },
+  3: { name:"Aqua Drift", colors:["#a8edea","#b7f8db","#e5fcff"], palette:["#4cd3c2","#6ee7d2","#80eaff","#3db5ff"] },
+  4: { name:"Balloon Bash", colors:["#ffd1ff","#ffb3c6","#ffe3b3"], palette:["#ff8ccf","#ff99aa","#ffd48a","#ffb0f2"] },
+  5: { name:"Rocket Ramp", colors:["#dfe9f3","#f9feff","#b0f3f1"], palette:["#7ad3ff","#b0f3f1","#9ad1ff","#c2fff6"] },
+  6: { name:"Clover Chill", colors:["#e3fdf5","#c1fba4","#eaffc0"], palette:["#7cdf74","#a6f28f","#8ce38d","#58c472"] },
+  7: { name:"Beat Street", colors:["#d4fc79","#96e6a1","#b0f3f1"], palette:["#c0f070","#96e6a1","#6fe5e4","#88c070"] },
+  8: { name:"Sports Day", colors:["#fdfbfb","#ebedee","#ffd6a5"], palette:["#ffd6a5","#cfd9df","#e2ebf0","#ffb86b"] },
+  9: { name:"Spooky Night", colors:["#0b0c0f","#133b1a","#3a2a1a","#0b0c0f"], palette:["#1bd96a","#ff7a00","#333333","#0b0c0f"] },
+ 10: { name:"Finale Glow", colors:["#cfd9df","#e2ebf0","#fdfbfb"], palette:["#9fb3c6","#dfe7ee","#fdfbfb","#80c7ff"] }
+};
+
+function paintBG(ctx, colors){
+  const g=ctx.createLinearGradient(0,0,0,BASE_H);
+  const c=colors && colors.length>=2 ? colors : ["#1e1e1e","#222"];
+  const step=1/(c.length-1); c.forEach((col,i)=>g.addColorStop(step*i,col));
+  ctx.fillStyle=g; ctx.fillRect(0,0,BASE_W,BASE_H);
+}
+
+/*******************
+ * Levels
+ *******************/
+let LEVELS = [];
+let BUILTIN_LEVELS = [];
+
+function deOverlap(pegs, iterations=12, padding=2){
+  for(let k=0;k<iterations;k++){
+    let moved=false;
+    for(let i=0;i<pegs.length;i++){
+      for(let j=i+1;j<pegs.length;j++){
+        const a=pegs[i], b=pegs[j];
+        if(a.hit||b.hit) continue;
+        const dx=b.x-a.x, dy=b.y-a.y;
+        const dist=Math.hypot(dx,dy);
+        const ra = (a.radius ?? 16);
+        const rb = (b.radius ?? 16);
+        const minDist = ra + rb + padding;
+        if(dist < minDist){
+          // Compute unit normal
+          let nx=dx, ny=dy;
+          if(nx===0 && ny===0){ nx = (Math.random()-0.5)*1e-3; ny = (Math.random()-0.5)*1e-3; }
+          const invLen = 1/Math.hypot(nx,ny);
+          nx*=invLen; ny*=invLen;
+
+          const push = (minDist - dist);
+          const aStatic = !!a.block;
+          const bStatic = !!b.block;
+
+          if (aStatic && !bStatic){
+            // Move only the non-block away from the block
+            b.x += nx*push; b.y += ny*push;
+          } else if (bStatic && !aStatic){
+            a.x -= nx*push; a.y -= ny*push;
+          } else {
+            // Split for normal pegs or two blocks
+            a.x -= nx*push*0.5; a.y -= ny*push*0.5;
+            b.x += nx*push*0.5; b.y += ny*push*0.5;
+          }
+          moved=true;
+        }
+      }
+      const p=pegs[i];
+      const r=p.radius||16;
+      p.x=Math.max(40+r, Math.min(BASE_W-40-r, p.x));
+      p.y=Math.max(160+r, Math.min(BASE_H-40-r, p.y));
+    }
+    if(!moved) break;
+  }
+}
+
+function ensureNoOverlap(pegs){
+  // Pre-pass
+  deOverlap(pegs, 48, 3);
+
+  const basePad = 3;       // base clearance
+  const blockExtra = 8;    // extra clearance around BLOCKs for ball lane
+  let changed = true, safety = 0;
+
+  while (changed && safety < 300){
+    changed = false; safety++;
+    for (let i=0;i<pegs.length;i++){
+      for (let j=i+1;j<pegs.length;j++){
+        const a=pegs[i], b=pegs[j];
+        if(a.hit||b.hit) continue;
+        const ra=(a.radius||16), rb=(b.radius||16);
+        let dx=b.x-a.x, dy=b.y-a.y;
+        let dist=Math.hypot(dx,dy);
+
+        let minDist = ra + rb + basePad;
+        if (a.block || b.block) minDist += blockExtra;
+
+        if(dist < minDist){
+          if(dist === 0){ dx = (Math.random()-0.5)*1e-3; dy = (Math.random()-0.5)*1e-3; dist = Math.hypot(dx,dy); }
+          const ux = dx/dist, uy = dy/dist;
+          const aStatic = !!a.block;
+          const bStatic = !!b.block;
+          const push = (minDist - dist) + 0.25;
+
+          if (aStatic && !bStatic){
+            // keep blocks fixed: move the normal peg away
+            b.x += ux*push; b.y += uy*push;
+          } else if (bStatic && !aStatic){
+            // keep blocks fixed
+            a.x -= ux*push; a.y -= uy*push;
+          } else {
+            // two blocks or two normals: split the correction
+            a.x -= ux*push*0.5; a.y -= uy*push*0.5;
+            b.x += ux*push*0.5; b.y += uy*push*0.5;
+          }
+
+          // clamp bounds
+          a.x=Math.max(40+ra, Math.min(BASE_W-40-ra, a.x));
+          a.y=Math.max(160+ra, Math.min(BASE_H-40-ra, a.y));
+          b.x=Math.max(40+rb, Math.min(BASE_W-40-rb, b.x));
+          b.y=Math.max(160+rb, Math.min(BASE_H-40-rb, b.y));
+          changed = true;
+        }
+      }
+    }
+  }
+}
+
+
+
+// Removed procedural Level 11-20 generation
+
+/*******************
+ * Level Loader (JSON)
+ *******************/
+const LevelLoader = {
+  manifestUrl: 'levels/level_manifest.json',
+  currentPack: null,
+  packs: [],
+  packIndex: 0,
+  source: 'default',
+  lastError: null,
+  loading: true,
+  
+  async init(){
+     this.loading = true;
+     this.lastError = null;
+     
+     // 1. Unconditionally try to load manifest
+     try {
+         const res = await fetch(this.manifestUrl);
+         if(res.ok){
+             const man = await res.json();
+             this.packs = man.packs || [];
+             if(!this.packs.length){
+                 // Fallback if empty array
+                 this.packs.push({ id:'default', name:'Default', file:'levels/default.json' });
+             }
+             // Find default
+             const defId = man.default || 'default';
+             const idx = this.packs.findIndex(p=>p.id===defId);
+             this.packIndex = (idx >= 0) ? idx : 0;
+         } else {
+             throw new Error(`Manifest fetch status: ${res.status}`);
+         }
+     } catch(e) { 
+         console.warn('Manifest init failed', e); 
+         // Critical Fallback
+         this.packs = [{ id:'default', name:'Default (Fallback)', file:'levels/default.json' }];
+     }
+
+     // 2. Load the initial pack
+     const ok = await this.loadPack(this.packs[this.packIndex]);
+     this.loading = false;
+     
+     // Explicit check
+     if(LEVELS.length === 0 && !this.lastError){
+         this.lastError = "Loaded file, but found no levels inside.";
+     }
+     
+     return ok;
+  },
+
+  async cyclePack(){
+      if(!this.packs.length) return;
+      this.packIndex = (this.packIndex + 1) % this.packs.length;
+      await this.loadPack(this.packs[this.packIndex]);
+  },
+
+  getCurrentPackName(){
+      // Prefer JSON metadata title if available (and it's not the default pack which already has a good name)
+      if(this.meta && this.meta.title && this.source==='json' && this.packs[this.packIndex]?.id !== 'default') {
+          return this.meta.title; 
+      }
+      if(this.packs[this.packIndex]) return this.packs[this.packIndex].name;
+      return "Unknown";
+  },
+
+  async loadPack(pack){
+      this.currentPack = pack;
+      return await this.loadUrl(pack.file);
+  },
+
+  async loadUrl(url){
+      try{
+          const res = await fetch(url);
+          if(!res.ok) throw new Error('Fetch failed: ' + res.status);
+          const data = await res.json();
+          this.importLevels(data);
+          this.source = 'json';
+          this.lastError = null;
+          return true;
+      }catch(e){
+          console.error("Level load failed", e);
+          this.lastError = e.message;
+          return false;
+      }
+  },
+
+  importLevels(data){
+      // Store metadata from the JSON (title, etc.)
+      this.meta = data?.meta || {};
+      
+      const input = Array.isArray(data) ? data : (Array.isArray(data?.levels) ? data.levels : null);
+      if(!input) return;
+      LEVELS.length = 0;
+      let autoId = 1;
+      const normalized = input.map(l => ({
+        id: l.id ?? autoId++,
+        balls: l.balls ?? 10,
+        gravity: l.gravity ?? 0.30,
+        bumper: l.bumper ?? true,
+        pegs: Array.isArray(l.pegs) ? l.pegs.map(p => ({ ...p })) : []
+      }));
+      LEVELS.push(...normalized);
+  },
+
+  resetToBuiltin(){
+      // Re-load the current pack pointer
+      if(this.packs[this.packIndex]) this.loadPack(this.packs[this.packIndex]);
+  },
+  
+  // Wrapper for compatibility or explicit URL load
+  async load(urlOverride){
+      if(urlOverride) return this.loadUrl(urlOverride);
+      return this.init();
+  },
+
+  total(){ return LEVELS.length; },
+  isJSON(){ return this.source === 'json'; },
+
+  async pickLocal(){
+    try{
+      let fileHandle, file;
+      if (window.showOpenFilePicker){
+        const [h] = await showOpenFilePicker({
+          types: [{ description: 'Levels JSON', accept: { 'application/json': ['.json'] } }],
+          multiple: false
+        });
+        fileHandle = h;
+        file = await h.getFile();
+      } else {
+        file = await new Promise((resolve, reject)=>{
+          const inp = document.createElement('input');
+          inp.type = 'file';
+          inp.accept = 'application/json,.json';
+          inp.style.position='fixed'; inp.style.left='-9999px';
+          document.body.appendChild(inp);
+          inp.addEventListener('change', ()=> {
+            if (inp.files && inp.files[0]) resolve(inp.files[0]); else reject(new Error('No file selected'));
+            inp.remove();
+          }, { once:true });
+          inp.click();
+        });
+      }
+      const text = await file.text();
+      const data = JSON.parse(text);
+      this.importLevels(data);
+      this.source = 'json';
+      this.lastError = null;
+      
+      // Override pack name logic if we just picked a file with a meta title
+      // We don't have a "pack" struct for this ad-hoc load, but we can fake it or let getCurrentPackName look at meta
+      return true;
+    }catch(err){
+      const msg = (err && err.message) ? err.message : String(err);
+      if (!msg.includes('abort') && !msg.includes('No file selected')) this.lastError = msg;
+      return false;
+    }
+  }
+};
+
+/*******************
+ * Level Catalog (discover JSON "games")
+ *******************/
+const LevelCatalog = {
+  async scan(){
+     const items = [];
+     
+     // 1. Built-in option
+     items.push({ kind:'builtin', name:'Built-in campaign' });
+     
+     // 2. Pick local
+     items.push({ kind:'pick', name:'Open local file...' });
+
+     // 3. Manifest packs
+     const packs = LevelLoader.packs || [];
+     for(const p of packs){
+         if (p.id === 'builtin') continue;
+         const name = p.name || p.title || p.id;
+         items.push({ kind:'url', name: name, url: p.file });
+     }
+     
+     return items;
+  }
+};
+
+/*******************
+ * Audio: SFX + Music
+ *******************/
+class Sounder{
+  constructor(){ this.ac = null; this._throttle = Object.create(null); }
+  
+  // Get or create AudioContext lazily
+  ctx(){
+    if (!this.ac) {
+      this.ac = AudioGraph.getContext();
+    }
+    if (this.ac && this.ac.state === 'suspended') {
+      this.ac.resume().catch(()=>{});
+    }
+    return this.ac;
+  }
+  
+  play(freq=440, dur=0.12, type='sine', vol=0.12){
+    const ac = this.ctx(); 
+    if (!ac) return;
+    const o=ac.createOscillator(), g=ac.createGain();
+    o.type=type; o.frequency.value=freq;
+    o.connect(g);
+    // route to shared visual bus (falls back to destination if needed)
+    AudioGraph.hookNode(g);
+    g.gain.setValueAtTime(vol, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, ac.currentTime+dur);
+    o.start(); o.stop(ac.currentTime+dur);
+  }
+  static semi(n){ return Math.pow(2, n/12); }
+  shapeNote(shape){
+    switch(shape){
+      case 'CIRCLE': return {f:261.63, w:'sine'};
+      case 'TRI':    return {f:293.66, w:'triangle'};
+      case 'SQUARE': return {f:329.63, w:'square'};
+      case 'STAR':   return {f:349.23, w:'sawtooth'};
+      case 'HEX':    return {f:392.00, w:'square'};
+      case 'PLUS':   return {f:440.00, w:'triangle'};
+      default:       return {f:311.13, w:'sine'};
+    }
+  }
+  colorOffset(index){ const offsets=[0,2,4,7,9]; return offsets[index % offsets.length]; }
+  pegHit(shape, colorIndex){
+    const base=this.shapeNote(shape);
+    const freq = base.f * Sounder.semi(this.colorOffset(colorIndex));
+    this.play(freq, 0.12, base.w, 0.14);
+  }
+  wallBounce(){ if(!this._can('wall', 40)) return; this.play(300,0.08,'sine',0.10); }
+  ceilingBounce(){ if(!this._can('ceil', 40)) return; this.play(340,0.08,'sine',0.10); }
+  bumperBounce(){ if(!this._can('bumper', 40)) return; this.play(520,0.10,'square',0.12); }
+  blockThunk(){ if(!this._can('block', 50)) return; this.play(220,0.10,'square',0.12); }
+  hazardZap(){ this.play(160,0.18,'sawtooth',0.14); }
+  multiballBurst(){ this.play(880,0.12,'sine',0.14); this.play(1047,0.12,'sine',0.12); }
+  extraLife(){ this.play(740,0.12,'triangle',0.14); }
+  powerup(){ this.play(660,0.18,'triangle',0.16); }
+  explosion(){ this.play(180,0.25,'sawtooth',0.18); }
+  _can(name, minMs){
+    const now = performance.now();
+    const t = this._throttle[name] || 0;
+    if (now - t < minMs) return false;
+    this._throttle[name] = now;
+    return true;
+  }
+}
+
+// Built-in synth music (file-free). Starts after first user gesture.
+class Music {
+  constructor() {
+    this.ac = null;
+    this.master = null;
+
+    this.enabled = true;
+    this.running = false;
+    this.timerID = null;
+    this.lookahead = 0.1;
+    this.scheduleInterval = 25;
+    this.nextNoteTime = 0;
+    this.step = 0;               // 0..15
+    this.bpm = 110;
+
+    this.levelId = 1;
+    this.scale = [0,2,4,7,9];
+
+    // New: dynamic groove controls
+    this.style = 'groove';   // 'groove' | 'house' | 'breaks'
+    this.swing = 0.0;        // 0..1 fraction of a 16th
+    this.barCount = 0;
+
+    // Total number of levels (for tempo ramp); default to 10 if unknown
+    this.totalLevels = 10;
+
+    // If play() is called before context ready, remember and start once ready
+    this.pendingLevelId = null;
+  }
+
+  _ensureNodes(){
+    // Get or create context lazily
+    this.ac = AudioGraph.getContext();
+    if(!this.ac) return false;
+    // Resume if suspended
+    if(this.ac.state === 'suspended') {
+      this.ac.resume().catch(()=>{});
+    }
+    if(!this.master){
+      this.master = this.ac.createGain();
+      this.master.gain.value = 0.28;
+      // Global low-pass to prevent any high-pitch content
+      this.toneLP = this.ac.createBiquadFilter();
+      this.toneLP.type = 'lowpass';
+      this.toneLP.frequency.value = 2000; // cap highs
+      this.toneLP.Q.value = 0.7;
+      // Sidechain pump after tone shaping
+      this.pump = this.ac.createGain();
+      this.pump.gain.value = 1.0;
+      this.master.connect(this.toneLP);
+      this.toneLP.connect(this.pump);
+      if (AudioGraph.musicBus) this.pump.connect(AudioGraph.musicBus);
+    }
+    return true;
+  }
+
+  // --- helpers ---
+  _envGain(at, a=0.005, d=0.08, s=0.0, r=0.12, peak=0.9){
+    const g=this.ac.createGain();
+    g.gain.setValueAtTime(0, at);
+    g.gain.linearRampToValueAtTime(peak, at+a);
+    g.gain.linearRampToValueAtTime(s, at+a+d);
+    g.gain.linearRampToValueAtTime(0.0001, at+a+d+r);
+    return g;
+  }
+  _freq(semi){ return 220*Math.pow(2, semi/12); }
+  _rand(prob){ return Math.random() < prob; }
+  _euclid(k, n, step){ // simple Euclidean trigger
+    // k pulses in n steps
+    return (step * k) % n < k;
+  }
+
+  _kick(at){
+    const o=this.ac.createOscillator(); o.type='sine';
+    const g=this._envGain(at, 0.001, 0.06, 0, 0.12, 1.2);
+    o.frequency.setValueAtTime(140, at);
+    o.frequency.exponentialRampToValueAtTime(45, at+0.12);
+    o.connect(g); g.connect(this.master);
+    o.start(at); o.stop(at+0.2);
+
+    // New: light pump (duck) on kick
+    if(this.pump){
+      this.pump.gain.setValueAtTime(0.82, at);
+      this.pump.gain.linearRampToValueAtTime(1.0, at+0.15);
+    }
+  }
+  _noiseBuffer(){
+    const len=this.ac.sampleRate*0.5;
+    const buf=this.ac.createBuffer(1,len,this.ac.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<len;i++){ d[i]=Math.random()*2-1; }
+    return buf;
+  }
+  _snare(at){
+    // Lower, softer snare focused on mids (no bright top)
+    const src=this.ac.createBufferSource(); src.buffer=this._noiseBuffer();
+    const bp=this.ac.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1100; bp.Q.value=0.5;
+    const g=this._envGain(at,0.001,0.08,0,0.10,0.6);
+    src.connect(bp); bp.connect(g); g.connect(this.master);
+    src.start(at); src.stop(at+0.16);
+  }
+  _hat(at, open=false){
+    const src=this.ac.createBufferSource(); src.buffer=this._noiseBuffer();
+    const hp=this.ac.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=5500; hp.Q.value=0.7;
+    const g=this._envGain(at,0.001, open?0.12:0.02,0, open?0.18:0.04, open?0.4:0.25);
+    src.connect(hp); hp.connect(g); g.connect(this.master);
+    src.start(at); src.stop(at+(open?0.28:0.08));
+  }
+  _bass(at, semi){
+    const o=this.ac.createOscillator(); o.type='sawtooth';
+    const lp=this.ac.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=420;
+    const g=this._envGain(at,0.005,0.08,0.05,0.18,0.5);
+    o.frequency.setValueAtTime(this._freq(semi), at);
+    o.connect(lp); lp.connect(g); g.connect(this.master);
+    o.start(at); o.stop(at+0.35);
+  }
+  _lead(at, semi){
+    const o=this.ac.createOscillator(); o.type='triangle';
+    const g=this._envGain(at,0.006,0.10,0.05,0.22,0.35);
+    o.frequency.setValueAtTime(this._freq(semi), at);
+    o.connect(g); g.connect(this.master);
+    o.start(at); o.stop(at+0.5);
+
+    // New: occasional grace note for variation
+    if(this._rand(0.25)){
+      const o2=this.ac.createOscillator(); o2.type='triangle';
+      const g2=this._envGain(at+0.02,0.004,0.06,0.03,0.12,0.25);
+      o2.frequency.setValueAtTime(this._freq(semi+ (this._rand(0.5)?+2:-2)), at+0.02);
+      o2.connect(g2); g2.connect(this.master);
+      o2.start(at+0.02); o2.stop(at+0.3);
+    }
+  }
+
+  // Set total level count to scale BPM across the whole campaign
+  setTotalLevels(n){
+    const v = Math.max(1, n|0);
+    this.totalLevels = v;
+  }
+
+  _setLevelParams(id){
+    this.levelId=id;
+    const bases=[0,2,3,5,7,9,10];
+    const base = bases[(id-1)%bases.length];
+    this.scale=[base, base+2, base+4, base+7, base+9];
+
+    // Scale BPM from min..max across the campaign length
+    const total = Math.max(1, this.totalLevels|0);
+    const idx = Math.min(id-1, total-1);
+    const t = total<=1 ? 0 : (idx/(total-1));
+    const BPM_MIN = 100, BPM_MAX = 130; // final level hits BPM_MAX regardless of how many levels exist
+    this.bpm = BPM_MIN + (BPM_MAX - BPM_MIN) * t;
+
+    // New: style + swing per level
+    const styles=['groove','house','breaks'];
+    this.style = styles[(id-1)%styles.length];
+    this.swing = this.style==='house' ? 0.12 : (this.style==='breaks' ? 0.06 : 0.0);
+  }
+
+  _pattern(step){
+    // Dynamic but hat/lead-free patterning
+    const s16 = step % 16;
+    const onFill = (this.barCount % 8 ===  7) && (s16>=12);
+
+    let kick=false, snr=false, bassDeg=0;
+
+    if(this.style==='breaks'){
+      kick = (s16===0)||(s16===3)||(s16===8)||(s16===11) || (onFill && this._rand(0.6));
+      snr  = (s16===4)||(s16===12) || (onFill && this._rand(0.5));
+    } else if(this.style==='house'){
+      kick = (s16%4===0) || (s16===8);
+      snr  = (s16%8===4) || (onFill && this._rand(0.4));
+    } else { // groove
+      kick = (s16%4===0) || (s16===10);
+      snr  = (s16%8===4) || (onFill && this._rand(0.4));
+    }
+
+    const bassMap = this.style==='breaks' ? [0,3,4,0] : [0,0,3,4];
+    bassDeg = bassMap[Math.floor(s16/4)%4];
+
+    return {kick,snr,bassDeg};
+  }
+
+  _schedule(){
+    if (!this.ac) return; // Guard against null context
+    // Try to resume if suspended
+    if (this.ac.state === 'suspended') {
+      this.ac.resume().catch(()=>{});
+    }
+    const secPerBeat = 60/this.bpm;
+    while(this.nextNoteTime < (this.ac.currentTime + this.lookahead)){
+      const s = this.step % 16;
+      const swingOffset = (this.swing>0 && (s%2===1)) ? this.swing*(secPerBeat/4) : 0.0;
+      const t = this.nextNoteTime + swingOffset;
+
+      const p = this._pattern(this.step);
+
+      if(p.kick) this._kick(t);
+      if(p.snr)  this._snare(t);
+
+      const bass = this.scale[p.bassDeg%this.scale.length]-12;
+      if(s%4===0 || this._rand(0.12)) this._bass(t, bass);
+
+      this.nextNoteTime += secPerBeat/4; // 16ths
+      if(s===15) this.barCount++;
+      this.step++;
+    }
+  }
+  // Add missing tick loop (drives scheduler)
+  _tick(){
+    if(!this.running) return;
+    this._schedule();
+    this.timerID = setTimeout(()=>this._tick(), this.scheduleInterval);
+  }
+
+  play(levelId){
+    if (!this.enabled){ this.pendingLevelId = levelId; return; }
+    // Synchronous resume for iOS compatibility
+    if(!this._ensureNodes()){ this.pendingLevelId = levelId; return; }
+    if(this.ac && this.ac.state === 'suspended') this.ac.resume();
+    this._setLevelParams(levelId||1);
+    this.step = 0;
+    this.nextNoteTime = this.ac.currentTime + 0.05;
+    if(!this.running){ this.running = true; this._tick(); }
+  }
+  pause(){
+    if(this.running){
+      this.running=false;
+      if(this.timerID){ clearTimeout(this.timerID); this.timerID=null; }
+    }
+  }
+  resume(){
+    if(!this.enabled) return;
+    if(!this._ensureNodes()) return;
+    if(this.ac && this.ac.state === 'suspended') this.ac.resume();
+    if(!this.running){ this.running=true; this.nextNoteTime=this.ac.currentTime+0.05; this._tick(); }
+  }
+  toggle(){ this.enabled=!this.enabled; if(!this.enabled) this.pause(); else this.resume(); }
+}
+
+// Add this near the top-level (before class Game), so TTS exists when called.
+const TTS = {
+  get enabled() { 
+      return window.NarbeVoiceManager ? window.NarbeVoiceManager.getSettings().ttsEnabled : true; 
+  },
+  set enabled(val) { 
+      if(window.NarbeVoiceManager) {
+          window.NarbeVoiceManager.updateSettings({ttsEnabled: val});
+      }
+  },
+  speak(text, interrupt = true){
+    if(window.NarbeVoiceManager) {
+        // Voice manager handles queueing/interrupting internally usually, 
+        // but checking the file, speak() does calls cancel().
+        window.NarbeVoiceManager.speak(text);
+    }
+  },
+  cancel(){ 
+      if(window.NarbeVoiceManager) window.NarbeVoiceManager.cancel(); 
+  }
+};
+
+// Robust exit helper: Navigate back to Hub
+function exitApp(){
+  TTS.speak('Exiting to Hub');
+  setTimeout(() => {
+    if (window.parent && window.parent !== window) {
+      // Signal Hub to close the iframe
+      window.parent.postMessage({ action: 'focusBackButton' }, '*');
+    } else {
+      // Fallback if not running in Hub iframe
+      window.location.href = "../../../index.html";
+    }
+  }, 500);
+}
+
+/*******************
+ * Game
+ *******************/
+class Game{
+  constructor(){
+    this.canvas=document.getElementById('gameCanvas');
+    this.ctx=this.canvas.getContext('2d');
+    this.resize();
+    window.addEventListener('resize',()=>this.resize());
+
+    this.sound=new Sounder();
+    this.music=new Music();
+
+    // Ensure no celebration visuals at startup
+    if (VIS && VIS.resetCelebration) VIS.resetCelebration();
+
+    // inputs
+    this.isSpace=false; this.isEnter=false; this.enterAt=0; this.enterTimer=null;
+
+    // aim
+    this.aim={x:BASE_W/2,y:60,angle:0};
+    this.aimOsc=false; this.aimDir=1; this.aimSpeed=0.0065625;
+    this.aimMin=-Math.PI/2; this.aimMax=Math.PI/2;
+    // Trajectory aimer uses the in-game ball radius for accurate intersections
+    this.ballR = 12;
+
+    // gameplay
+    this.bumper={x:100,y:BASE_H-28,w:160*3,h:18,vx:1.4,active:true};
+    this.mult=1; this.combo=0; this.comboMax=120;
+    this.score=0; this.ballsLeft=5;
+    this.pegsLeft=0;
+    this.balls=[]; this.pegs=[];
+    this.menuOpen=false; this.menuIndex=-1;
+    this.retryUsed=false;
+
+    // power-ups
+    this.nextPowers=new Set();
+    this.pendingWin=false;
+
+    // overlays
+    this.gameOverUntil = 0;
+    // Snapshot of final score for consistent TTS and on-screen display
+    this.finalScore = null;
+
+    // dynamic levels meta
+    this.bestStreak = 0;
+    this.nextScorePowerAt = this.bonusStep;
+    this.currentId=1; this.state='aiming'; this.paused=false;
+    this.totalLevels = 0;
+    this.levelsFrom = 'builtin';
+
+    // NEW: guard to ensure handleLoss() runs once per game over
+    this._inGameOver = false;
+
+    // NEW: app-level menus and catalog
+    this.appState = 'mainmenu'; // 'mainmenu' | 'difficulty' | 'games' | 'game' | 'settings' | 'editorWarning'
+    this.mainMenuIndex = 0;     // Select Level(Toggle) / Play Game / Custom(Editor) / Settings / Exit
+    this.gamesIndex = 0;        // selection in games list (includes "Back")
+    this.gamesList = [];        // discovered JSONs
+
+    // Settings Menu
+    this.settingsIndex = 0;
+    this.aimerModes = [
+        { name:'White', val:'#ffffff' },
+        { name:'Red',   val:'#ff4444' },
+        { name:'Green', val:'#55ff55' },
+        { name:'Blue',  val:'#44aaff' },
+        { name:'Gold',  val:'#ffd700' },
+        { name:'Pink',  val:'#ff77cc' }
+    ];
+    this.aimerIndex = 0;
+
+    // NEW: Control Mode & Scan Speed
+    const sm = window.NarbeScanManager;
+    const smSettings = sm ? sm.getSettings() : { autoScan: false, scanSpeedIndex: 1 };
+
+    this.autoScan = smSettings.autoScan; 
+
+    // Sync with NarbeScanManager speeds
+    const rawSpeeds = sm ? sm.getAvailableSpeeds() : [1000, 2000, 3000, 4000];
+    this.scanSpeeds = rawSpeeds.map(dur => {
+        let name = (dur/1000) + 's';
+        if(dur < 2000) name = 'Fast ('+name+')';
+        else if(dur < 3000) name = 'Medium ('+name+')';
+        else if(dur === 3000) name = 'Slow ('+name+')';
+        else name = 'Super Slow ('+name+')';
+        return { name, dur };
+    });
+    this.scanSpeedIndex = smSettings.scanSpeedIndex >= 0 && smSettings.scanSpeedIndex < this.scanSpeeds.length 
+                          ? smSettings.scanSpeedIndex : 1;
+    
+    // Subscribe to external changes
+    if(sm) {
+        sm.subscribe((newSettings) => {
+            this.autoScan = newSettings.autoScan;
+            if(newSettings.scanSpeedIndex >= 0 && newSettings.scanSpeedIndex < this.scanSpeeds.length){
+                this.scanSpeedIndex = newSettings.scanSpeedIndex;
+            }
+        });
+    }
+
+    this.aimerSpeeds = [
+        { name:'Fast',   val: (Math.PI / 1.5 / 60) * 0.5 },
+        { name:'Medium', val: (Math.PI / 1.5 / 60) * 0.7 * 0.5 },
+        { name:'Slow',   val: (Math.PI / 1.5 / 60) * 0.7 * 0.7 * 0.5 },
+        { name:'Super Slow', val: (Math.PI / 1.5 / 60) * 0.7 * 0.7 * 0.7 * 0.5 }
+    ];
+    this.aimerSpeedIndex = 3;
+    this.aimSpeed = this.aimerSpeeds[this.aimerSpeedIndex].val; 
+
+    this.warningPrevState = 'mainmenu'; // to return to correct menu on cancel
+    this.warningIndex = 0; // 0=Proceed, 1=Cancel
+
+    // Difficulty + pending start context
+    this.difficulty = 'easy';
+    this.bonusStep = 10000; // Easy default = 10,000
+    this.difficultyIndex = 0;      // 0 Easy, 1 Medium, 2 Hard
+    this.pendingStartKind = null;  // 'builtin' | 'custom'
+
+    // Gate win checks until level is fully ready (fixes quick-start skip)
+    this.levelReadyAt = 0;
+
+    this.mouse = { x: 0, y: 0, active: false };
+    this.homeBtnRect = { x: 10, y: 9, w: 24, h: 24 };
+    // Crosshair (mouse-play) toggle: default ON for mobile
+    this.crosshairEnabled = isMobile();
+    this.crosshairBtnRect = { x: 40, y: 9, w: 24, h: 24 };
+
+    // Touch/tap state for mobile drag-to-aim + tap-to-fire
+    this._touch = { active:false, startX:0, startY:0, startTime:0, dragged:false };
+
+    document.addEventListener('keydown',(e)=>this.keyDown(e));
+    document.addEventListener('keyup',(e)=>this.keyUp(e));
+    document.addEventListener('pointerdown',(e)=>this.pointerDown(e));
+    
+    // iOS CRITICAL: touchstart is required for audio unlock on iOS Safari
+    document.addEventListener('touchstart', () => {
+      if (!AudioGraph.ac) AudioGraph.getContext();
+      AudioGraph.resume();
+    }, { passive: true });
+
+    // Frame timing (set before starting loop to avoid NaN on first frame)
+    this.lastRAF = performance.now();
+    this.frameDtSec = 1/60;
+
+    window.addEventListener('error', (e)=>{ this.lastError = e?.message || String(e); });
+    // Also catch async errors
+    window.addEventListener('unhandledrejection', (e)=>{ this.lastError = (e?.reason && e.reason.message) ? e.reason.message : String(e?.reason || e); });
+
+    // Mouse aiming state + listeners (moved above loop so draw() can read safely)
+    this.canvas.addEventListener('pointerenter', ()=>this.onPointerEnter());
+    this.canvas.addEventListener('pointerleave', ()=>this.onPointerLeave());
+    this.canvas.addEventListener('pointermove', (e)=>this.onPointerMove(e));
+
+    // Ensure initial cursor based on crosshair state
+    this.canvas.style.cursor = (this.crosshairEnabled && !this.menuOpen) ? 'none' : 'default';
+
+    // New: Handle keyboard/mouse sync for main menu text update
+    // When cycling levels, we need to redraw. Loop handles draw, but logic needs to trigger updates.
+    
+    // Now start the loop after inputs are initialized
+    // Also listen for pointerup to activate on release
+    // Listen on document so release works even if pointer leaves the canvas
+    document.addEventListener('pointerup', (e)=>this.pointerUp(e));
+
+    this.loadSettings();
+
+    // Now start the loop after inputs are initialized
+    this.loop();
+  }
+
+  saveSettings(){
+      const data = {
+          music: this.music.enabled,
+          // TTS enabled state is managed via shared manager, but we save basic state here too
+          aimerIndex: this.aimerIndex,
+          autoScan: this.autoScan,
+          scanSpeedIndex: this.scanSpeedIndex,
+          aimerSpeedIndex: this.aimerSpeedIndex,
+          crosshairEnabled: this.crosshairEnabled
+      };
+      
+      // Update Shared Managers
+      if(window.NarbeScanManager) {
+          window.NarbeScanManager.updateSettings({
+            autoScan: this.autoScan,
+            scanSpeedIndex: this.scanSpeedIndex
+          });
+      }
+      
+      try { localStorage.setItem('bensPeggleV4Settings', JSON.stringify(data)); } catch(e){}
+  }
+
+  loadSettings(){
+      try {
+          const raw = localStorage.getItem('bensPeggleV4Settings');
+          if(!raw) return;
+          const data = JSON.parse(raw);
+          if(typeof data.music === 'boolean') { 
+              this.music.enabled = data.music;
+          }
+          // We rely on VoiceManager for TTS state, so ignore local override unless manager is missing
+          if(!window.NarbeVoiceManager && typeof data.tts === 'boolean') TTS.enabled = data.tts;
+          
+          if(typeof data.aimerIndex === 'number') this.aimerIndex = data.aimerIndex % this.aimerModes.length;
+          
+          // Use shared scan manager settings if available
+          if(!window.NarbeScanManager) {
+             if(typeof data.autoScan === 'boolean') this.autoScan = data.autoScan;
+             if(typeof data.scanSpeedIndex === 'number') this.scanSpeedIndex = data.scanSpeedIndex % this.scanSpeeds.length;
+          }
+
+          if(typeof data.aimerSpeedIndex === 'number') {
+              this.aimerSpeedIndex = data.aimerSpeedIndex % this.aimerSpeeds.length;
+              this.aimSpeed = this.aimerSpeeds[this.aimerSpeedIndex].val;
+          }
+          if(typeof data.crosshairEnabled === 'boolean') {
+              this.crosshairEnabled = data.crosshairEnabled;
+              this.canvas.style.cursor = (this.crosshairEnabled && !this.menuOpen) ? 'none' : 'default';
+          }
+      } catch(e){}
+  }
+
+  resize(){
+    const raw = window.devicePixelRatio || 1;
+    // On mobile keep DPR=1; on desktop clamp to 1.5 to reduce fill-rate
+    const dpr = isMobile() ? 1 : Math.min(raw, 1.5);
+    this.canvas.width = Math.floor(window.innerWidth * dpr);
+    this.canvas.height = Math.floor(window.innerHeight * dpr);
+    this.ctx.setTransform(this.canvas.width/BASE_W,0,0,this.canvas.height/BASE_H,0,0);
+  }
+
+  keyDown(e){
+    // Menus: allow Escape to go back from Custom Games
+    if(this.appState !== 'game'){
+      if(e.code==='Escape' && this.appState==='games'){
+        e.preventDefault();
+        this.appState='mainmenu';
+        this.mainMenuIndex=0;
+        TTS.speak('Main menu');
+      }
+      // Escape from Difficulty -> Main Menu
+      if(e.code==='Escape' && this.appState==='difficulty'){
+        e.preventDefault();
+        this.appState='mainmenu';
+        this.mainMenuIndex=0;
+        TTS.speak('Main menu');
+        return;
+      }
+      // Handle Enter on keydown: only mark pressed; do not activate here
+      if(this._isEnter(e)){
+        e.preventDefault();
+        this._menuEnterDown = true;
+        return;
+      }
+      if(this._isSpace(e)){ 
+          e.preventDefault(); 
+          // Start Long Hold Logic for Back Scan
+          if(!this.backScanDelay && !this.backScanInterval && !this.backScanActive){
+             const dur = this.scanSpeeds[this.scanSpeedIndex].dur || 2500;
+             this.backScanDelay = setTimeout(()=>{
+                 this.backScanActive = true;
+                 this._stepMenu(-1);
+                 this.backScanInterval = setInterval(()=>this._stepMenu(-1), dur);
+             }, 3000); // 3 seconds hold threshold
+          }
+      }
+      return;
+    }
+
+    // Existing in-game key handling
+    if(e.code==='Space'){
+      e.preventDefault();
+      if(!this.isSpace){
+        this.isSpace = true;
+        if(!this.menuOpen){
+          // Hold-to-aim: start aiming on press and flip direction each new press
+          this.aimDir *= -1;
+          this.aimOsc = true;
+        }
+      }
+    } else if(e.code==='Enter'){
+      e.preventDefault();
+      if(!this.isEnter){
+        this.isEnter=true;
+        this.enterAt=performance.now();
+        // Enter hold opens menu: 2s for Auto Scan (Single Button), 5s for Normal
+        const holdTime = this.autoScan ? 2000 : 5000;
+        this.enterTimer=setTimeout(()=>{ if(this.isEnter){ this.openMenu(); } }, holdTime);
+      }
+    }
+    // Allow loading local JSON via keyboard when fetch is blocked (file://)
+    else if(e.code==='KeyL'){
+      if(LevelLoader.needsPicker){
+        e.preventDefault();
+        LevelLoader.pickLocal().then(ok=>{
+          if(ok){
+            this.totalLevels = LevelLoader.total();
+            this.levelsFrom = LevelLoader.source;
+            if(this.music && this.music.setTotalLevels) this.music.setTotalLevels(this.totalLevels || 10);
+            this.resetRun(); // restart at level 1 with new custom levels
+          } else if(LevelLoader.lastError){
+            this.lastError = 'Levels load error: ' + LevelLoader.lastError;
+          }
+        });
+      }
+    }
+  }
+
+  keyUp(e){
+    // App-level menus: release-driven navigation
+    if(this.appState !== 'game'){
+      if(this._isSpace(e)){
+        e.preventDefault();
+        // Clear back-scan setup
+        if(this.backScanDelay){ clearTimeout(this.backScanDelay); this.backScanDelay=null; }
+        if(this.backScanInterval){ clearInterval(this.backScanInterval); this.backScanInterval=null; }
+        
+        // Only cycle forward if back scan didn't activate
+        if(!this.backScanActive){
+           this._stepMenu(1);
+        }
+        this.backScanActive = false;
+      } else if(this._isEnter(e)){
+        // Activate on release only
+        e.preventDefault();
+        if(!this._menuEnterDown){ return; }
+        this._menuEnterDown = false;
+
+        if(this.appState==='mainmenu'){
+          this.lastMenuScan = performance.now() + 1000;
+          if(this.mainMenuIndex===0){
+            LevelLoader.cyclePack().then(()=>{
+                TTS.speak('Selected ' + LevelLoader.getCurrentPackName());
+            });
+          }
+          else if(this.mainMenuIndex===1){
+             if(LevelLoader.total() > 0){
+                this.pendingStartKind = 'builtin'; 
+                this.appState = 'difficulty';
+                // Reset scan timer
+                this.lastMenuScan = performance.now() + 1000;
+                TTS.speak('Select difficulty');
+             } else {
+                TTS.speak('No levels loaded');
+             }
+          }
+          else if(this.mainMenuIndex===2){
+             // "Load Custom Game" -> Load Warning -> File Picker
+             this.appState = 'loadWarning';
+             this.warningPrevState = 'mainmenu';
+             this.warningIndex = -1; // -1 = None selected
+             this.lastMenuScan = performance.now() + 1000; // Reset scan timer
+             TTS.speak('Load Custom File. Cancel or Proceed?');
+          }
+          else if(this.mainMenuIndex===3){
+             // Settings
+             this.appState = 'settings';
+             this.settingsIndex = 0;
+             this.lastMenuScan = performance.now() + 1000; // Reset scan timer
+             TTS.speak('Settings Menu');
+          }
+          else {
+            exitApp();
+          }
+        } else if(this.appState==='settings'){
+            // 0:Music, 1:TTS, 2:Aimer, 3:Control, 4:Speed, 5:Editor, 6:Back
+            const idx = this.settingsIndex;
+            // Pad interaction for toggles
+            this.lastMenuScan = performance.now() + 1000;
+
+            if(idx===0){
+                this.music.toggle();
+                this.saveSettings();
+                TTS.speak(this.music.enabled?'Music On':'Music Off');
+            } else if(idx===1){
+                TTS.enabled = !TTS.enabled;
+                this.saveSettings();
+                TTS.speak(TTS.enabled?'TTS On':'TTS Off');
+            } else if(idx===2){
+                this.aimerIndex = (this.aimerIndex + 1) % this.aimerModes.length;
+                this.saveSettings();
+                TTS.speak('Aimer ' + this.aimerModes[this.aimerIndex].name);
+            } else if(idx===3){
+                this.autoScan = !this.autoScan;
+                this.saveSettings();
+                TTS.speak(this.autoScan ? 'Auto Scan On' : 'Auto Scan Off');
+            } else if(idx===4){
+                this.scanSpeedIndex = (this.scanSpeedIndex + 1) % this.scanSpeeds.length;
+                this.saveSettings();
+                TTS.speak('Scan Speed ' + this.scanSpeeds[this.scanSpeedIndex].name);
+            } else if(idx===5){
+                this.aimerSpeedIndex = (this.aimerSpeedIndex + 1) % this.aimerSpeeds.length;
+                this.aimSpeed = this.aimerSpeeds[this.aimerSpeedIndex].val;
+                this.saveSettings();
+                TTS.speak('Aimer Speed ' + this.aimerSpeeds[this.aimerSpeedIndex].name);
+            } else if(idx===6){
+                 this.appState = 'editorWarning';
+                 this.warningPrevState = 'settings';
+                 this.warningIndex = -1; // -1 = None selected
+                 this.lastMenuScan = performance.now() + 1000; // Reset scan timer
+                 TTS.speak('Opening Level Creator. Cancel or Proceed?');
+            } else {
+                this.appState = 'mainmenu';
+                this.lastMenuScan = performance.now() + 1000; // Reset scan timer
+                TTS.speak('Main menu');
+            }
+        } else if(this.appState==='editorWarning' || this.appState==='loadWarning'){
+            this.lastMenuScan = performance.now() + 1000; // Reset scan timer
+            if(this.warningIndex===1){
+                // Proceed (1)
+                if(this.appState==='editorWarning'){
+                    window.open('BENNYS-PEGGLE-EDITOR2.html', '_blank');
+                    this.appState = this.warningPrevState;
+                    this.lastMenuScan = performance.now() + 1000;
+                } else {
+                    // Load Custom
+                    LevelLoader.pickLocal().then(ok => {
+                        if(ok){
+                             this.pendingStartKind = 'custom';
+                             this.appState = 'difficulty'; 
+                             TTS.speak('Game loaded. Select difficulty');
+                             this.lastMenuScan = performance.now() + 1000;
+                        } else {
+                             this.appState = 'mainmenu';
+                             this.lastMenuScan = performance.now() + 1000;
+                        }
+                    });
+                }
+            } else if(this.warningIndex===0) {
+                // Cancel (0)
+                this.appState = this.warningPrevState;
+                this.lastMenuScan = performance.now() + 1000;
+                TTS.speak('Cancelled');
+            }
+        } else if(this.appState==='difficulty'){
+          this.lastMenuScan = performance.now() + 1000;
+          this.confirmDifficultySelection();
+        } else if(this.appState==='games'){
+          this.lastMenuScan = performance.now() + 1000;
+          const entry = this.gamesList[this.gamesIndex];
+          this.selectGameEntry(entry);
+        }
+      }
+      return;
+    }
+
+    // In-game: release-driven pause menu scan/select and aim stop
+    if(e.code==='Space'){
+      e.preventDefault();
+      if(this.menuOpen){
+        // Cycle pause menu on release
+        if(this.menuIndex===-1){ this.menuIndex=0; }
+        else {
+          const len = this._menuItems().length;
+          this.menuIndex=(this.menuIndex+1)%len;
+        }
+        this._speakMenuItem();
+      } else {
+        // Stop aiming on release
+        this.aimOsc = false;
+      }
+      this.isSpace=false;
+    } else if(e.code==='Enter'){
+      e.preventDefault();
+      if(this.isEnter){
+        const held=performance.now()-this.enterAt;
+        this.isEnter=false;
+        if(this.enterTimer){ clearTimeout(this.enterTimer); this.enterTimer=null; }
+
+        const holdTime = this.autoScan ? 2000 : 5000;
+
+        // If a menu item was focused, select it on release
+        if(this.menuOpen){
+          if(held<holdTime){ this.menuSelect(); }
+          return;
+        }
+        // Not in menu: quick press fires (release-driven)
+        if(held<holdTime && this.state==='aiming' && !this.paused){ this.fire(); }
+      }
+    }
+  }
+
+  // Difficulty menu helpers
+  _difficultyItems(){ return ['Back','Easy','Medium','Hard']; }
+  setDifficultyFromIndex(i){
+    const map = [
+      { name:'easy',   step: 10000 }, // Easy = 10,000
+      { name:'medium', step: 20000 }, // Medium = 20,000
+      { name:'hard',   step: 40000 }  // Hard = 40,000
+    ];
+    const sel = map[Math.max(0, Math.min(i|0, map.length-1))];
+    this.difficulty = sel.name;
+    this.bonusStep = sel.step;
+  }
+  openDifficulty(kind){
+    this.pendingStartKind = kind; // 'builtin' | 'custom'
+    // keep current difficulty selection; announce context
+    this.appState = 'difficulty';
+    this.lastMenuScan = performance.now(); // Reset scan timer
+    // Default selection reflects current difficulty (offset by Back at index 0)
+    const cur = { easy:1, medium:2, hard:3 }[this.difficulty] ?? 1;
+    this.difficultyIndex = cur;
+    const msg = (kind==='custom') ? 'Select difficulty for custom game' : 'Select difficulty';
+    TTS.speak(msg);
+  }
+  confirmDifficultySelection(){
+    const idx = this.difficultyIndex|0;
+    if (idx === 0){
+      // Back -> Main Menu
+      this.appState = 'mainmenu';
+      this.mainMenuIndex = 0;
+      TTS.speak('Main menu');
+      return;
+    }
+    // Map 1..3 to Easy..Hard (0 was Back)
+    this.setDifficultyFromIndex(idx - 1);
+    
+    // For both 'builtin' (current pack) and 'custom' (loaded file), just start
+    // because custom loading is now done BEFORE difficulty selection.
+    if(this.pendingStartKind === 'builtin'){
+      LevelLoader.resetToBuiltin();
+    }
+    this.startCampaign();
+  }
+
+  openMenu(){
+    // Always disable mouse play in the pause menu and show OS cursor
+    this.crosshairEnabled = false;
+    this.canvas.style.cursor = 'default';
+
+    this.menuOpen=true; this.paused=true; this.music.pause(); this.menuIndex = (this.menuIndex<0?0:this.menuIndex);
+    this.lastMenuScan = performance.now();
+    TTS.speak('Pause menu', true);
+  }
+  closeMenu(){
+    this.menuOpen=false; this.paused=false; this.music.resume();
+  }
+
+  _menuItems(){
+    // Dynamic items for TTS and music toggles
+    const aimC = this.aimerModes[this.aimerIndex].name;
+    const spd = this.scanSpeeds[this.scanSpeedIndex].name;
+    const aimSpd = this.aimerSpeeds[this.aimerSpeedIndex].name;
+    return [
+      'Resume game',
+      `Toggle music (${this.music.enabled? 'On':'Off'})`,
+      `Toggle TTS (${TTS.enabled? 'On':'Off'})`,
+      `Aimer: ${aimC}`,
+      `Scan Speed: ${spd}`,
+      `Aimer Speed: ${aimSpd}`,
+      'Main menu',
+      'Exit'
+    ];
+  }
+  _speakMenu(){
+    // Only announce opening of pause menu; do not enumerate items or speak selection here
+    TTS.speak('Pause menu', true);
+  }
+  _speakMenuItem(){
+    const items = this._menuItems();
+    if(this.menuOpen && this.menuIndex>=0) TTS.speak(items[this.menuIndex], true);
+  }
+
+  // Helper to handle auto-scan for all menus
+  _stepMenu(dir){
+    if(this.appState==='mainmenu'){
+      const len = 5; 
+      this.mainMenuIndex = (this.mainMenuIndex + dir + len) % len;
+      const packName = LevelLoader.getCurrentPackName();
+      const labels = [`Select Level: ${packName}`, 'Play Game', 'Load Custom Game', 'Settings', 'Exit Game'];
+      TTS.speak(labels[this.mainMenuIndex]);
+    } else if(this.appState==='settings'){
+      const len = 8; 
+      this.settingsIndex = (this.settingsIndex + dir + len) % len;
+      const aimC = this.aimerModes[this.aimerIndex].name;
+      const scan = (this.autoScan ? 'On' : 'Off');
+      const spd = this.scanSpeeds[this.scanSpeedIndex].name;
+      const aimSpd = this.aimerSpeeds[this.aimerSpeedIndex].name;
+      const mus = (this.music.enabled?'On':'Off');
+      const tts = (TTS.enabled?'On':'Off');
+      const labels = [
+          `Music: ${mus}`, 
+          `TTS: ${tts}`, 
+          `Aimer Color: ${aimC}`, 
+          `Auto Scan: ${scan}`,
+          `Scan Speed: ${spd}`,
+          `Aimer Speed: ${aimSpd}`,
+          'Load Level Creator', 
+          'Back'
+      ];
+      TTS.speak(labels[this.settingsIndex]);
+    } else if(this.appState==='editorWarning' || this.appState==='loadWarning'){
+      const len = 2; 
+      if(this.warningIndex === -1 && dir !== 0){
+          // If unselected, start at 0 (Cancel) for next, or 1 (Proceed) for prev? 0 is safer default.
+          this.warningIndex = 0; 
+      } else {
+          this.warningIndex = (this.warningIndex + dir + len) % len;
+      }
+      TTS.speak(this.warningIndex===0 ? 'Cancel' : 'Proceed');
+    } else if(this.appState==='difficulty'){
+      const items = this._difficultyItems();
+      this.difficultyIndex = (this.difficultyIndex + dir + items.length) % items.length;
+      TTS.speak(items[this.difficultyIndex]);
+    } else if(this.appState==='games'){
+      if(this.gamesList && this.gamesList.length>0){
+        this.gamesIndex = (this.gamesIndex + dir + this.gamesList.length) % this.gamesList.length;
+        const label = this.gamesList[this.gamesIndex]?.name || '';
+        TTS.speak(label);
+      }
+    }
+  }
+
+  _autoScan() {
+      if (!this.autoScan) return;
+      
+      const now = performance.now();
+      const dur = this.scanSpeeds[this.scanSpeedIndex].dur || 2500;
+      if (now - (this.lastMenuScan || 0) <= dur) return;
+
+      this.lastMenuScan = now;
+
+      // In-Game Pause Menu
+      if(this.menuOpen && this.appState === 'game'){
+          this.menuIndex = (this.menuIndex + 1) % this._menuItems().length;
+          this._speakMenuItem();
+          return;
+      }
+
+      // App menus
+      this._stepMenu(1);
+  }
+
+  menuSelect(){
+    const items = this._menuItems();
+    this.lastMenuScan = performance.now() + 1000;
+    if(this.menuIndex===0){
+      this.closeMenu();
+    } else if(this.menuIndex===1){
+      this.music.toggle();
+      this.saveSettings();
+    } else if(this.menuIndex===2){
+      TTS.enabled = !TTS.enabled;
+      this.saveSettings();
+    } else if(this.menuIndex===3){
+      this.aimerIndex = (this.aimerIndex + 1) % this.aimerModes.length;
+      this.saveSettings();
+      TTS.speak('Aimer ' + this.aimerModes[this.aimerIndex].name);
+    } else if(this.menuIndex===4){
+       this.scanSpeedIndex = (this.scanSpeedIndex + 1) % this.scanSpeeds.length;
+       this.saveSettings();
+       const spd = this.scanSpeeds[this.scanSpeedIndex].name;
+       TTS.speak(`Scan Speed: ${spd}`);
+    } else if(this.menuIndex===5){
+       this.aimerSpeedIndex = (this.aimerSpeedIndex + 1) % this.aimerSpeeds.length;
+       this.aimSpeed = this.aimerSpeeds[this.aimerSpeedIndex].val;
+       this.saveSettings();
+       const spd = this.aimerSpeeds[this.aimerSpeedIndex].name;
+       TTS.speak(`Aimer Speed: ${spd}`);
+    } else if(this.menuIndex===6){
+      // Return to main menu
+      this.goMainMenu();
+    } else {
+      exitApp();
+    }
+  }
+
+  pointerDown(e){
+    // iOS audio unlock: create/resume context on first interaction
+    if (!AudioGraph.ac) {
+      AudioGraph.getContext();
+    }
+    AudioGraph.resume();
+
+    // Menus: allow mouse click selection (press only selects/focuses; release activates)
+    const p = this._toGameCoords(e);
+    this.mouse.x = p.x; this.mouse.y = p.y; this.mouse.active = true;
+
+    if(this.appState === 'mainmenu'){
+      const idx = this._mainMenuHitTest(p.x, p.y);
+      if(idx>=0){
+        this.mainMenuIndex = idx;
+        this._menuPointer = { state:'mainmenu', index: idx };
+      }
+      return;
+    } else if(this.appState === 'settings'){
+      const idx = this._settingsMenuHitTest(p.x, p.y);
+      if(idx>=0){
+        this.settingsIndex = idx;
+        this._menuPointer = { state:'settings', index: idx };
+      }
+      return;
+    } else if(this.appState === 'editorWarning'){
+      const idx = this._editorWarningHitTest(p.x, p.y);
+      if(idx>=0){
+        this.warningIndex = idx;
+        this._menuPointer = { state:'editorWarning', index: idx };
+      }
+      return;
+    } else if(this.appState === 'difficulty'){
+      const idx = this._difficultyMenuHitTest(p.x, p.y);
+      if(idx>=0){
+        this.difficultyIndex = idx;
+        this._menuPointer = { state:'difficulty', index: idx };
+      }
+      return;
+    } else if(this.appState === 'games'){
+      const idx = this._gamesMenuHitTest(p.x, p.y);
+      if(idx>=0 && this.gamesList[idx]){
+        this.gamesIndex = idx;
+        this._menuPointer = { state:'games', index: idx };
+      }
+      return;
+    }
+
+    // In-game pointer handling
+
+    // Pause menu: press just highlights; release will activate
+    if(this.menuOpen){
+      const idx = this._pauseMenuHitTest(p.x, p.y);
+      if (idx >= 0){
+        this.menuIndex = idx;
+        this._menuPointer = { state:'pause', index: idx };
+      }
+      return;
+    }
+
+    if(LevelLoader.needsPicker && !this.menuOpen){
+      LevelLoader.pickLocal().then(ok=>{
+        if(ok){
+          this.totalLevels = LevelLoader.total();
+          this.levelsFrom = LevelLoader.source;
+          if(this.music && this.music.setTotalLevels) this.music.setTotalLevels(this.totalLevels || 10);
+          this.resetRun();
+        } else if(LevelLoader.lastError){
+          this.lastError = 'Levels load error: ' + LevelLoader.lastError;
+        }
+      });
+      return;
+    }
+
+    const isLeft = (e.button === 0 || e.buttons === 1);
+
+    // Crosshair (mouse-play) icon hit-test
+    const cb = this.crosshairBtnRect;
+    if (cb && p.x >= cb.x && p.x <= cb.x+cb.w && p.y >= cb.y && p.y <= cb.y+cb.h){
+      if (this.appState === 'game'){
+        this.crosshairEnabled = !this.crosshairEnabled;
+        this.saveSettings();
+        this.canvas.style.cursor = (this.crosshairEnabled && !this.menuOpen) ? 'none' : 'default';
+        TTS.speak(this.crosshairEnabled ? 'Mouse play on' : 'Mouse play off');
+      }
+      return;
+    }
+
+    // Home (top-left) icon hit-test
+    const hb = this.homeBtnRect;
+    if (hb && p.x >= hb.x && p.x <= hb.x+hb.w && p.y >= hb.y && p.y <= hb.y+hb.h){
+      if (this.appState === 'game'){
+        // Deactivate mouse play, stop tracking, show cursor, then open menu
+        if (this.crosshairEnabled){
+          this.crosshairEnabled = false;
+          TTS.speak('Mouse play off');
+        }
+        this.mouse.active = false;
+        this.canvas.style.cursor = 'default';
+        this.openMenu();
+      }
+      return;
+    }
+
+    // Click/touch handling for aiming and firing
+    if(!this.menuOpen && isLeft && this.state==='aiming' && !this.paused && this.crosshairEnabled){
+      if (isMobile()){
+        // Start drag aim; do not change aim yet to allow tap without aim jump
+        this._touch.active = true;
+        this._touch.startX = p.x;
+        this._touch.startY = p.y;
+        this._touch.startTime = performance.now();
+        this._touch.dragged = false;
+        return;
+      } else {
+        // Desktop: aim at cursor and fire immediately
+        this._aimTo(p.x, p.y);
+        this.fire();
+        return;
+      }
+    }
+  }
+
+  // Activate menu items on release (mouse/touch)
+  pointerUp(e){
+    const p = this._toGameCoords(e);
+
+    // Pause menu activation
+    if(this.menuOpen && this._menuPointer && this._menuPointer.state==='pause'){
+      const idx = this._pauseMenuHitTest(p.x, p.y);
+      if (idx === this._menuPointer.index){
+        this.menuIndex = idx;
+        this.menuSelect();
+      }
+      this._menuPointer = null;
+      return;
+    }
+
+    // Main menu activation
+    if(this.appState==='mainmenu' && this._menuPointer && this._menuPointer.state==='mainmenu'){
+      const idx = this._mainMenuHitTest(p.x, p.y);
+      if (idx === this._menuPointer.index){
+        this.mainMenuIndex = idx;
+        // 0: Toggle Pack
+        if(idx===0){
+            LevelLoader.cyclePack().then(()=>{
+                TTS.speak('Selected ' + LevelLoader.getCurrentPackName());
+            });
+        }
+        // 1: Play Game
+        else if(idx===1){ 
+            if(LevelLoader.total() > 0){
+                this.pendingStartKind = 'builtin'; // Actually just means "current pack" now
+                this.appState = 'difficulty';
+                TTS.speak('Select difficulty');
+            } else {
+                TTS.speak('No levels loaded');
+            }
+        }
+        // 2: Load Custom (Warn first)
+        else if(idx===2){
+             this.appState = 'loadWarning';
+             this.warningPrevState = 'mainmenu';
+             this.warningIndex = 0;
+             this.lastMenuScan = performance.now(); // Reset scan timer
+             TTS.speak('Load Custom File. Proceed or Cancel?');
+        }
+        // 3: Settings
+        else if(idx===3){
+             this.appState = 'settings';
+             this.settingsIndex = 0;
+             this.lastMenuScan = performance.now(); // Reset scan timer
+             TTS.speak('Settings Menu');
+        }
+        // 4: Exit
+        else { exitApp(); }
+      }
+      this._menuPointer = null;
+      return;
+    }
+
+    // Settings activation
+    if(this.appState==='settings' && this._menuPointer && this._menuPointer.state==='settings'){
+      const idx = this._settingsMenuHitTest(p.x, p.y);
+      if (idx === this._menuPointer.index){
+        this.settingsIndex = idx;
+        // 0:Music, 1:TTS, 2:Aimer, 3:Control, 4:Speed, 5:Editor, 6:Back
+        if(idx===0){
+            this.music.toggle();
+            this.saveSettings();
+            TTS.speak(this.music.enabled?'Music On':'Music Off');
+        } else if(idx===1){
+            TTS.enabled = !TTS.enabled;
+            this.saveSettings();
+            TTS.speak(TTS.enabled?'TTS On':'TTS Off');
+        } else if(idx===2){
+            this.aimerIndex = (this.aimerIndex + 1) % this.aimerModes.length;
+            this.saveSettings();
+            TTS.speak('Aimer ' + this.aimerModes[this.aimerIndex].name);
+        } else if(idx===3){
+            this.autoScan = !this.autoScan;
+            this.saveSettings();
+            TTS.speak(this.autoScan ? 'Auto Scan On' : 'Auto Scan Off');
+        } else if(idx===4){
+            this.scanSpeedIndex = (this.scanSpeedIndex + 1) % this.scanSpeeds.length;
+            this.saveSettings();
+            TTS.speak('Scan Speed ' + this.scanSpeeds[this.scanSpeedIndex].name);
+        } else if(idx===5){
+            this.aimerSpeedIndex = (this.aimerSpeedIndex + 1) % this.aimerSpeeds.length;
+            this.aimSpeed = this.aimerSpeeds[this.aimerSpeedIndex].val;
+            this.saveSettings();
+            TTS.speak('Aimer Speed ' + this.aimerSpeeds[this.aimerSpeedIndex].name);
+        } else if(idx===6){
+             this.appState = 'editorWarning';
+             this.warningPrevState = 'settings';
+             this.warningIndex = -1; 
+             this.lastMenuScan = performance.now(); // Reset scan timer
+             TTS.speak('Opening Level Creator. Cancel or Proceed?');
+        } else {
+            this.appState = 'mainmenu';
+            this.lastMenuScan = performance.now(); // Reset scan timer
+            TTS.speak('Main menu');
+        }
+      }
+      this._menuPointer = null;
+      return;
+    }
+
+    // Warning activation (shared for editorWarning and loadWarning)
+    if((this.appState==='editorWarning' || this.appState==='loadWarning') && this._menuPointer && (this._menuPointer.state==='editorWarning'||this._menuPointer.state==='loadWarning')){
+      const idx = this._editorWarningHitTest(p.x, p.y); // reuse hit test as layout is same
+      if (idx === this._menuPointer.index){
+        this.warningIndex = idx;
+        if(this.warningIndex===1){
+           // Proceed
+           if(this.appState==='editorWarning'){
+               window.open('BENNYS-PEGGLE-EDITOR2.html', '_blank');
+               this.appState = this.warningPrevState;
+               this.lastMenuScan = performance.now(); // Reset scan timer 
+           } else {
+               // Load Custom
+               LevelLoader.pickLocal().then(ok => {
+                    if(ok){
+                         this.pendingStartKind = 'custom';
+                         this.appState = 'difficulty'; 
+                         TTS.speak('Game loaded. Select difficulty');
+                         this.lastMenuScan = performance.now(); // Reset scan timer
+                    } else {
+                         this.appState = 'mainmenu';
+                         this.lastMenuScan = performance.now(); // Reset scan timer
+                    }
+               });
+           }
+        } else {
+           // Cancel
+           this.appState = this.warningPrevState;
+           TTS.speak('Cancelled');
+           this.lastMenuScan = performance.now(); // Reset scan timer
+        }
+      }
+      this._menuPointer = null;
+      return;
+    }
+
+    // Difficulty activation
+    if(this.appState==='difficulty' && this._menuPointer && this._menuPointer.state==='difficulty'){
+      const idx = this._difficultyMenuHitTest(p.x, p.y);
+      if (idx === this._menuPointer.index){
+        this.difficultyIndex = idx;
+        this.confirmDifficultySelection();
+      }
+      this._menuPointer = null;
+      return;
+    }
+
+    // Custom games activation (allow activation even without prior pointerdown)
+    if(this.appState==='games'){
+      const idx = this._gamesMenuHitTest(p.x, p.y);
+      if (idx>=0 && this.gamesList[idx]){
+        this.gamesIndex = idx;
+        this.selectGameEntry(this.gamesList[idx]);
+      }
+      this._menuPointer = null;
+      return;
+    }
+
+    // Mobile tap-to-fire: only if quick tap (short + minimal movement) and in aiming state
+    if (isMobile() && this._touch && this._touch.active){
+      const now = performance.now();
+      const dt = now - this._touch.startTime;
+      const dx = p.x - this._touch.startX, dy = p.y - this._touch.startY;
+      const dist2 = dx*dx + dy*dy;
+      const isTap = !this._touch.dragged && dt <= 250 && dist2 <= 100; // <=10px
+      this._touch.active = false;
+
+      if (isTap && this.appState==='game' && !this.menuOpen && this.state==='aiming' && !this.paused && this.crosshairEnabled){
+        // Fire using current aim (do not re-aim on tap)
+        this.fire();
+      }
+    }
+  }
+
+  _toGameCoords(e){
+    const rect = this.canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (BASE_W / rect.width);
+    const y = (e.clientY - rect.top) * (BASE_H / rect.height);
+    return { x, y };
+  }
+
+  onPointerEnter(){
+    this.mouse.active = true;
+    // Hide cursor only when crosshair toggle is enabled
+    const hide = (this.appState==='game' && this.crosshairEnabled && !this.menuOpen);
+    this.canvas.style.cursor = hide ? 'none' : 'default';
+  }
+  onPointerLeave(){
+    this.mouse.active = false;
+    this.canvas.style.cursor = 'default';
+  }
+  // Keep mouse coords in game space and support drag-aim on mobile
+  onPointerMove(e){
+    const p = this._toGameCoords(e);
+    this.mouse.x = p.x; this.mouse.y = p.y;
+
+    // When dragging on mobile, update aim only after a small movement threshold
+    if (isMobile() && this._touch && this._touch.active){
+      const dx = p.x - this._touch.startX, dy = p.y - this._touch.startY;
+      const dist2 = dx*dx + dy*dy;
+      if (!this._touch.dragged && dist2 > 36) this._touch.dragged = true; // >6px
+      if (this._touch.dragged && this.crosshairEnabled && this.appState==='game' && !this.menuOpen){
+        this._aimTo(p.x, p.y);
+      }
+    }
+  }
+
+  // Aim helper with clamping
+  _aimTo(x, y){
+    const dx = x - this.aim.x;
+    const dy = y - this.aim.y;
+    let ang = Math.atan2(dx, dy);
+    ang = Math.max(this.aimMin, Math.min(this.aimMax, ang));
+    this.aim.angle = ang;
+  }
+
+  goMainMenu(){
+    // ...existing code...
+    this.appState = 'mainmenu';
+    this.mainMenuIndex = 0;
+    this.lastMenuScan = performance.now(); // Reset scan timer
+    // Ensure pause menu is fully closed when returning to main menu
+    this.menuOpen = false;
+    this.paused = false;
+    this.menuIndex = -1;
+    // Reset pending and readiness flags
+    this.pendingStartKind = null;
+    this.levelReadyAt = 0;
+    // Ensure crosshair is off in menus and cursor visible
+    this.crosshairEnabled = false;
+    this.canvas.style.cursor = 'default';
+    TTS.speak('Main menu');
+    // Reset game-over guard when leaving gameplay
+    this._inGameOver = false;
+  }
+
+  loadLevel(id){
+    // If still in menus, ignore
+    if(this.appState !== 'game') return;
+    this.currentId=id;
+    if(!LEVELS || !LEVELS.length){
+      this.lastError = "No levels loaded.";
+      this.goMainMenu();
+      return;
+    }
+    const L=LEVELS.find(v=>v.id===id) || LEVELS[0];
+    if(!L){
+      this.lastError = "Level definition missing.";
+      this.goMainMenu();
+      return;
+    }
+
+    // Wrap theme index when id exceeds built-in THEMES
+    const themeCount = Object.keys(THEMES).length || 1;
+    const themeId = ((id - 1) % themeCount) + 1;
+    const pal = (THEMES[themeId] && THEMES[themeId].palette) ? THEMES[themeId].palette : ['#ff4757','#ffa502','#2ed573','#3742fa'];
+
+    // deep copy + assign colorIndex
+    this.pegs=JSON.parse(JSON.stringify(L.pegs));
+    this.pegs.forEach(p=>{
+      p.hit=false;
+      if(p.type==='BLOCK'){ p.block=true; }
+      // Force shapes: BLOCK (unbreakable) => square, all others => circle
+      p.shape = p.block ? 'SQUARE' : 'CIRCLE';
+      // Initialize phased block state
+      if (p.block) { p.blockPhase = (p.blockPhase|0); }
+      p.colorIndex=(Math.random()*pal.length)|0;
+      p.color=pal[p.colorIndex];
+    });
+
+    // Only inject our randomized blocks for built-in levels (not JSON-provided)
+    // NOTE: Procedural generation is now baked into built-in.json, so this block is generally skipped or redundant
+    if(this.levelsFrom !== 'json' && typeof staticBlocksForLevel === 'function'){
+      const staticBlocks = staticBlocksForLevel(this.currentId, this.pegs);
+      for(const b of staticBlocks){ this.pegs.push(b); }
+    }
+
+    // NEW: enforce minimum power-ups based on unbreakable blocks and ensure >=1 multiball
+    this._ensureMinPowerupsForBlocks();
+
+    // NEW: assign unique IDs to pegs for collision tracking/anti-trap
+    this.pegs.forEach((p,i)=>{ p.uid = i; });
+
+    deOverlap(this.pegs, 18, 2);
+    ensureNoOverlap(this.pegs);
+
+    // Do NOT reset ballsLeft here (persist bullets across levels)
+    // Keep score persistent across levels
+    this.gravity=L.gravity * TUNING.gravity;
+    this.pegsLeft=this.pegs.filter(p=>!p.block && p.type!=='HAZARD').length;
+    this.bumper.active=true; this.bumper.w=160*3;
+    this.bumper.x = Math.min(BASE_W - this.bumper.w, Math.max(0, 100 + Math.random()*200));
+    this.bumper.vx=1.4;
+    this.balls=[]; this.aim.angle=0; this.mult=1; this.combo=0; this.wallTouches=0; this.pegStreak=0;
+    this.state='aiming'; this.paused=false; this.retryUsed=false;
+    // Keep power-ups persistent across levels
+    // this.nextPowers=new Set();
+    this.pendingWin=false;
+
+    // visuals + music
+    VIS.setTheme(themeId);
+    this.music.play(this.currentId);
+
+    // Mark level as ready shortly after load to avoid instant win on quick start
+    this.levelReadyAt = performance.now() + 150;
+  }
+
+  win(){
+    // +1 bullet reward on level completion
+    this.ballsLeft = (this.ballsLeft||0) + 1;
+    // TTS: level or final win
+    const isFinal = (this.currentId >= (this.totalLevels || LEVELS.length || 1));
+    if(isFinal){
+      // Freeze final score so TTS and banner match, even if score changes afterward
+      this.finalScore = this.score;
+      TTS.speak(`You won! Final score ${this.finalScore}.`);
+    }
+     else TTS.speak(`Level complete. Score ${this.score}.`);
+
+    VIS.onLevelWin();
+    setTimeout(() => {
+      if(this.currentId < (this.totalLevels || LEVELS.length || 1)){
+        this.loadLevel(this.currentId+1);
+      } else {
+        // Final game win celebration
+        VIS.onGameWin();
+        this.paused = true;
+        // After celebration, return to main menu
+        setTimeout(()=>{ this.goMainMenu(); }, 6500);
+      }
+    }, 1100);
+  }
+
+  // Show "Game Over" then go back to main menu
+  handleLoss(){
+    // One-shot guard to prevent repeated scheduling/TTS
+    if (this._inGameOver) return;
+    this._inGameOver = true;
+    // Freeze final score for consistency with TTS
+    this.finalScore = this.score;
+
+     this.paused = true;
+     // Keep Game Over up for at least 5 seconds so TTS can finish
+     this.gameOverUntil = performance.now() + 5000;
+    TTS.speak(`Game over. Final score ${this.finalScore}. Returning to main menu.`);
+     setTimeout(()=>{ this.goMainMenu(); }, 5000);
+  }
+
+  resetRun(){
+    // Reset game-over guard for a fresh run
+    this._inGameOver = false;
+    // Clear any previous snapshot of final score
+    this.finalScore = null;
+    // New run: difficulty-based starting balls
+    const startBallsMap = { easy: 7, medium: 6, hard: 5 };
+    this.ballsLeft = startBallsMap[this.difficulty] ?? 5;
+
+    this.score = 0; // reset score only for a new run
+    this.bestStreak = 0;
+    // Difficulty-based bonus threshold
+    this.nextScorePowerAt = this.bonusStep;
+    this.nextPowers = new Set();
+    // Gate win checks until level initializes
+    this.levelReadyAt = 0;
+    this.loadLevel(1);
+  }
+
+  // Random power-up grant on score milestones
+  _grantRandomPower(){
+    const opts = ['SPRAY','INVINCIBLE','EXPLODE'];
+    const avail = opts.filter(o=>!this.nextPowers.has(o));
+    const pool = (avail.length ? avail : opts);
+    const pick = pool[(Math.random()*pool.length)|0]; // fix: index against chosen pool
+    this.nextPowers.add(pick);
+    if(this.sound && this.sound.powerup) this.sound.powerup();
+  }
+  _checkScorePowerups(){
+    while(this.score >= this.nextScorePowerAt){
+      this._grantRandomPower();
+      // Difficulty-based increment
+      this.nextScorePowerAt += this.bonusStep;
+    }
+  }
+
+  fire(){
+    if(this.ballsLeft<=0 || this.state!=='aiming' || this.paused) return;
+    const speed=11 * TUNING.speed;
+    const now=performance.now();
+
+    const hasSpray = this.nextPowers.has('SPRAY');
+    const hasInv   = this.nextPowers.has('INVINCIBLE');
+    const hasBoom  = this.nextPowers.has('EXPLODE');
+
+    if(hasSpray){
+      const count=4; const spread=Math.PI/6; const startAngle=this.aim.angle - spread/2;
+      for(let i=0;i<count;i++){
+        const a = startAngle + (spread/(count-1))*i;
+        const b={x:this.aim.x,y:this.aim.y,vx:Math.sin(a)*speed,vy:Math.cos(a)*speed,radius:12,trail:[],bounceCount:0};
+        if(hasInv){ b.invUntil = now + 5000; } // was 6000
+        if(hasBoom){ b.explosive = true; }
+        this.balls.push(b);
+      }
+      this.ballsLeft--; this.state='firing'; this.sound.multiballBurst();
+      this.nextPowers.clear();
+      return;
+    }
+
+    const b={x:this.aim.x,y:this.aim.y,vx:Math.sin(this.aim.angle)*speed,vy:Math.cos(this.aim.angle)*speed,radius:12,trail:[],bounceCount:0};
+    if(hasInv){ b.invUntil = now + 5000; } // was 6000
+    if(hasBoom){ b.explosive = true; }
+    this.balls.push(b);
+    this.ballsLeft--; this.state='firing'; this.sound.play(400,0.2,'sine',0.12);
+    this.nextPowers.clear();
+  }
+
+  spawnMultiballs(origin){
+    const base=12.5 * TUNING.speed;
+    const angles=[-0.25*Math.PI,0.25*Math.PI];
+    for(const a of angles){
+      const nb={x:origin.x,y:origin.y,vx:Math.sin(a)*base,vy:-Math.abs(Math.cos(a)*base)*1.2,radius:12,trail:[],bounceCount:0};
+      if(origin.invUntil) nb.invUntil = origin.invUntil;
+      if(origin.explosive) nb.explosive = true;
+      this.balls.push(nb);
+    }
+    this.sound.multiballBurst();
+  }
+
+  explodeAt(x, y){
+    // Explosion SFX + visual
+    if (this.sound && this.sound.explosion) this.sound.explosion();
+    if (VIS && VIS.onExplosion) VIS.onExplosion(x, y);
+
+    const R = 80; // blast radius
+    const R2 = R * R;
+    let hits = 0;
+
+    for (const p of this.pegs){
+      if (p.hit) continue; // allow processing of intact/cracked blocks
+      const dx = p.x - x, dy = p.y - y;
+      if ((dx*dx + dy*dy) <= (p.radius + R) * (p.radius + R)){
+        // Phased BLOCK handling: only explosions can damage blocks
+        if (p.block){
+          // First explosion -> crack; second -> break (hit)
+          p.blockPhase = (p.blockPhase|0);
+          if (p.blockPhase === 0){
+            p.blockPhase = 1;
+            // subtle feedback
+            if (this.sound && this.sound.blockThunk) this.sound.blockThunk();
+            VIS.onPegHit(p.x, p.y);
+          } else {
+            // second explosion: break the block
+            p.blockPhase = 2;
+            p.hit = true; // remove from play
+            if (this.sound && this.sound.blockThunk) this.sound.blockThunk();
+            VIS.onPegHit(p.x, p.y);
+          }
+          continue; // blocks do not score and do not affect pegsLeft
+        }
+
+        // Skip hazards: explosions do not remove hazards
+        if (p.type === 'HAZARD') continue;
+
+        // Normal peg handling (unchanged)
+        // Apply power-up effects even if destroyed by explosion
+        if (p.type === 'EXTRA'){ this.ballsLeft++; if (this.sound && this.sound.extraLife) this.sound.extraLife(); }
+        if (p.type === 'MULTI'){ this.mult = Math.min(this.mult + 0.8, 3); }
+        if (p.type === 'MULTIBALL'){ this.spawnMultiballs({ x: p.x, y: p.y }); }
+        if (p.type === 'SPRAY' || p.type === 'INVINCIBLE' || p.type === 'EXPLODE'){
+          this.nextPowers.add(p.type);
+          if (this.sound && this.sound.powerup) this.sound.powerup();
+        }
+        p.hit = true; hits++; this.pegsLeft--;
+        // modest score per peg in blast
+        let add = 120 * this.mult;
+        if (p.shape === 'TRI') add += 150;
+        if (p.shape === 'STAR') add += 200;
+        if (p.type === 'MULTI') add += 200;
+        this.score += Math.floor(add);
+      }
+    }
+    if (hits > 0) this._checkScorePowerups();
+  }
+
+  // Begin a short fade/shrink decay for a stuck ball and make it ghost (no peg scoring)
+  _beginBallDecay(b, now, reason='anomaly'){
+    if (b._decaying) return;
+    b._decaying = true;
+    b._decayStart = now;
+    b._decayDur = 1200; // ms
+    b._ghost = true;
+    b._decayReason = reason;
+    // snapshot draw radius base if needed later
+    b._baseDrawR = 12;
+  }
+
+  // Track rapid collisions within a small area; trigger decay if spammy
+  _noteCollision(b, kind, now){
+    if (b._decaying) return;
+    const windowMs = 700;
+    if (!b._spamStart || (now - b._spamStart) > windowMs){
+      b._spamStart = now;
+      b._spamCount = 0;
+      b._flipCount = 0;
+      b._spamX = b.x;
+      b._spamY = b.y;
+    }
+    b._spamCount++;
+
+    // Count direction flips (dot < 0)
+    const pvx = b._pvx || 0, pvy = b._pvy || 0;
+    const dot = pvx * b.vx + pvy * b.vy;
+    if (pvx || pvy){ if (dot < 0) b._flipCount = (b._flipCount || 0) + 1; }
+    b._pvx = b.vx; b._pvy = b.vy;
+
+    const dx = b.x - (b._spamX || b.x);
+    const dy = b.y - (b._spamY || b.y);
+    const dist2 = dx*dx + dy*dy;
+
+    // Heuristics: many collisions in short window in a tight space OR many flips
+    if (b._spamCount >= 16 && (now - b._spamStart) <= windowMs && dist2 < 80*80){
+      this._beginBallDecay(b, now, 'collision-spam');
+    } else if ((b._flipCount || 0) >= 22 && (now - b._spamStart) <= 1000 && dist2 < 100*100){
+      this._beginBallDecay(b, now, 'flip-spam');
+    }
+  }
+
+  update(dtSec){
+    // Guard dt
+    dtSec = Number.isFinite(dtSec) ? dtSec : 1/60;
+
+    // Handle Auto-Scan logic for menus if active
+    if (this.autoScan) this._autoScan();
+
+    // NEW: do not run gameplay logic when not in game (prevents repeated Game Over)
+    if (this.appState !== 'game') return;
+
+    if(this.paused) return;
+    const f = dtSec * 60; // scale so existing constants feel like 60 fps
+    const readyNow = (this.appState==='game' && performance.now() >= (this.levelReadyAt||0));
+    const now = performance.now(); // NEW: shared timestamp for anti-trap + sfx gating
+
+    if(this.bumper.active){
+      this.bumper.x += this.bumper.vx * f;
+      // Clamp and reflect so it never stays out-of-bounds (prevents “stuck at wall”)
+      if (this.bumper.x < 0){
+        this.bumper.x = 0;
+        this.bumper.vx = Math.abs(this.bumper.vx);
+      } else if (this.bumper.x + this.bumper.w > BASE_W){
+        this.bumper.x = BASE_W - this.bumper.w;
+        this.bumper.vx = -Math.abs(this.bumper.vx);
+      }
+    }
+
+    for(let bi=this.balls.length-1; bi>=0; bi--){
+      const b=this.balls[bi];
+      b.trail.push({x:b.x,y:b.y}); if(b.trail.length>22) b.trail.shift();
+
+      // scale motion and gravity
+      b.x += b.vx * f;
+      b.y += b.vy * f;
+      b.vy += this.gravity * f;
+
+      const invActive = (b.invUntil && performance.now() < b.invUntil);
+
+      // If decaying: damp velocity and remove when finished, refund a ball
+      if (b._decaying){
+        const age = now - b._decayStart;
+        const damp = Math.pow(0.96, f);
+        b.vx *= damp; b.vy *= damp;
+        if (age >= b._decayDur){
+          this.balls.splice(bi,1);
+          // Refund only once so the player isn't punished by cleanup
+          if (!b._decayRefunded){ this.ballsLeft++; b._decayRefunded = true; }
+          continue;
+        }
+      }
+
+      // Side walls: solid bounce with clamp and slight inward nudge
+      if (b.x - b.radius < 0 || b.x + b.radius > BASE_W){
+        // slightly higher bounce
+        let rf = invActive ? (0.875 * TUNING.bounce) : (0.80 * TUNING.bounce);
+        if(invActive){
+          b.bounceCount = (b.bounceCount||0) + 1;
+          if(b.bounceCount % 3 === 0) rf = 1.05; // keep special boost
+        }
+        b.vx = -b.vx * rf;
+        // Clamp and nudge inward to avoid sticky collisions
+        if (b.x - b.radius < 0){
+          b.x = b.radius + 0.5;
+        } else if (b.x + b.radius > BASE_W){
+          b.x = BASE_W - b.radius - 0.5;
+        }
+        this.wallTouches++; this.mult=Math.max(1,this.mult-0.2); this.sound.wallBounce();
+        // NEW: count as a collision for anomaly detection
+        this._noteCollision(b, 'wall', now);
+      }
+
+      // Top HUD bar collision (treat as a solid wall at y = HUD_H)
+      if (b.y - b.radius <= HUD_H){
+        // slightly higher bounce
+        let rf = invActive ? (0.875 * TUNING.bounce) : (0.80 * TUNING.bounce);
+        if(invActive){
+          b.bounceCount = (b.bounceCount||0) + 1;
+          if(b.bounceCount % 3 === 0) rf = 1.05;
+        }
+        b.y = HUD_H + b.radius;
+        b.vy = Math.abs(b.vy) * rf;
+        this.wallTouches++; this.mult=Math.max(1,this.mult-0.2); this.sound.ceilingBounce();
+        // NEW: count as a collision for anomaly detection
+        this._noteCollision(b, 'ceiling', now);
+      }
+
+      // ceiling (fallback if somehow above canvas)
+      if(b.y<=b.radius){
+        // slightly higher bounce
+        let rf = invActive ? (0.875 * TUNING.bounce) : (0.80 * TUNING.bounce);
+        if(invActive){
+          b.bounceCount = (b.bounceCount||0) + 1;
+          if(b.bounceCount % 3 === 0) rf = 1.05;
+        }
+        b.vy = -b.vy * rf;
+        b.y=b.radius;
+        this.wallTouches++; this.mult=Math.max(1,this.mult-0.2); this.sound.ceilingBounce();
+        // NEW: count as a collision for anomaly detection
+        this._noteCollision(b, 'ceiling', now);
+      }
+
+      // pegs (skip while ghost/decaying)
+      if (!b._ghost){
+        for(const p of this.pegs){
+          if(p.hit) continue;
+          try{
+            const dx=b.x-p.x, dy=b.y-p.y; const dist=Math.hypot(dx,dy);
+            const minDist=b.radius+p.radius;
+            if(dist<minDist){
+              const nx=dx/(dist||1e-6), ny=dy/(dist||1e-6);
+              const overlap=(minDist-dist)+0.5; b.x+=nx*overlap; b.y+=ny*overlap;
+              // slightly higher restitution on pegs
+              const rf=(p.shape==="TRI"||p.shape==="STAR") ? (0.95 * TUNING.bounce) : (0.80 * TUNING.bounce);
+              const tx=-ny, ty=nx; const dot=b.vx*nx + b.vy*ny;
+              b.vx=(b.vx-2*dot*nx)*rf + tx*0.6; b.vy=(b.vy-2*dot*ny)*rf + ty*0.6;
+
+              if(p.block){
+                // New: explosive balls crack/break blocks on direct impact
+                if (b.explosive){
+                  this.explodeAt(p.x, p.y);
+                  b.explosive = false;
+                  // If the blast destroyed the block, skip bounce
+                  if (p.hit) continue;
+                }
+
+                // Anti-stuck: ensure minimum ball speed and add slight random nudge
+                const sp = Math.hypot(b.vx,b.vy);
+                if (sp < TUNING.minSpeed){ const s = TUNING.minSpeed/Math.max(sp, 0.001); b.vx*=s; b.vy*=s; }
+                b.vx += (Math.random()*0.8 - 0.4);
+
+                // NEW: detect rapid block-vs-block ping-pong and escape it
+                // Track recent block hits per ball
+                b._prevBlockUid = b._lastBlockUid;
+                b._lastBlockUid = p.uid;
+                const hitDt = now - (b._lastBlockTime || 0);
+                b._rapidBlockHits = (hitDt < 60) ? ((b._rapidBlockHits || 0) + 1) : 1;
+                b._lastBlockTime = now;
+
+                // If we see many block hits in a short time, force an escape up and sideways
+                if (b._rapidBlockHits >= 6){
+                  const speed = Math.max(Math.hypot(b.vx,b.vy), TUNING.minSpeed * 1.25);
+                  const side = (Math.random() < 0.5 ? -1 : 1);
+                  const tx = -ny, ty = nx; // tangent
+                  // Nudge out of overlap and bias upward
+                  b.x += nx * (overlap + 2) + tx * side * 6;
+                  b.y += ny * (overlap + 2) - 6;
+                  // Redirect velocity up and sideways to break the loop
+                  b.vx = (tx * side * 0.85 + nx * 0.15) * speed;
+                  b.vy = -Math.abs(speed) * 0.9;
+                  // Briefly mute block SFX to prevent loud overlap
+                }
+
+                // Throttled block thunk so it doesn't spam
+                if (!(b._blockNoSoundUntil && now < b._blockNoSoundUntil)){
+                  this.sound.blockThunk();
+                  b._blockNoSoundUntil = now + 90; // ms
+                }
+
+                // NEW: note block collision for anomaly detection
+                this._noteCollision(b, 'block', now);
+
+                if(ny>0.55){ b.vy=-Math.max(Math.abs(b.vy), 4.5 * TUNING.speed); b.vx+=(Math.random()*2-1)*0.8; }
+                continue;
+              }
+
+              // collect peg
+              p.hit = true;
+              // Do not decrement pegsLeft for HAZARD pegs (they don't count toward completion)
+              if (p.type !== 'HAZARD') this.pegsLeft--;
+
+              // HAZARD penalty: remove 1 queued next-shot power-up at random
+              if (p.type === 'HAZARD'){
+                if (this.nextPowers && this.nextPowers.size > 0){
+                  const arr = Array.from(this.nextPowers);
+                  const rem = arr[(Math.random()*arr.length)|0];
+                  this.nextPowers.delete(rem);
+                  if (this.sound && this.sound.hazardZap) this.sound.hazardZap();
+                }
+              }
+
+              let add=100*this.mult; if(p.shape==="TRI") add+=150; if(p.shape==="STAR") add+=200; if(p.type==="MULTI") add+=200;
+              this.score+=Math.floor(add); this.combo=this.comboMax; this.mult=Math.min(this.mult+0.2,3);
+              this.pegStreak++;
+
+              // Per-hit streak bonus
+              if(this.pegStreak>1){
+                const streakBonus = (this.pegStreak-1)*30;
+                this.score += Math.floor(streakBonus * this.mult);
+              }
+              if(this.pegStreak > this.bestStreak) this.bestStreak = this.pegStreak;
+
+              // milestones after hit bonuses
+              this._checkScorePowerups();
+
+              this.sound.pegHit(p.shape, p.colorIndex||0);
+              VIS.onPegHit(p.x, p.y);
+
+              if(p.type==="EXTRA"){ this.ballsLeft++; this.sound.extraLife(); }
+              if(p.type==="MULTI"){ this.mult=Math.min(this.mult+0.8,3); }
+              if(p.type==="MULTIBALL"){ this.spawnMultiballs(b); }
+
+              // stackable next-shot power-ups
+              if(p.type==="SPRAY"){ this.nextPowers.add('SPRAY'); this.sound.powerup(); }
+              if(p.type==="INVINCIBLE"){ this.nextPowers.add('INVINCIBLE'); this.sound.powerup(); }
+              if(p.type==="EXPLODE"){ this.nextPowers.add('EXPLODE'); this.sound.powerup(); }
+
+              if(b.explosive){ this.explodeAt(p.x, p.y); b.explosive=false; }
+
+              if(this.pegStreak>=3 && this.wallTouches===0){ this.pegStreak=0; }
+              if(this.pegsLeft<=0 && !this.pendingWin && readyNow){
+                this.score+=2000;
+                this._checkScorePowerups();
+                this.pendingWin=true;
+                this.win();
+              }
+            }
+          }catch(err){
+            this.lastError = 'Peg collision error: ' + (err?.message || String(err));
+          }
+        }
+      }
+
+      // bumper
+      if(this.bumper.active){
+        const bx=this.bumper.x, by=this.bumper.y, bw=this.bumper.w, bh=this.bumper.h;
+        const withinX=b.x+b.radius>bx && b.x-b.radius<bx+bw;
+        const withinY=b.y+b.radius>=by && b.y-b.radius<=by+bh;
+        if(withinX && withinY && b.vy>0){
+          let rf = 0.85;
+          if(invActive){
+            b.bounceCount = (b.bounceCount||0) + 1;
+            rf = (b.bounceCount % 3 === 0) ? 1.09 : 1.025;
+          }
+          b.vy = -Math.abs(b.vy)*rf - (2.0 * TUNING.bumperKick) * f;
+          const center=bx + bw/2; b.vx += (b.x - center)*0.02;
+          this.score += 50; this.sound.bumperBounce();
+          this._checkScorePowerups();
+          // NEW: note bumper collision for anomaly detection
+          this._noteCollision(b, 'bumper', now);
+        }
+      }
+
+      // bottom
+      if(b.y>BASE_H-2 && invActive && b.vy>0){
+        b.bounceCount = (b.bounceCount||0) + 1;
+        const rf = (b.bounceCount % 3 === 0) ? 1.09 : 1.025; // was 1.18 / 1.05
+        b.vy = -Math.abs(b.vy) * rf;
+        b.y = BASE_H-4;
+      }
+      else if(b.y>BASE_H+60){ this.balls.splice(bi,1); }
+    }
+
+    // Safety: resync pegsLeft from actual state and force win if cleared
+    if (readyNow){
+      const remaining = this.pegs.reduce((n,p)=> n + (!p.hit && !p.block && p.type!=='HAZARD' ? 1 : 0), 0);
+      this.pegsLeft = remaining;
+      if (remaining<=0 && !this.pendingWin){
+        this.score += 2000;
+        this._checkScorePowerups();
+        this.pendingWin = true;
+        this.win();
+        return;
+      }
+    }
+
+    // End of shot bonuses
+    if(this.balls.length===0){
+      if(this.pegStreak>=3){
+        let chainBonus = (this.pegStreak-2) * 150;
+        if(this.wallTouches===0) chainBonus += 200;
+        this.score += Math.floor(chainBonus * this.mult);
+        this._checkScorePowerups();
+      }
+      this.state='aiming'; this.mult=1; this.combo=0; 
+      this.wallTouches=0; this.pegStreak=0;
+      if(this.ballsLeft<=0){ this.handleLoss(); }
+    }
+
+    // Combo timer (was per-frame)
+    if(this.combo>0){
+      this.combo -= 1 * f;
+      if(this.combo < 0) this.combo = 0;
+    } else if(this.mult>1){
+      this.mult = Math.max(1, this.mult - 0.02 * f);
+    }
+  }
+
+  draw(dtSec){
+    // If a previous frame threw, draw a simple overlay instead of going blank
+    if (this.lastError) {
+      this._drawErrorOverlay(this.lastError);
+      return;
+    }
+    // Guard dt
+    const safeDt = Number.isFinite(dtSec) ? dtSec : 1/60;
+    const ctx=this.ctx; ctx.save();
+    ctx.setTransform(this.canvas.width/BASE_W,0,0,this.canvas.height/BASE_H,0,0);
+
+    // Pass safe dt for consistent animation
+    VIS.render(ctx, AudioGraph.analyser, BASE_W, BASE_H, { noCelebration: this.appState !== 'game', dtSec: safeDt });
+
+    // App-level menus
+    if(this.appState==='mainmenu'){
+      // Loading screen override
+      if(LevelLoader.loading){
+          ctx.fillStyle='#000'; ctx.fillRect(0,0,BASE_W,BASE_H);
+          ctx.fillStyle='#fff'; ctx.font='bold 30px system-ui, Arial';
+          ctx.fillText('Loading Game...', BASE_W/2-100, BASE_H/2);
+          ctx.restore(); return;
+      }
+
+      // Title + options
+      ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,0,BASE_W,BASE_H);
+      ctx.fillStyle='#fff'; ctx.font='bold 40px system-ui, Arial';
+      ctx.fillText("Ben's P3GL Adventure", BASE_W/2-240, BASE_H/2-100);
+      
+      ctx.font='bold 26px system-ui, Arial';
+      const packName = LevelLoader.getCurrentPackName();
+      // Items: Select Level (toggle), Play Game, Load Custom(Editor), Settings, Exit
+      const items = [
+          `Select Level: ${packName}`, 
+          'Play Game', 
+          'Load Custom Game', 
+          'Settings',
+          'Exit Game'
+      ];
+      
+      for(let i=0;i<items.length;i++){
+        const y=BASE_H/2 - 40 + i*45;
+        const sel=(this.mainMenuIndex===i);
+        ctx.fillStyle= sel ? '#4facfe' : '#fff';
+        // Center text roughly
+        const w = ctx.measureText(items[i]).width;
+        ctx.fillText(items[i], BASE_W/2 - w/2, y);
+      }
+
+      // NEW: bottom hint with inline crosshair icon
+      {
+        ctx.save();
+        
+        // Show LevelLoader error if any
+        if(LevelLoader.lastError){
+          ctx.fillStyle='#f55'; 
+          ctx.font='bold 16px system-ui, Arial';
+          ctx.fillText(`Error loading levels: ${LevelLoader.lastError}`, 20, BASE_H - 120);
+          ctx.fillText(`Source: ${LevelLoader.source}`, 20, BASE_H - 100);
+        }
+
+        const prefix = 'Use Spacebar to Aim & Return to Fire. Press the ';
+        const suffix = ' to enable Mouse Mode';
+        ctx.font = '16px system-ui, Arial';
+        ctx.fillStyle = '#fff';
+        ctx.textBaseline = 'alphabetic';
+        const iconW = 20, gap = 6;
+        const w1 = ctx.measureText(prefix).width;
+        const w2 = ctx.measureText(suffix).width;
+        const total = w1 + gap + iconW + gap + w2;
+        let x = (BASE_W - total) / 2;
+        const y = BASE_H - 22;
+
+        // prefix
+        ctx.fillText(prefix, x, y);
+        x += w1 + gap;
+
+        // crosshair icon
+        ctx.save();
+        const cx = x + iconW/2, cy = y - 8; // align roughly with text
+        const r = 7, arm = 7;
+        ctx.strokeStyle = '#4facfe';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx-arm, cy); ctx.lineTo(cx+arm, cy);
+        ctx.moveTo(cx, cy-arm); ctx.lineTo(cx, cy+arm);
+        ctx.stroke();
+        ctx.restore();
+
+        x += iconW + gap;
+        // suffix
+        ctx.fillText(suffix, x, y);
+        ctx.restore();
+      }
+
+      // NEW: peg/power legend on both sides of the menu
+      this.drawMainMenuLegend(ctx);
+
+      ctx.restore(); return;
+    }
+    else if(this.appState==='settings'){
+       // Title + settings items
+       ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,0,BASE_W,BASE_H);
+       ctx.fillStyle='#fff'; ctx.font='bold 40px system-ui, Arial';
+       ctx.fillText("Settings", BASE_W/2-80, BASE_H/2-160);
+
+       ctx.font='bold 26px system-ui, Arial';
+       const aimC = this.aimerModes[this.aimerIndex].name;
+       const scan = (this.autoScan ? 'On' : 'Off');
+       const spd = this.scanSpeeds[this.scanSpeedIndex].name;
+       const aimSpd = this.aimerSpeeds[this.aimerSpeedIndex].name;
+       const mus = (this.music.enabled?'On':'Off');
+       const tts = (TTS.enabled?'On':'Off');
+       const items = [
+          `Music: ${mus}`,
+          `TTS: ${tts}`,
+          `Aimer Color: ${aimC}`,
+          `Auto Scan: ${scan}`,
+          `Scan Speed: ${spd}`,
+          `Aimer Speed: ${aimSpd}`,
+          'Load Level Creator',
+          'Back'
+       ];
+       for(let i=0;i<items.length;i++){
+          const y=BASE_H/2 - 100 + i*45;
+          const sel=(this.settingsIndex===i);
+          ctx.fillStyle= sel ? '#4facfe' : '#fff';
+          const w = ctx.measureText(items[i]).width;
+          ctx.fillText(items[i], BASE_W/2 - w/2, y);
+       }
+       ctx.restore(); return;
+    }
+    else if(this.appState==='editorWarning' || this.appState==='loadWarning'){
+       // Warning Dialog
+       const isEditor = (this.appState==='editorWarning');
+       ctx.fillStyle='rgba(0,0,0,0.92)'; ctx.fillRect(0,0,BASE_W,BASE_H);
+       
+       ctx.fillStyle='#fff'; 
+       ctx.textAlign='center';
+       ctx.font='bold 32px system-ui, Arial';
+       ctx.fillText(isEditor ? "Opening Level Editor" : "Load Custom File", BASE_W/2, BASE_H/2 - 60);
+       
+       ctx.font='18px system-ui, Arial';
+       ctx.fillStyle='#ccc';
+       if(isEditor){
+           ctx.fillText("This will open a new tab with the Level Creator.", BASE_W/2, BASE_H/2 - 10);
+           ctx.fillText("Note: This feature is advanced and requires a mouse.", BASE_W/2, BASE_H/2 + 20);
+       } else {
+           ctx.fillText("This will open a File Picker dialog.", BASE_W/2, BASE_H/2 - 10);
+           ctx.fillText("Note: You need a mouse/input to select the JSON file.", BASE_W/2, BASE_H/2 + 20);
+       }
+
+       const items = ['Cancel', 'Proceed'];
+       for(let i=0;i<items.length;i++){
+          const y=BASE_H/2 + 80 + i*50;
+          const sel=(this.warningIndex===i);
+          // Highlight: 0(Cancel) -> red if sel, 1(Proceed) -> green if sel? or just white
+          // Original: sel? (i===0?'#f55':'#fff') (i.e. Proceed=Red, Cancel=White?? No proceed=Red is danger?)
+          // Original code: i===0 was Proceed. If sel, #f55 (Red - likely danger). i===1 was Cancel white.
+          
+          // New: i===0 is Cancel. i===1 is Proceed.
+          // Let's make Cancel white/green and Proceed Red.
+          let color = '#fff';
+          if(sel){
+             if(i===1) color = '#f55'; // Proceed Warning -> Red
+             else color = '#fff';      // Cancel -> White
+          } else {
+             color = '#888';
+          }
+          
+          ctx.fillStyle= color;
+          ctx.font = sel ? 'bold 28px system-ui, Arial' : '26px system-ui, Arial';
+          ctx.fillText(items[i], BASE_W/2, y);
+       }
+       ctx.textAlign='left'; 
+       ctx.restore(); return;
+    }
+    // NEW: Difficulty menu (aligns with _difficultyMenuHitTest y = 180 + i*46)
+    else if(this.appState==='difficulty'){
+      ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,0,BASE_W,BASE_H);
+      ctx.fillStyle='#fff'; ctx.font='bold 32px system-ui, Arial';
+      ctx.fillText('Select Difficulty', BASE_W/2-140, 130);
+      ctx.font='bold 24px system-ui, Arial';
+      const items = this._difficultyItems(); // ['Back','Easy','Medium','Hard']
+      for(let i=0;i<items.length;i++){
+        const y = 180 + i*46;
+        const sel = (this.difficultyIndex===i);
+        ctx.fillStyle = sel ? '#4facfe' : '#fff';
+        ctx.fillText(items[i], BASE_W/2-70, y);
+      }
+      ctx.restore(); return;
+    }
+    // NEW: Custom Games menu (aligns with _gamesMenuHitTest center y = 170 + i*32)
+    else if(this.appState==='games'){
+      ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,0,BASE_W,BASE_H);
+      ctx.fillStyle='#fff'; ctx.font='bold 30px system-ui, Arial';
+      ctx.fillText('Custom Games', BASE_W/2-115, 120);
+      ctx.font='bold 20px system-ui, Arial';
+      const list = this.gamesList || [];
+      for(let i=0;i<list.length;i++){
+        const y = 170 + i*32; // row center
+        const sel = (this.gamesIndex===i);
+        ctx.fillStyle = sel ? '#4facfe' : '#fff';
+        // center-ish text; hit-test uses a wide left/right, so keep roughly centered
+        ctx.fillText(list[i].name || '', BASE_W/2-180, y+7); // +7 to align baseline to row center
+      }
+      ctx.restore(); return;
+    }
+
+    // --- Normal in-game rendering below ---
+    // pegs
+    for(const p of this.pegs){ if(!p.hit) this.drawPeg(ctx,p); }
+
+    // bumper
+    if(this.bumper.active){
+      ctx.fillStyle='rgba(80,80,80,0.9)';
+      ctx.fillRect(this.bumper.x,this.bumper.y,this.bumper.w,this.bumper.h);
+      ctx.fillStyle='rgba(255,255,255,0.35)';
+      ctx.fillRect(this.bumper.x+4,this.bumper.y+3,this.bumper.w-8,4);
+    }
+
+    // balls
+    for(const b of this.balls){
+      if(b.trail && b.trail.length){
+        const tailScale = b._decaying ? Math.max(0, 1 - Math.min(1, (performance.now() - (b._decayStart||0)) / (b._decayDur||1))) : 1;
+        for(let i=0;i<b.trail.length;i++){
+          const a=(i/b.trail.length)*0.5*tailScale;
+          this.ctx.fillStyle=`rgba(255,100,100,${a})`;
+          this.ctx.beginPath(); this.ctx.arc(b.trail[i].x,b.trail[i].y,8*(i/b.trail.length),0,Math.PI*2); this.ctx.fill();
+        }
+      }
+      const now=performance.now();
+      let r = 12, alpha = 1;
+      if (b._decaying){
+        const t = Math.max(0, Math.min(1, (now - b._decayStart) / b._decayDur));
+        alpha = 1 - t;
+        r = 12 * (1 - 0.6 * t);
+      }
+      this.ctx.save();
+      this.ctx.globalAlpha = alpha;
+      this.ctx.shadowColor='#ff6b6b'; this.ctx.shadowBlur=10; this.ctx.fillStyle='#ff6b6b';
+      this.ctx.beginPath(); this.ctx.arc(b.x,b.y,r,0,Math.PI*2); this.ctx.fill(); this.ctx.shadowBlur=0;
+      // highlight
+      this.ctx.fillStyle='rgba(255,255,255,0.6)'; this.ctx.beginPath(); this.ctx.arc(b.x-4,b.y-4,Math.max(2, r*0.33),0,Math.PI*2); this.ctx.fill();
+      this.ctx.restore();
+
+      const now2=performance.now();
+      if(b.invUntil && now2 < b.invUntil){
+        this.ctx.strokeStyle='rgba(255,255,255,0.8)';
+        this.ctx.lineWidth=2; this.ctx.beginPath(); this.ctx.arc(b.x,b.y,Math.max(14, r+2),0,Math.PI*2); this.ctx.stroke();
+      }
+    }
+
+    // aimer + mouse-follow
+    if(this.state==='aiming' && !this.paused){
+      const f = safeDt * 60;
+
+      // Auto-scan for Single Button mode
+      // Sync aim oscillation speed
+      this.aimSpeed = this.aimerSpeeds[this.aimerSpeedIndex].val;
+      
+      if(this.autoScan){
+          this.aimOsc = true;
+      }
+
+      // Use mouse to control aim ONLY when crosshair toggle is enabled (and not compelled by auto-scan)
+      if(this.mouse.active && this.crosshairEnabled && !this.autoScan){
+        const dx = this.mouse.x - this.aim.x;
+        const dy = this.mouse.y - this.aim.y;
+        let ang = Math.atan2(dx, dy);
+        ang = Math.max(this.aimMin, Math.min(this.aimMax, ang));
+        this.aim.angle = ang;
+      } else if(this.aimOsc){
+        this.aim.angle += this.aimSpeed*this.aimDir * f;
+        if(this.aim.angle>this.aimMax){ this.aim.angle=this.aimMax; this.aimDir=-1; }
+        else if(this.aim.angle<this.aimMin){ this.aim.angle=this.aimMin; this.aimDir=1; }
+      }
+
+      // Trajectory-based aimer (replaces the old straight aimer)
+      this._drawTrajectoryAimer(ctx);
+
+      // Power-up glow around aim origin (unchanged)
+      if (this.nextPowers && this.nextPowers.size){
+        const colorMap = {
+          INVINCIBLE: '#ffffff',   // white glow
+          SPRAY:      '#ffd21a',   // yellow glow
+          EXPLODE:    '#ff5722'    // orange glow
+        };
+        const keys = Array.from(this.nextPowers);
+        const t = performance.now() * 0.006;
+        const baseR = 18; // center disk radius
+        for(let i=0;i<keys.length;i++){
+          const key = keys[i];
+          const col = colorMap[key] || '#ffffff';
+          const pulse = 1 + 0.08 * Math.sin(t + i*1.6); // mild radius pulse
+          const r = baseR + 8 + i*7;                    // stack outward per power
+          ctx.save();
+          // Outer glow ring
+          ctx.strokeStyle = col;
+          ctx.globalAlpha = 0.9;
+          ctx.lineWidth = 3;
+          ctx.shadowColor = col;
+          ctx.shadowBlur = 14 + i*6;
+          ctx.beginPath(); ctx.arc(this.aim.x, this.aim.y, r*pulse, 0, Math.PI*2); ctx.stroke();
+          // Inner soft outline for depth
+          ctx.globalAlpha = 0.5;
+          ctx.lineWidth = 6;
+          ctx.shadowBlur = 0;
+          ctx.beginPath(); ctx.arc(this.aim.x, this.aim.y, (r-4)*pulse, 0, Math.PI*2); ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      // Crosshair overlay when mouse-play is on
+      if(this.crosshairEnabled && this.mouse && this.mouse.active && !this.menuOpen){
+        const mx = this.mouse.x, my = this.mouse.y;
+        const r = 12, arm = 10;
+        ctx.save();
+        ctx.globalAlpha = 0.95;
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#4facfe';
+        // outer circle
+        ctx.beginPath(); ctx.arc(mx, my, r, 0, Math.PI*2); ctx.stroke();
+        // cross arms
+        ctx.beginPath();
+        ctx.moveTo(mx - arm, my); ctx.lineTo(mx + arm, my);
+        ctx.moveTo(mx, my - arm); ctx.lineTo(mx, my + arm);
+        ctx.stroke();
+        // small center dot
+        ctx.fillStyle = '#4facfe';
+        ctx.beginPath(); ctx.arc(mx, my, 2, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // HUD
+    this.drawHUD(ctx);
+
+    // Game Over overlay
+    if (this.gameOverUntil && performance.now() < this.gameOverUntil){
+      ctx.fillStyle='rgba(0,0,0,0.65)';
+      ctx.fillRect(0,0,BASE_W,BASE_H);
+      ctx.fillStyle='#fff';
+      ctx.font='bold 46px system-ui, Arial';
+      ctx.fillText('Game Over', BASE_W/2-130, BASE_H/2-6);
+      ctx.font='18px system-ui, Arial';
+      ctx.fillText('Returning to main menu...', BASE_W/2-120, BASE_H/2+24);
+    }
+
+    // Topmost overlays: show win banners ABOVE gameplay
+    // Per-level win banner
+    if (performance.now() < VIS.winShowUntil){
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(BASE_W*0.15, BASE_H*0.42, BASE_W*0.70, 64);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 34px system-ui, Arial';
+      ctx.fillText('Level complete!', BASE_W*0.33, BASE_H*0.42+42);
+    }
+
+    // Final game win banner (includes final score)
+    if (performance.now() < VIS.gameWinShowUntil){
+      ctx.fillStyle = 'rgba(0,0,0,0.65)';
+      ctx.fillRect(BASE_W*0.10, BASE_H*0.35, BASE_W*0.80, 140);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 48px system-ui, Arial';
+      ctx.fillText('You Won!', BASE_W*0.37, BASE_H*0.35+58);
+      ctx.font = '20px system-ui, Arial';
+      ctx.fillText('Thanks for playing! Returning to main menu...', BASE_W*0.20, BASE_H*0.35+92);
+      ctx.font = 'bold 22px system-ui, Arial';
+      // Use frozen finalScore to match TTS; fall back to live score if missing
+      ctx.fillText(`Final Score: ${this.finalScore ?? this.score}`, BASE_W*0.36, BASE_H*0.35+118);
+    }
+
+    // Pause
+    if(this.menuOpen){
+      const ctx=this.ctx;
+
+      ctx.fillStyle='rgba(0,0,0,0.75)'; // Darker transparency for readability
+      ctx.fillRect(0,0,BASE_W,BASE_H);
+      ctx.fillStyle='#fff'; ctx.font='bold 28px system-ui, Arial';
+      ctx.fillText('Menu', BASE_W/2-40, 110);
+      
+      const items = this._menuItems();
+      for(let i=0;i<items.length;i++){
+        const y=160 + i*45;
+        const sel=(this.menuIndex===i);
+        ctx.fillStyle= sel ? '#4facfe' : '#fff';
+        ctx.fillText(items[i], BASE_W/2-120, y);
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // NEW: Draw a legend for peg meanings/powers on the main menu (top, 2 rows, compact)
+  drawMainMenuLegend(ctx){
+    const marginL = 16, marginR = 16;
+    const iconR = 9, iconW = iconR * 2, gap = 6;
+    const rowY1 = 60, rowY2 = 92;
+
+    // ...existing labels...
+    const row1 = [
+      { type:'NORMAL',     label:'+Points',          shape:'CIRCLE' },
+      { type:'EXTRA',      label:'+1 Ball',          shape:'CIRCLE' },
+      { type:'MULTIBALL',  label:'+2 Multi',         shape:'CIRCLE' },
+      { type:'BLOCK',      label:'Unbreakable',      shape:'SQUARE' }
+    ];
+    const row2 = [
+      { type:'HAZARD',     label:'Removes Power',     shape:'CIRCLE' },
+      { type:'SPRAY',      label:'Spray (Next)',      shape:'CIRCLE' },        // was 'Spray x4 (Next)'
+      { type:'INVINCIBLE', label:'Shield 5s (Next)',  shape:'CIRCLE' },        // was 'Shield 6s (Next)'
+      { type:'EXPLODE',    label:'Blast (Next)',      shape:'CIRCLE' }
+    ];
+
+    // Shared column centers so pegs align vertically across rows
+    const cols = Math.max(row1.length, row2.length);
+    const span = (BASE_W - marginL - marginR);
+    const step = span / cols;
+    const centers = Array.from({length: cols}, (_, i) => marginL + (i + 0.5) * step);
+    const offsetX = -20; // shift whole legend ~20px left
+
+    // Fit text within a single column (shrink 12->11->10->9; then ellipsize)
+    const fitText = (text, maxW) => {
+      const sizes = [12, 11, 10, 9];
+      for (const sz of sizes){
+        ctx.font = `${sz}px system-ui, Arial`;
+        if (ctx.measureText(text).width <= maxW) return { text, font: ctx.font };
+      }
+      // Ellipsize on smallest font
+      ctx.font = `${sizes[sizes.length-1]}px system-ui, Arial`;
+      let t = text;
+      while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+      return { text: t + '…', font: ctx.font };
+    };
+
+    const renderRow = (items, y) => {
+      for (let i = 0; i < cols; i++){
+        const it = items[i];
+        if (!it) continue; // empty slot (if row shorter than cols)
+        const cx = centers[i] + offsetX;
+
+        // Draw peg centered in its column (alignment guaranteed)
+        const peg = {
+          x: cx,
+          y,
+          radius: iconR,
+          shape: it.shape || (it.type==='BLOCK' ? 'SQUARE' : 'CIRCLE'),
+          type: it.type,
+          block: it.type === 'BLOCK',
+          color: it.color || '#7ea1ff',
+          phase: 0
+        };
+        this.drawPeg(ctx, peg);
+
+        // Label to the right of the icon, fitted within column
+        const maxTextW = step - (iconW + gap) - 10;
+        const { text, font } = fitText(it.label, maxTextW);
+        ctx.fillStyle = '#fff';
+        ctx.textBaseline = 'middle';
+        ctx.font = font;
+        ctx.fillText(text, cx + iconR + gap, y);
+      }
+    };
+
+    renderRow(row1, rowY1);
+    renderRow(row2, rowY2);
+  }
+
+  drawHUD(ctx){
+    ctx.save();
+    ctx.fillStyle='rgba(0,0,0,0.45)'; ctx.fillRect(0,0,BASE_W,42);
+    ctx.fillStyle='#fff'; ctx.font='bold 18px system-ui, Arial'; ctx.textBaseline='middle';
+
+    // Home (pause) button: expand down/right, stay within frame
+    {
+      const hbBase = { x: 10, y: 9, w: 24, h: 24 };
+      const mx = this.mouse?.x ?? -1, my = this.mouse?.y ?? -1;
+      const prev = this.homeBtnRect || hbBase;
+      const hoverHome = this.mouse?.active && mx>=prev.x && mx<=prev.x+prev.w && my>=prev.y && my<=prev.y+prev.h;
+      const s = hoverHome ? 3 : 1;
+
+      // Clickable rect anchored at top-left (grow to right/down) + clamp to canvas
+      const scaled = { x: hbBase.x, y: hbBase.y, w: hbBase.w*s, h: hbBase.h*s };
+      if (scaled.x + scaled.w > BASE_W) scaled.w = Math.max(0, BASE_W - scaled.x);
+      if (scaled.y + scaled.h > BASE_H) scaled.h = Math.max(0, BASE_H - scaled.y);
+      this.homeBtnRect = scaled;
+
+      // Draw with top-left pivot so it never grows outside top/left edges
+      ctx.save();
+      ctx.translate(hbBase.x, hbBase.y);
+      ctx.scale(s, s);
+      ctx.translate(-hbBase.x, -hbBase.y);
+
+      ctx.fillStyle='rgba(255,165,0,0.18)'; ctx.fillRect(hbBase.x, hbBase.y, hbBase.w, hbBase.h);
+      ctx.fillStyle='#ffa500';
+      ctx.beginPath(); ctx.moveTo(hbBase.x+4, hbBase.y+12); ctx.lineTo(hbBase.x+12, hbBase.y+4); ctx.lineTo(hbBase.x+20, hbBase.y+12);
+      ctx.closePath(); ctx.fill();
+      ctx.fillRect(hbBase.x+7, hbBase.y+12, 10, 9);
+      ctx.fillStyle='#222'; ctx.fillRect(hbBase.x+11, hbBase.y+15, 3, 6);
+
+      ctx.restore();
+    }
+
+    // Crosshair toggle button: expand down/right, stay within frame
+    {
+      const cbBase = { x: 40, y: 9, w: 24, h: 24 };
+      const mx = this.mouse?.x ?? -1, my = this.mouse?.y ?? -1;
+      const prev = this.crosshairBtnRect || cbBase;
+      const hoverCross = this.mouse?.active && mx>=prev.x && mx<=prev.x+prev.w && my>=prev.y && my<=prev.y+prev.h;
+      const s = hoverCross ? 3 : 1;
+      const on = this.crosshairEnabled;
+
+      // Clickable rect anchored at top-left (grow to right/down) + clamp to canvas
+      const scaled = { x: cbBase.x, y: cbBase.y, w: cbBase.w*s, h: cbBase.h*s };
+      if (scaled.x + scaled.w > BASE_W) scaled.w = Math.max(0, BASE_W - scaled.x);
+      if (scaled.y + scaled.h > BASE_H) scaled.h = Math.max(0, BASE_H - scaled.y);
+      this.crosshairBtnRect = scaled;
+
+      // Draw with top-left pivot so it never grows outside top/left edges
+      ctx.save();
+      ctx.translate(cbBase.x, cbBase.y);
+      ctx.scale(s, s);
+      ctx.translate(-cbBase.x, -cbBase.y);
+
+      ctx.fillStyle = on ? 'rgba(79,172,254,0.22)' : 'rgba(255,255,255,0.12)';
+      ctx.fillRect(cbBase.x, cbBase.y, cbBase.w, cbBase.h);
+
+      ctx.strokeStyle = on ? '#4facfe' : '#bbb';
+      ctx.lineWidth = 2;
+      const rcx = cbBase.x + cbBase.w/2, rcy = cbBase.y + cbBase.h/2, r = 8, arm=8;
+      ctx.beginPath(); ctx.arc(rcx, rcy, r, 0, Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(rcx-arm, rcy); ctx.lineTo(rcx+arm, rcy); ctx.moveTo(rcx, rcy-arm); ctx.lineTo(rcx, rcy+arm); ctx.stroke();
+
+      ctx.restore();
+    }
+
+    // Shift Level/Score/Balls/Pegs text (unchanged)
+    ctx.fillStyle='#fff';
+    ctx.fillText(`Level ${this.currentId}`, 76, 21);
+    ctx.fillText(`Score ${this.score}`, 160, 21);
+    ctx.fillText(`Balls ${this.ballsLeft}`, 280, 21);
+    ctx.fillText(`Pegs ${this.pegsLeft}`, 400, 21);
+    ctx.fillText(`x${this.mult.toFixed(1)}`, 490, 21);
+
+    // Power-up HUD (unchanged)
+    {
+      const map = {
+        SPRAY:      { text:'Spray',            color:'#ffd21a' },  // was 'Spray x4'
+        INVINCIBLE: { text:'Invincible (5s)',  color:'#ffffff' },  // was '(6s)'
+        EXPLODE:    { text:'Explosion',        color:'#ff5722' }
+      };
+      const items = Array.from(this.nextPowers || []).map(k=>map[k]).filter(Boolean);
+
+      const drawLine = (tokens, x, y, prefix='Next: ') => {
+        ctx.fillStyle = '#fff';
+        ctx.fillText(prefix, x, y);
+        let cx = x + ctx.measureText(prefix).width;
+        for(let i=0;i<tokens.length;i++){
+          if(i>0){ ctx.fillStyle='#ccc'; ctx.fillText(' + ', cx, y); cx += ctx.measureText(' + ').width; }
+          ctx.fillStyle = tokens[i].color;
+          ctx.fillText(tokens[i].text, cx, y);
+          cx += ctx.measureText(tokens[i].text).width;
+        }
+      };
+      const measureLine = (tokens, prefix='Next: ') => {
+        let w = ctx.measureText(prefix).width;
+        for(let i=0;i<tokens.length;i++){
+          if(i>0) w += ctx.measureText(' + ').width;
+          w += ctx.measureText(tokens[i].text).width;
+        }
+        return w;
+      };
+
+      if (items.length === 0){
+        // Persistent placeholder when no next-shot ability is queued
+        const prefix = 'Next: ';
+        const placeholder = 'None';
+        const totalW = ctx.measureText(prefix).width + ctx.measureText(placeholder).width;
+        const x = BASE_W - 10 - totalW;
+        ctx.fillStyle = '#fff';
+        ctx.fillText(prefix, x, 21);
+        ctx.fillStyle = '#aaa';
+        ctx.fillText(placeholder, x + ctx.measureText(prefix).width, 21);
+      } else if (items.length >= 3){
+        const prevFont = ctx.font, prevBaseline = ctx.textBaseline;
+        ctx.font = 'bold 14px system-ui, Arial';
+        ctx.textBaseline = 'top';
+        const mid = Math.ceil(items.length/2);
+        const line1 = items.slice(0, mid);
+        const line2 = items.slice(mid);
+        const w1 = measureLine(line1, 'Next: ');
+        const w2 = measureLine(line2, '');
+        const maxW = Math.max(w1, w2);
+        const x = BASE_W - 10 - maxW;
+        drawLine(line1, x, 6, 'Next: ');
+        drawLine(line2, x, 22, '');
+        ctx.font = prevFont; ctx.textBaseline = prevBaseline;
+      } else {
+        // Single line
+        const totalW = measureLine(items, 'Next: ');
+        const x = BASE_W - 10 - totalW;
+        drawLine(items, x, 21, 'Next: ');
+      }
+    }
+
+    // Show loader status / hint when needed
+    if(LevelLoader.needsPicker){
+      ctx.fillStyle='#ffdf6b'; ctx.font='bold 14px system-ui, Arial';
+      ctx.fillText('Press L (or click) to load "levels", or serve via http(s)', 10, 40);
+    } else if(LevelLoader.lastError){
+      ctx.fillStyle='#f55'; ctx.font='12px system-ui, Arial';
+      ctx.fillText('Levels: ' + LevelLoader.lastError, 10, 40);
+    }
+
+    ctx.restore();
+  }
+
+  drawPeg(ctx,p){
+    // shadow
+    ctx.save(); ctx.translate(3.5,4.5); ctx.globalAlpha=0.32; ctx.fillStyle='#000'; this._pegPath(ctx,p,true,false); ctx.restore();
+
+    // glow & base color
+    let glow='rgba(255,255,255,0.6)', glowAmt=6;
+    if(p.type==='MULTIBALL'){ glow='rgba(0,255,255,0.95)'; glowAmt=20; }
+    if(p.type==='EXTRA'){ glow='rgba(120,255,120,0.98)'; glowAmt=20; }
+    if(p.type==='SPRAY'){ glow='rgba(255,210,0,0.98)'; glowAmt=24; }
+    if(p.type==='INVINCIBLE'){ glow='rgba(255,255,255,0.98)'; glowAmt=24; }
+    if(p.type==='EXPLODE'){ glow='rgba(255,80,0,0.98)'; glowAmt=26; }
+    const pulse=(Math.sin(performance.now()*0.005 + (p.phase||0))+1)*0.5;
+    const blur=glowAmt + pulse*6;
+
+    let fillColor = p.color;
+    if(p.block) fillColor = (p.blockPhase===1 ? '#9a9a9a' : '#888888');
+    if(p.type==='HAZARD') fillColor = '#8b0000';
+    if(p.type==='MULTIBALL') fillColor = '#9d00ff';
+    if(p.type==='EXTRA') fillColor = '#0acb62';
+    if(p.type==='SPRAY') fillColor = '#ffd21a';
+    if(p.type==='INVINCIBLE') fillColor = '#ffffff';
+    if(p.type==='EXPLODE') fillColor = '#ff5722';
+
+    ctx.save();
+    ctx.shadowColor=glow; ctx.shadowBlur=blur;
+    ctx.fillStyle=fillColor; ctx.strokeStyle='#111'; ctx.lineWidth=5;
+    this._pegPath(ctx,p,true,true);
+    ctx.shadowBlur=0;
+
+    // Crack overlay when block is cracked (phase 1)
+    if (p.block && (p.blockPhase|0) === 1){
+      ctx.save();
+      ctx.strokeStyle='rgba(0,0,0,0.85)';
+      ctx.lineWidth=2;
+      // Draw a few crack lines inside the square
+      const r = p.radius - 3;
+      const cx = p.x, cy = p.y;
+      ctx.beginPath();
+      ctx.moveTo(cx - r, cy - r*0.2); ctx.lineTo(cx - r*0.2, cy + r*0.1); ctx.lineTo(cx, cy + r*0.5);
+      ctx.moveTo(cx + r*0.2, cy - r); ctx.lineTo(cx - r*0.1, cy - r*0.2); ctx.lineTo(cx + r*0.4, cy + r*0.2);
+      ctx.moveTo(cx - r*0.6, cy + r*0.6); ctx.lineTo(cx, cy + r*0.2); ctx.lineTo(cx + r*0.7, cy + r*0.7);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // ...existing code...
+    ctx.fillStyle='rgba(255,255,255,0.4)';
+    ctx.beginPath(); ctx.arc(p.x-5,p.y-5, Math.max(p.radius/3,5), 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+  _pegPath(ctx,p,filled,stroked){
+       const r=p.radius; ctx.beginPath();
+      switch(p.shape){
+        case "TRI":
+          ctx.moveTo(p.x, p.y - r); ctx.lineTo(p.x - r*0.86, p.y + r*0.5); ctx.lineTo(p.x + r*0.86, p.y + r*0.5); ctx.closePath(); break;
+        case "STAR": {
+
+          const spikes=5, outer=r, inner=r*0.45; let rot=Math.PI/2*3;
+          ctx.moveTo(p.x, p.y - outer);
+          for(let i=0;i<spikes;i++){ ctx.lineTo(p.x+Math.cos(rot)*outer, p.y+Math.sin(rot)*outer); rot+=Math.PI/spikes; ctx.lineTo(p.x+Math.cos(rot)*inner, p.y+Math.sin(rot)*inner); rot+=Math.PI/spikes; }
+          ctx.lineTo(p.x, p.y - outer); ctx.closePath();
+        } break;
+        case "SQUARE": ctx.rect(p.x-r, p.y-r, r*2, r*2); break;
+        case "HEX":
+          for(let i=0;i<6;i++){ const a=Math.PI/3*i; const xx=p.x+Math.cos(a)*r; const yy=p.y+Math.sin(a)*r; if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); } ctx.closePath(); break;
+        case "PLUS": {
+          const t=r*0.25;
+          ctx.moveTo(p.x-t, p.y-r); ctx.lineTo(p.x+t, p.y-r); ctx.lineTo(p.x+t, p.y-t);
+          ctx.lineTo(p.x+r, p.y-t); ctx.lineTo(p.x+r, p.y+t); ctx.lineTo(p.x+t, p.y+t);
+          ctx.lineTo(p.x+t, p.y+r); ctx.lineTo(p.x-t, p.y+r); ctx.lineTo(p.x-t, p.y+t);
+          ctx.lineTo(p.x-r, p.y+t); ctx.lineTo(p.x-r, p.y-t); ctx.lineTo(p.x-t, p.y-t); ctx.closePath();
+        } break;
+        default: ctx.arc(p.x,p.y,r,0,Math.PI*2);
+      }
+      if(filled) ctx.fill(); if(stroked) ctx.stroke();
+    }
+
+  loop(){
+    // Orientation gate: suspend update/draw while in portrait on mobile
+    if (!canPlay){
+      requestAnimationFrame(()=>this.loop());
+      return;
+    }
+
+    const now = performance.now();
+    const last = (this.lastRAF ?? now);
+    let dt = (now - last) / 1000;
+    this.lastRAF = now;
+
+    // clamp and sanitize
+    if(!Number.isFinite(dt) || dt < 0) dt = 1/60;
+    dt = Math.max(0, Math.min(dt, 0.033));
+    this.frameDtSec = dt;
+
+    try{
+      this.update(dt);
+      this.draw(dt);
+    } catch(err){
+      this.lastError = (err && err.message) ? err.message : String(err);
+      this._drawErrorOverlay(this.lastError);
+    }
+    requestAnimationFrame(()=>this.loop());
+  }
+
+  // Minimal, safe overlay to show runtime errors without breaking the loop
+  _drawErrorOverlay(msg){
+    try{
+      const ctx = this.ctx;
+      ctx.save();
+      ctx.setTransform(this.canvas.width/BASE_W,0,0,this.canvas.height/BASE_H,0,0);
+      ctx.fillStyle = '#000'; ctx.fillRect(0,0,BASE_W,BASE_H);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 22px system-ui, Arial';
+      ctx.fillText('An error occurred', 20, 40);
+      ctx.font = '14px system-ui, Arial';
+      const text = String(msg || 'Unknown error');
+      // wrap a bit
+      const maxW = BASE_W - 40;
+      const words = text.split(/\s+/);
+      let line = '', y = 70;
+      for(const w of words){
+        const test = line ? line + ' ' + w : w;
+        if (ctx.measureText(test).width > maxW){
+          ctx.fillText(line, 20, y); y += 20; line = w;
+        } else line = test;
+      }
+      if(line) ctx.fillText(line, 20, y);
+      ctx.restore();
+    }catch(_){}
+  }
+
+  // Start the game/campaign from current LevelLoader source
+  startCampaign(){
+    // Close any leftover pause menu before starting gameplay
+    this.menuOpen = false;
+    this.paused = false;
+    this.menuIndex = -1;
+
+    this.appState='game';
+    this.levelsFrom = LevelLoader.source;
+    this.totalLevels = LevelLoader.total();
+    if(this.music && this.music.setTotalLevels) this.music.setTotalLevels(this.totalLevels || 10);
+    TTS.speak('Starting game');
+    this.resetRun();
+  }
+
+  // Build and show the Custom Games menu
+  async openGamesMenu(){
+    this.appState='games';
+    this.gamesIndex=0;
+    this.lastMenuScan = performance.now(); // Reset scan timer
+    try{
+      const list = await LevelCatalog.scan();
+      const body = (Array.isArray(list) && list.length) ? list : [{name:'No games found'}];
+      this.gamesList = [{ kind:'back', name:'Back' }, ...body];
+    }catch(_){
+      this.gamesList = [{ kind:'back', name:'Back' }, { kind:'builtin', name:'Built-in campaign' }];
+    }
+    TTS.speak('Custom games');
+  }
+
+  // Select a games menu entry and start it
+  async selectGameEntry(entry){
+    if(!entry) return;
+    if(entry.kind==='back'){
+      this.appState='mainmenu';
+      this.mainMenuIndex=0;
+      TTS.speak('Main menu');
+      return;
+    }
+    if(entry.kind==='builtin'){
+      // Explicitly restore built-in levels when picking the built-in campaign here
+      LevelLoader.resetToBuiltin();
+      this.startCampaign();
+      return;
+    }
+    if(entry.kind==='pick'){
+      const ok = await LevelLoader.pickLocal();
+      if(ok){ this.startCampaign(); }
+      else if(LevelLoader.lastError){ this.lastError = 'Levels load error: ' + LevelLoader.lastError; }
+      return;
+    }
+    if(entry.kind==='url'){
+      const ok = await LevelLoader.load(entry.url);
+      if(ok){ this.startCampaign(); }
+      else if(LevelLoader.lastError){ this.lastError = 'Levels load error: ' + LevelLoader.lastError; }
+      return;
+    }
+  }
+
+  // --- NEW: keyboard helpers + menu hit-tests (fixes _* not a function) ---
+  _isEnter(e){ return e?.code === 'Enter' || e?.code === 'NumpadEnter'; }
+  _isSpace(e){ return e?.code === 'Space' || e?.key === ' '; }
+  _mainMenuHitTest(x, y){
+    // items drawn at BASE_W/2, y = BASE_H/2 - 40 + i*45
+    const left = BASE_W/2 - 200, right = BASE_W/2 + 200;
+    for(let i=0;i<5;i++){
+      const yy = BASE_H/2 - 40 + i*45;
+      if (x>=left && x<=right && y>=yy-22 && y<=yy+22) return i;
+    }
+    return -1;
+  }
+  _settingsMenuHitTest(x, y){
+    const left = BASE_W/2 - 200, right = BASE_W/2 + 200;
+    for(let i=0;i<8;i++){
+      const yy = BASE_H/2 - 100 + i*45;
+      if (x>=left && x<=right && y>=yy-22 && y<=yy+22) return i;
+    }
+    return -1;
+  }
+  _editorWarningHitTest(x, y){
+    const left = BASE_W/2 - 200, right = BASE_W/2 + 200;
+    for(let i=0;i<2;i++){
+      const yy = BASE_H/2 + 80 + i*50;
+      if (x>=left && x<=right && y>=yy-24 && y<=yy+24) return i;
+    }
+    return -1;
+  }
+  _gamesMenuHitTest(x, y){
+    // Items are centered at y = 170 + i*32, 32px row height
+    const left = BASE_W/2 - 220, right = BASE_W/2 + 240;
+    const rowH = 32, centerTop = 170;
+    const i = Math.round((y - centerTop) / rowH);
+    if (i>=0 && i<(this.gamesList?.length||0)){
+      const yy = centerTop + i*rowH; // row center
+      if (x>=left && x<=right && y>=yy-16 && y<=yy+16) return i;
+    }
+    return -1;
+  }
+  // NEW: pause menu hit-test (items drawn at y = 160 + i*45, x at BASE_W/2-120)
+  _pauseMenuHitTest(x, y){
+    const left = BASE_W/2 - 170, right = BASE_W/2 + 210;
+    for(let i=0;i<this._menuItems().length;i++){
+      const yy = 160 + i*45;
+      if (x>=left && x<=right && y>=yy-22 && y<=yy+22) return i;
+    }
+    return -1;
+  }
+  // NEW: hit-test for difficulty menu
+  _difficultyMenuHitTest(x, y){
+    const left = BASE_W/2 - 120, right = BASE_W/2 + 120;
+    // items drawn at y = 180 + i*46
+    for(let i=0;i<this._difficultyItems().length;i++){
+      const yy = 180 + i*46;
+      if (x>=left && x<=right && y>=yy-20 && y<=yy+10) return i;
+    }
+    return -1;
+  }
+
+  // NEW: power-up distribution with per-type caps and spacing
+  _ensureMinPowerupsForBlocks(){
+    const pegs = this.pegs || [];
+    const minSep = 90;                  // pixels between same-type powerups
+    const minSep2 = minSep * minSep;
+
+    const isCandidate = (p) => !p.block && p.type!=='HAZARD';
+    const isNormalCandidate = (p) => isCandidate(p) && p.type==='NORMAL';
+    const d2 = (a,b) => { const dx=a.x-b.x, dy=a.y-b.y; return dx*dx+dy*dy; };
+
+    const listType = (t) => pegs.map((p,i)=>({i,p})).filter(o => pegs[o.i].type===t && !pegs[o.i].block);
+    const countType = (t) => listType(t).length;
+
+    const allSpecial = new Set(['EXTRA','SPRAY','INVINCIBLE','EXPLODE','MULTIBALL','MULTI','HAZARD']);
+
+    const hasSepFromSameType = (idx, type) => {
+      const p = pegs[idx];
+      for (const o of listType(type)){
+        if (o.i === idx) continue;
+        if (d2(p, pegs[o.i]) < minSep2) return false;
+      }
+      return true;
+    };
+
+    // Pick a peg (prefer NORMAL) that is far enough from same-type to place this type.
+    const pickForType = (type) => {
+      const avoid = new Set([...allSpecial].filter(t => t !== type)); // avoid other specials
+      // First pass: NORMAL only
+      const idxs = pegs.map((_,i)=>i).sort(()=>Math.random()-0.5);
+      for (const i of idxs){
+        const p = pegs[i];
+        if (!isNormalCandidate(p)) continue;
+        if (!hasSepFromSameType(i, type)) continue;
+        return i;
+      }
+      // Second pass: any non-block/non-hazard not avoided
+      for (const i of idxs){
+        const p = pegs[i];
+        if (!isCandidate(p)) continue;
+        if (avoid.has(p.type)) continue;
+        if (!hasSepFromSameType(i, type)) continue;
+        return i;
+      }
+      // Last resort: pick NORMAL farthest from nearest same-type
+      let farBest=-1, farD2=-1;
+      for (const i of idxs){
+        const p = pegs[i];
+        if (!isNormalCandidate(p)) continue;
+        let nearest = Infinity;
+        for (const o of listType(type)){
+          if (o.i === i) continue;
+          const dd = d2(p, pegs[o.i]);
+          if (dd < nearest) nearest = dd;
+        }
+        if (nearest > farD2){ farD2 = nearest; farBest = i; }
+      }
+      return farBest;
+    };
+
+    // Ensure at least N of type
+    const ensureMin = (type, n) => {
+      let safety=0;
+      while (countType(type) < n && safety++ < 200){
+        const i = pickForType(type);
+        if (i < 0) break;
+        pegs[i].type = type;
+      }
+    };
+    // Cap at most cap of type (remove extras, prioritizing closest pairs)
+    const capMax = (type, cap) => {
+      let L = listType(type).map(o=>o.i);
+      if (L.length <= cap) return;
+      // iteratively remove the member of the closest pair
+      let safety=0;
+      while (L.length > cap && safety++ < 200){
+        let bestA=-1, bestB=-1, best=Infinity;
+        for (let a=0;a<L.length;a++){
+          for (let b=a+1;b<L.length;b++){
+            const dd = d2(pegs[L[a]], pegs[L[b]]);
+            if (dd < best){ best=dd; bestA=a; bestB=b; }
+          }
+        }
+        const rm = (bestA>=0 && bestB>=0) ? L[bestB] : L[L.length-1];
+        pegs[rm].type = 'NORMAL';
+        L = listType(type).map(o=>o.i);
+      }
+    };
+    // After counts adjustments, ensure pairs of same-type respect minSep by relocating
+    const enforceSeparation = (type) => {
+      const findClosePair = () => {
+        const arr = listType(type).map(o=>o.i);
+        for (let a=0;a<arr.length;a++){
+          for (let b=a+1;b<arr.length;b++){
+            if (d2(pegs[arr[a]], pegs[arr[b]]) < minSep2) return [arr[a], arr[b]];
+          }
+        }
+        return null;
+      };
+      let safety=0;
+      while (safety++ < 100){
+        const pair = findClosePair();
+        if (!pair) break;
+        const [, j] = pair; // try to move the second one
+        pegs[j].type = 'NORMAL';
+        const repl = pickForType(type);
+        if (repl >= 0){
+          pegs[repl].type = type;
+        } else {
+          // cannot relocate cleanly; revert and stop trying for this type
+          pegs[j].type = type;
+          break;
+        }
+      }
+    };
+
+    // Compute blocks and required explode count
+    const blocks = pegs.reduce((n,p)=> n + (p.block && !p.hit ? 1 : 0), 0);
+    const reqExplode = Math.max(1, Math.ceil(blocks / 3));
+
+    // 1) EXACTLY 2 EXTRA pegs
+    ensureMin('EXTRA', 2);
+    capMax('EXTRA', 2);
+
+    // 2) Clamp SPRAY, INVINCIBLE, MULTIBALL to 1–2 each
+    for (const t of ['SPRAY','INVINCIBLE','MULTIBALL']){
+      ensureMin(t, 1);
+      capMax(t, 2);
+    }
+
+    // 3) EXPLODE: at least ceil(blocks/3)
+    ensureMin('EXPLODE', reqExplode);
+
+    // 4) Enforce spacing between same-type power-ups so they aren't stacked
+    for (const t of ['EXTRA','SPRAY','INVINCIBLE','MULTIBALL','EXPLODE']){
+      enforceSeparation(t);
+    }
+  }
+
+  // --- Trajectory aimer helpers ---
+
+  // Draw a dashed aimer that follows the ball’s curved trajectory under gravity
+  _drawTrajectoryAimer(ctx){
+    const path = this._predictAimPath();
+    const pts = path.points;
+    if (!pts || pts.length < 2){
+      // Fallback to a short stub if prediction failed
+      const ox=this.aim.x, oy=this.aim.y, dx=Math.sin(this.aim.angle), dy=Math.cos(this.aim.angle);
+      const ex=ox+dx*120, ey=oy+dy*120;
+      ctx.setLineDash([16,6]);
+      ctx.strokeStyle='#000'; ctx.lineWidth=16; ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ex,ey); ctx.stroke();
+      ctx.strokeStyle='#fff'; ctx.lineWidth=12; ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ex,ey); ctx.stroke();
+      ctx.setLineDash([]);
+      return;
+    }
+
+    // Thick black under-stroke, then white stroke on top
+    ctx.setLineDash([16,6]);
+    ctx.strokeStyle='#000';
+    ctx.lineWidth=16;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for(let i=1;i<pts.length-1;i++){ ctx.lineTo(pts[i].x, pts[i].y); }
+    ctx.stroke();
+
+    ctx.strokeStyle = this.aimerModes[this.aimerIndex].val;
+    ctx.lineWidth=12;
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for(let i=1;i<pts.length-1;i++){ ctx.lineTo(pts[i].x, pts[i].y); }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Arrow head removed
+
+    // Aim origin disk
+    ctx.fillStyle='#222';
+    ctx.beginPath(); ctx.arc(this.aim.x, this.aim.y, 18, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#000'; ctx.lineWidth=3; ctx.stroke();
+  }
+
+  // Predict a curved aim path under gravity until first collision
+  _predictAimPath(){
+    const r = this.ballR || 12;
+    const ox = this.aim.x, oy = this.aim.y;
+    const speed = 11 * TUNING.speed;
+    let vx = Math.sin(this.aim.angle) * speed;
+    let vy = Math.cos(this.aim.angle) * speed;
+
+    // Simulate with the same frame-scale as update(): fStep = 1 (i.e., 1/60th)
+    const g = this.gravity; // per f=1 step
+    const maxSteps = 140;   // cap runtime
+    const fStep = 1;        // one "frame" per step
+    const points = [{ x: ox, y: oy }];
+    let x = ox, y = oy;
+    let hit = null;
+
+    // Cheap helpers
+    const hitWall = () => {
+      if (x - r <= 0) return { kind:'wall', x: r, y };
+      if (x + r >= BASE_W) return { kind:'wall', x: BASE_W - r, y };
+      return null;
+    };
+    const hitCeil = () => (y - r <= HUD_H ? { kind:'ceiling', x, y: HUD_H + r } : null);
+    const hitFloor = () => (y + r >= BASE_H ? { kind:'floor', x, y: BASE_H - r } : null);
+    const hitBumper = () => {
+      if (!this.bumper || !this.bumper.active) return null;
+      const bx=this.bumper.x, by=this.bumper.y, bw=this.bumper.w, bh=this.bumper.h;
+      const minx=bx, miny=by, maxx=bx+bw, maxy=by+bh;
+      if (this._circleIntersectsAABB(x, y, r, minx, miny, maxx, maxy)){
+        // Clamp end point to the closest point on the AABB
+        const cx = Math.max(minx, Math.min(x, maxx));
+        const cy = Math.max(miny, Math.min(y, maxy));
+        return { kind:'bumper', x: cx, y: cy };
+      }
+      return null;
+    };
+    const hitPegOrBlock = () => {
+      const pegs = this.pegs || [];
+      for (let i=0;i<pegs.length;i++){
+        const p = pegs[i];
+        if (!p || p.hit) continue;
+        if (p.block || p.shape === 'SQUARE'){
+          const half = p.radius || 16;
+          const minx = p.x - half, miny = p.y - half, maxx = p.x + half, maxy = p.y + half;
+          if (this._circleIntersectsAABB(x, y, r, minx, miny, maxx, maxy)){
+            // clamp to box boundary
+            const cx = Math.max(minx, Math.min(x, maxx));
+            const cy = Math.max(miny, Math.min(y, maxy));
+            return { kind:'block', x: cx, y: cy };
+          }
+        } else {
+          const R = (p.radius || 16) + r;
+          const dx = x - p.x, dy = y - p.y;
+          if (dx*dx + dy*dy <= R*R){
+            return { kind:'peg', x, y };
+          }
+        }
+      }
+      return null;
+    };
+
+    for (let step=0; step<maxSteps; step++){
+      // Advance
+      x += vx * fStep;
+      y += vy * fStep;
+      vy += g * fStep;
+
+      // Record the new point every step
+      points.push({ x, y });
+
+      // Collision checks in order of cheapest-first
+      hit = hitWall() || hitCeil() || hitFloor() || hitBumper() || hitPegOrBlock();
+      if (hit){
+        // Ensure the end point is the collision point
+        hit.x = Number.isFinite(hit.x) ? hit.x : x;
+        hit.y = Number.isFinite(hit.y) ? hit.y : y;
+        points[points.length-1] = { x: hit.x, y: hit.y };
+        break;
+      }
+
+      // Stop if far off-screen (safety)
+      if (x < -100 || x > BASE_W+100 || y > BASE_H+120) break;
+    }
+
+    // Keep at least two points for drawing
+    if (points.length < 2){
+      const dx = Math.sin(this.aim.angle), dy = Math.cos(this.aim.angle);
+      points.push({ x: ox + dx*60, y: oy + dy*60 });
+    }
+
+    return { points, end: hit || { kind:'none', x: points[points.length-1].x, y: points[points.length-1].y } };
+  }
+
+  // Circle vs AABB intersection (used by predictor)
+  _circleIntersectsAABB(cx, cy, cr, minx, miny, maxx, maxy){
+    const px = Math.max(minx, Math.min(cx, maxx));
+    const py = Math.max(miny, Math.min(cy, maxy));
+    const dx = cx - px, dy = cy - py;
+    return (dx*dx + dy*dy) <= cr*cr;
+  }
+
+  // ...existing code...
+
+  // Find earliest intersection of a ray with world geometry
+  _raycastFirstHit(ox, oy, dx, dy){
+    // ...existing code...
+  }
+
+  _intersectRayCircle(ox, oy, dx, dy, cx, cy, R){
+    // ...existing code...
+  }
+
+  _intersectRayAABB(ox, oy, dx, dy, minx, miny, maxx, maxy){
+    // ...existing code...
+  }
+}
+// Call the orientation gate once at boot before creating the game
+updateOrientationGate();
+
+const game=new Game();
+// Preload levels from manifest or fallback
+LevelLoader.init();
+</script>
+</body>
+</html>
+

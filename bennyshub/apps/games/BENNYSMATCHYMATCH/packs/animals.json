@@ -1,0 +1,177 @@
+{
+    "categories": {
+        "Unassigned": [],
+        "Small Animals": [
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/arasaac/dog.png",
+                "sound": null,
+                "title": "dog",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1767981795066
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/arasaac/cat.png",
+                "sound": null,
+                "title": "cat",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1767982247378
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/twemoji/1f420.svg",
+                "sound": null,
+                "title": "fish",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1767982256169
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/twemoji/1f422.svg",
+                "sound": null,
+                "title": "turtle",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1767982267557
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/mulberry/lizard.svg",
+                "sound": null,
+                "title": "lizard",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1767982281450
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/arasaac/bird.png",
+                "sound": null,
+                "title": "bird",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1767982293761
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/mulberry/ferret.svg",
+                "sound": null,
+                "title": "ferret",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1767982305316
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/mulberry/mouse.svg.varianted-skin.svg",
+                "sound": null,
+                "title": "mouse",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1767982316785
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/arasaac/mole.png",
+                "sound": null,
+                "title": "mole",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1768680802034
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/arasaac/squirrel.png",
+                "sound": null,
+                "title": "squirrel",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1768680838231
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/arasaac/rabbit.png",
+                "sound": null,
+                "title": "rabbit",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1768680879725
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/mulberry/frog.svg",
+                "sound": null,
+                "title": "frog",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1768680894567
+            }
+        ],
+        "Large Animals": [
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/arasaac/whale.png",
+                "sound": null,
+                "title": "whale",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1768920901744
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/arasaac/elephant.png",
+                "sound": null,
+                "title": "elephant",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1768920915904
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/arasaac/giraffe.png",
+                "sound": null,
+                "title": "giraffe",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1768920931770
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/mulberry/rhinoceros.svg",
+                "sound": null,
+                "title": "rhino",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1768920944816
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/arasaac/moose.png",
+                "sound": null,
+                "title": "moose",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1768921042649
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/arasaac/hippopotamus.png",
+                "sound": null,
+                "title": "hippopotamus",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1768921078097
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/arasaac/horse.png",
+                "sound": null,
+                "title": "horse",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1768921118458
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/mulberry/gorilla.svg",
+                "sound": null,
+                "title": "gorilla",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1768921144297
+            },
+            {
+                "image": "https://d18vdu4p71yql0.cloudfront.net/libraries/arasaac/bison.png",
+                "sound": null,
+                "title": "bison",
+                "altTitle": "",
+                "ttsText": "",
+                "_created": 1768921164288
+            }
+        ]
+    }
+}

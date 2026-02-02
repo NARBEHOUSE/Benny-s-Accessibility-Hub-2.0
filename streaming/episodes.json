@@ -1,0 +1,3844 @@
+{
+  "the simpsons": {
+    "0": [
+      {
+        "season": 0,
+        "episode": 0,
+        "title": "The Simpsons",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57933"
+      }
+    ],
+    "1": [
+      {
+        "season": 1,
+        "episode": 1,
+        "title": "Simpsons Roasting on an Open Fire",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57935"
+      },
+      {
+        "season": 1,
+        "episode": 2,
+        "title": "Bart the Genius",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57936"
+      },
+      {
+        "season": 1,
+        "episode": 3,
+        "title": "Homer's Odyssey",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57937"
+      },
+      {
+        "season": 1,
+        "episode": 4,
+        "title": "There's No Disgrace Like Home",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57938"
+      },
+      {
+        "season": 1,
+        "episode": 5,
+        "title": "Bart the General",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57939"
+      },
+      {
+        "season": 1,
+        "episode": 6,
+        "title": "Moaning Lisa",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57940"
+      },
+      {
+        "season": 1,
+        "episode": 7,
+        "title": "The Call of the Simpsons",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57941"
+      },
+      {
+        "season": 1,
+        "episode": 8,
+        "title": "The Telltale Head",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57942"
+      },
+      {
+        "season": 1,
+        "episode": 9,
+        "title": "Life on the Fast Lane",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57943"
+      },
+      {
+        "season": 1,
+        "episode": 10,
+        "title": "Homer's Night Out",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57944"
+      },
+      {
+        "season": 1,
+        "episode": 11,
+        "title": "The Crepes of Wrath",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57945"
+      },
+      {
+        "season": 1,
+        "episode": 12,
+        "title": "Krusty Gets Busted",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57946"
+      },
+      {
+        "season": 1,
+        "episode": 13,
+        "title": "Some Enchanted Evening",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57947"
+      }
+    ],
+    "2": [
+      {
+        "season": 2,
+        "episode": 1,
+        "title": "Bart Gets an F",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58176"
+      },
+      {
+        "season": 2,
+        "episode": 2,
+        "title": "Simpson and Delilah",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58177"
+      },
+      {
+        "season": 2,
+        "episode": 3,
+        "title": "Treehouse of Horror",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58178"
+      },
+      {
+        "season": 2,
+        "episode": 4,
+        "title": "Two Cars in Every Garage and Three Eyes on Every Fish",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58179"
+      },
+      {
+        "season": 2,
+        "episode": 5,
+        "title": "Dancin' Homer",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58180"
+      },
+      {
+        "season": 2,
+        "episode": 6,
+        "title": "Dead Putting Society",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58181"
+      },
+      {
+        "season": 2,
+        "episode": 7,
+        "title": "Bart vs. Thanksgiving",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58182"
+      },
+      {
+        "season": 2,
+        "episode": 8,
+        "title": "Bart the Daredevil",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58183"
+      },
+      {
+        "season": 2,
+        "episode": 9,
+        "title": "Itchy & Scratchy & Marge",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58184"
+      },
+      {
+        "season": 2,
+        "episode": 10,
+        "title": "Bart Gets Hit by a Car",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58185"
+      },
+      {
+        "season": 2,
+        "episode": 11,
+        "title": "One Fish, Two Fish, Blowfish, Blue Fish",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58186"
+      },
+      {
+        "season": 2,
+        "episode": 12,
+        "title": "The Way We Was",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58187"
+      },
+      {
+        "season": 2,
+        "episode": 13,
+        "title": "Homer vs. Lisa and the Eighth Commandment",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58188"
+      },
+      {
+        "season": 2,
+        "episode": 14,
+        "title": "Principal Charming",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58189"
+      },
+      {
+        "season": 2,
+        "episode": 15,
+        "title": "Oh Brother, Where Art Thou?",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58190"
+      },
+      {
+        "season": 2,
+        "episode": 16,
+        "title": "Bart's Dog Gets an F",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58191"
+      },
+      {
+        "season": 2,
+        "episode": 17,
+        "title": "Old Money",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58192"
+      },
+      {
+        "season": 2,
+        "episode": 18,
+        "title": "Brush with Greatness",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58193"
+      },
+      {
+        "season": 2,
+        "episode": 19,
+        "title": "Lisa's Substitute",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58194"
+      },
+      {
+        "season": 2,
+        "episode": 20,
+        "title": "The War of the Simpsons",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58195"
+      },
+      {
+        "season": 2,
+        "episode": 21,
+        "title": "Three Men and a Comic Book",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58196"
+      },
+      {
+        "season": 2,
+        "episode": 22,
+        "title": "Blood Feud",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58197"
+      }
+    ],
+    "3": [
+      {
+        "season": 3,
+        "episode": 1,
+        "title": "Stark Raving Dad",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58199"
+      },
+      {
+        "season": 3,
+        "episode": 2,
+        "title": "Mr. Lisa Goes to Washington",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58200"
+      },
+      {
+        "season": 3,
+        "episode": 3,
+        "title": "When Flanders Failed",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58201"
+      },
+      {
+        "season": 3,
+        "episode": 4,
+        "title": "Bart the Murderer",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58202"
+      },
+      {
+        "season": 3,
+        "episode": 5,
+        "title": "Homer Defined",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58203"
+      },
+      {
+        "season": 3,
+        "episode": 6,
+        "title": "Like Father Like Clown",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58204"
+      },
+      {
+        "season": 3,
+        "episode": 7,
+        "title": "Treehouse of Horror II",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58205"
+      },
+      {
+        "season": 3,
+        "episode": 8,
+        "title": "Lisa's Pony",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58206"
+      },
+      {
+        "season": 3,
+        "episode": 9,
+        "title": "Saturdays of Thunder",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58207"
+      },
+      {
+        "season": 3,
+        "episode": 10,
+        "title": "Flaming Moe's",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58208"
+      },
+      {
+        "season": 3,
+        "episode": 11,
+        "title": "Burns Verkaufen der Kraftwerk",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58209"
+      },
+      {
+        "season": 3,
+        "episode": 12,
+        "title": "I Married Marge",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58210"
+      },
+      {
+        "season": 3,
+        "episode": 13,
+        "title": "Radio Bart",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58211"
+      },
+      {
+        "season": 3,
+        "episode": 14,
+        "title": "Lisa the Greek",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58212"
+      },
+      {
+        "season": 3,
+        "episode": 15,
+        "title": "Homer Alone",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58213"
+      },
+      {
+        "season": 3,
+        "episode": 16,
+        "title": "Bart the Lover",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58214"
+      },
+      {
+        "season": 3,
+        "episode": 17,
+        "title": "Homer at the Bat",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58215"
+      },
+      {
+        "season": 3,
+        "episode": 18,
+        "title": "Separate Vocations",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58216"
+      },
+      {
+        "season": 3,
+        "episode": 19,
+        "title": "Dog of Death",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58217"
+      },
+      {
+        "season": 3,
+        "episode": 20,
+        "title": "Colonel Homer",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58218"
+      },
+      {
+        "season": 3,
+        "episode": 21,
+        "title": "Black Widower",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58219"
+      },
+      {
+        "season": 3,
+        "episode": 22,
+        "title": "The Otto Show",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58220"
+      },
+      {
+        "season": 3,
+        "episode": 23,
+        "title": "Bart's Friend Falls in Love",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58221"
+      },
+      {
+        "season": 3,
+        "episode": 24,
+        "title": "Brother, Can You Spare Two Dimes?",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58222"
+      }
+    ],
+    "4": [
+      {
+        "season": 4,
+        "episode": 1,
+        "title": "Kamp Krusty",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58231"
+      },
+      {
+        "season": 4,
+        "episode": 2,
+        "title": "A Streetcar Named Marge",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58224"
+      },
+      {
+        "season": 4,
+        "episode": 3,
+        "title": "Homer the Heretic",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58227"
+      },
+      {
+        "season": 4,
+        "episode": 4,
+        "title": "Lisa the Beauty Queen",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58234"
+      },
+      {
+        "season": 4,
+        "episode": 5,
+        "title": "Treehouse of Horror III",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58244"
+      },
+      {
+        "season": 4,
+        "episode": 6,
+        "title": "Itchy & Scratchy: The Movie",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58230"
+      },
+      {
+        "season": 4,
+        "episode": 7,
+        "title": "Marge Gets a Job",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58236"
+      },
+      {
+        "season": 4,
+        "episode": 9,
+        "title": "Mr. Plow",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58239"
+      },
+      {
+        "season": 4,
+        "episode": 10,
+        "title": "Lisa's First Word",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58235"
+      },
+      {
+        "season": 4,
+        "episode": 11,
+        "title": "Homer's Triple Bypass",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58228"
+      },
+      {
+        "season": 4,
+        "episode": 12,
+        "title": "Marge vs. the Monorail",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58238"
+      },
+      {
+        "season": 4,
+        "episode": 13,
+        "title": "Selma's Choice",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58241"
+      },
+      {
+        "season": 4,
+        "episode": 14,
+        "title": "Brother from the Same Planet",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58225"
+      },
+      {
+        "season": 4,
+        "episode": 15,
+        "title": "I Love Lisa",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58229"
+      },
+      {
+        "season": 4,
+        "episode": 16,
+        "title": "Duffless",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58226"
+      },
+      {
+        "season": 4,
+        "episode": 17,
+        "title": "Last Exit to Springfield",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58233"
+      },
+      {
+        "season": 4,
+        "episode": 18,
+        "title": "So It's Come to This: A Simpsons Clip Show",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58242"
+      },
+      {
+        "season": 4,
+        "episode": 19,
+        "title": "The Front",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58243"
+      },
+      {
+        "season": 4,
+        "episode": 20,
+        "title": "Whacking Day",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58245"
+      },
+      {
+        "season": 4,
+        "episode": 21,
+        "title": "Marge in Chains",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58237"
+      },
+      {
+        "season": 4,
+        "episode": 22,
+        "title": "Krusty Gets Kancelled",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58232"
+      }
+    ],
+    "5": [
+      {
+        "season": 5,
+        "episode": 1,
+        "title": "Homer's Barbershop Quartet",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58247"
+      },
+      {
+        "season": 5,
+        "episode": 2,
+        "title": "Cape Feare",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58248"
+      },
+      {
+        "season": 5,
+        "episode": 3,
+        "title": "Homer Goes to College",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58249"
+      },
+      {
+        "season": 5,
+        "episode": 4,
+        "title": "Rosebud",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58250"
+      },
+      {
+        "season": 5,
+        "episode": 5,
+        "title": "Treehouse of Horror IV",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58251"
+      },
+      {
+        "season": 5,
+        "episode": 6,
+        "title": "Marge on the Lam",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58252"
+      },
+      {
+        "season": 5,
+        "episode": 7,
+        "title": "Bart's Inner Child",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58253"
+      },
+      {
+        "season": 5,
+        "episode": 8,
+        "title": "Boy-Scoutz 'n the Hood",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58254"
+      },
+      {
+        "season": 5,
+        "episode": 9,
+        "title": "The Last Temptation of Homer",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58255"
+      },
+      {
+        "season": 5,
+        "episode": 11,
+        "title": "Homer the Vigilante",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58257"
+      },
+      {
+        "season": 5,
+        "episode": 12,
+        "title": "Bart Gets Famous",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58258"
+      },
+      {
+        "season": 5,
+        "episode": 13,
+        "title": "Homer and Apu",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58259"
+      },
+      {
+        "season": 5,
+        "episode": 14,
+        "title": "Lisa vs. Malibu Stacy",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58260"
+      },
+      {
+        "season": 5,
+        "episode": 15,
+        "title": "Deep Space Homer",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58261"
+      },
+      {
+        "season": 5,
+        "episode": 16,
+        "title": "Homer Loves Flanders",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58262"
+      },
+      {
+        "season": 5,
+        "episode": 17,
+        "title": "Bart Gets an Elephant",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58263"
+      },
+      {
+        "season": 5,
+        "episode": 18,
+        "title": "Burns' Heir",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58264"
+      },
+      {
+        "season": 5,
+        "episode": 19,
+        "title": "Sweet Seymour Skinner's Baadasssss Song",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58265"
+      },
+      {
+        "season": 5,
+        "episode": 20,
+        "title": "The Boy Who Knew Too Much",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58266"
+      },
+      {
+        "season": 5,
+        "episode": 21,
+        "title": "Lady Bouvier's Lover",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58267"
+      },
+      {
+        "season": 5,
+        "episode": 22,
+        "title": "Secrets of a Successful Marriage",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58268"
+      }
+    ],
+    "6": [
+      {
+        "season": 6,
+        "episode": 1,
+        "title": "Bart of Darkness",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58270"
+      },
+      {
+        "season": 6,
+        "episode": 2,
+        "title": "Lisa's Rival",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58271"
+      },
+      {
+        "season": 6,
+        "episode": 3,
+        "title": "Another Simpsons Clip Show",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58272"
+      },
+      {
+        "season": 6,
+        "episode": 4,
+        "title": "Itchy & Scratchy Land",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58273"
+      },
+      {
+        "season": 6,
+        "episode": 5,
+        "title": "Sideshow Bob Roberts",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58274"
+      },
+      {
+        "season": 6,
+        "episode": 6,
+        "title": "Treehouse of Horror V",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58275"
+      },
+      {
+        "season": 6,
+        "episode": 7,
+        "title": "Bart's Girlfriend",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58276"
+      },
+      {
+        "season": 6,
+        "episode": 8,
+        "title": "Lisa on Ice",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58277"
+      },
+      {
+        "season": 6,
+        "episode": 9,
+        "title": "Homer Badman",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58278"
+      },
+      {
+        "season": 6,
+        "episode": 11,
+        "title": "Fear of Flying",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58280"
+      },
+      {
+        "season": 6,
+        "episode": 12,
+        "title": "Homer the Great",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58281"
+      },
+      {
+        "season": 6,
+        "episode": 13,
+        "title": "And Maggie Makes Three",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58282"
+      },
+      {
+        "season": 6,
+        "episode": 14,
+        "title": "Bart's Comet",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58283"
+      },
+      {
+        "season": 6,
+        "episode": 15,
+        "title": "Homie the Clown",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58284"
+      },
+      {
+        "season": 6,
+        "episode": 16,
+        "title": "Bart vs. Australia",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58285"
+      },
+      {
+        "season": 6,
+        "episode": 17,
+        "title": "Homer vs. Patty and Selma",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58286"
+      },
+      {
+        "season": 6,
+        "episode": 18,
+        "title": "A Star is Burns",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58287"
+      },
+      {
+        "season": 6,
+        "episode": 19,
+        "title": "Lisa's Wedding",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58288"
+      },
+      {
+        "season": 6,
+        "episode": 20,
+        "title": "Two Dozen and One Greyhounds",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58289"
+      },
+      {
+        "season": 6,
+        "episode": 21,
+        "title": "The PTA Disbands",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58290"
+      },
+      {
+        "season": 6,
+        "episode": 22,
+        "title": "Round Springfield",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58291"
+      },
+      {
+        "season": 6,
+        "episode": 23,
+        "title": "The Springfield Connection",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58292"
+      },
+      {
+        "season": 6,
+        "episode": 24,
+        "title": "Lemon of Troy",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58293"
+      },
+      {
+        "season": 6,
+        "episode": 25,
+        "title": "Who Shot Mr. Burns? (1)",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58294"
+      }
+    ],
+    "7": [
+      {
+        "season": 7,
+        "episode": 1,
+        "title": "Who Shot Mr. Burns? (2)",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58296"
+      },
+      {
+        "season": 7,
+        "episode": 2,
+        "title": "Radioactive Man",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58297"
+      },
+      {
+        "season": 7,
+        "episode": 4,
+        "title": "Bart Sells His Soul",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58299"
+      },
+      {
+        "season": 7,
+        "episode": 5,
+        "title": "Lisa the Vegetarian",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58300"
+      },
+      {
+        "season": 7,
+        "episode": 6,
+        "title": "Treehouse of Horror VI",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58301"
+      },
+      {
+        "season": 7,
+        "episode": 7,
+        "title": "King-Size Homer",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58302"
+      },
+      {
+        "season": 7,
+        "episode": 8,
+        "title": "Mother Simpson",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58303"
+      },
+      {
+        "season": 7,
+        "episode": 9,
+        "title": "Sideshow Bob's Last Gleaming",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58304"
+      },
+      {
+        "season": 7,
+        "episode": 10,
+        "title": "The Simpsons 138th Episode Spectacular",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58305"
+      },
+      {
+        "season": 7,
+        "episode": 11,
+        "title": "Marge Be Not Proud",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58306"
+      },
+      {
+        "season": 7,
+        "episode": 12,
+        "title": "Team Homer",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58307"
+      },
+      {
+        "season": 7,
+        "episode": 13,
+        "title": "Two Bad Neighbors",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58308"
+      },
+      {
+        "season": 7,
+        "episode": 14,
+        "title": "Scenes from the Class Struggle in Springfield",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58309"
+      },
+      {
+        "season": 7,
+        "episode": 15,
+        "title": "Bart the Fink",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58310"
+      },
+      {
+        "season": 7,
+        "episode": 16,
+        "title": "Lisa the Iconoclast",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58311"
+      },
+      {
+        "season": 7,
+        "episode": 17,
+        "title": "Homer the Smithers",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58312"
+      },
+      {
+        "season": 7,
+        "episode": 18,
+        "title": "The Day the Violence Died",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58313"
+      },
+      {
+        "season": 7,
+        "episode": 19,
+        "title": "A Fish Called Selma",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58314"
+      },
+      {
+        "season": 7,
+        "episode": 20,
+        "title": "Bart on the Road",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58315"
+      },
+      {
+        "season": 7,
+        "episode": 21,
+        "title": "22 Short Films About Springfield",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58316"
+      },
+      {
+        "season": 7,
+        "episode": 23,
+        "title": "Much Apu About Nothing",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58318"
+      },
+      {
+        "season": 7,
+        "episode": 24,
+        "title": "Homerpalooza",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58319"
+      },
+      {
+        "season": 7,
+        "episode": 25,
+        "title": "Summer of 4 ft. 2",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58320"
+      }
+    ],
+    "8": [
+      {
+        "season": 8,
+        "episode": 1,
+        "title": "Treehouse of Horror VII",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58322"
+      },
+      {
+        "season": 8,
+        "episode": 2,
+        "title": "You Only Move Twice",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58323"
+      },
+      {
+        "season": 8,
+        "episode": 3,
+        "title": "The Homer They Fall",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58324"
+      },
+      {
+        "season": 8,
+        "episode": 5,
+        "title": "Bart After Dark",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58326"
+      },
+      {
+        "season": 8,
+        "episode": 6,
+        "title": "A Milhouse Divided",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58327"
+      },
+      {
+        "season": 8,
+        "episode": 7,
+        "title": "Lisa's Date with Density",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58328"
+      },
+      {
+        "season": 8,
+        "episode": 8,
+        "title": "Hurricane Neddy",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58329"
+      },
+      {
+        "season": 8,
+        "episode": 10,
+        "title": "The Springfield Files",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58331"
+      },
+      {
+        "season": 8,
+        "episode": 11,
+        "title": "The Twisted World of Marge Simpson",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58332"
+      },
+      {
+        "season": 8,
+        "episode": 12,
+        "title": "Mountain of Madness",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58333"
+      },
+      {
+        "season": 8,
+        "episode": 13,
+        "title": "Simpsoncalifragilisticexpiala (Annoyed Grunt) cious",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58334"
+      },
+      {
+        "season": 8,
+        "episode": 14,
+        "title": "The Itchy & Scratchy & Poochie Show",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58335"
+      },
+      {
+        "season": 8,
+        "episode": 15,
+        "title": "Homer's Phobia",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58336"
+      },
+      {
+        "season": 8,
+        "episode": 16,
+        "title": "Brother from Another Series",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58337"
+      },
+      {
+        "season": 8,
+        "episode": 17,
+        "title": "My Sister, My Sitter",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58338"
+      },
+      {
+        "season": 8,
+        "episode": 19,
+        "title": "Grade School Confidential",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58340"
+      },
+      {
+        "season": 8,
+        "episode": 20,
+        "title": "The Canine Mutiny",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58341"
+      },
+      {
+        "season": 8,
+        "episode": 22,
+        "title": "In Marge We Trust",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58343"
+      },
+      {
+        "season": 8,
+        "episode": 23,
+        "title": "Homer's Enemy",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58344"
+      },
+      {
+        "season": 8,
+        "episode": 24,
+        "title": "The Simpsons Spin-Off Showcase",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58345"
+      },
+      {
+        "season": 8,
+        "episode": 25,
+        "title": "The Secret War of Lisa Simpson",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58346"
+      }
+    ],
+    "9": [
+      {
+        "season": 9,
+        "episode": 1,
+        "title": "The City of New York vs. Homer Simpson",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58348"
+      },
+      {
+        "season": 9,
+        "episode": 2,
+        "title": "The Principal and the Pauper",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58349"
+      },
+      {
+        "season": 9,
+        "episode": 3,
+        "title": "Lisa's Sax",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58350"
+      },
+      {
+        "season": 9,
+        "episode": 4,
+        "title": "Treehouse of Horror VIII",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58351"
+      },
+      {
+        "season": 9,
+        "episode": 5,
+        "title": "The Cartridge Family",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58352"
+      },
+      {
+        "season": 9,
+        "episode": 6,
+        "title": "Bart Star",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58353"
+      },
+      {
+        "season": 9,
+        "episode": 7,
+        "title": "The Two Mrs. Nahasapeemapetilons",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58354"
+      },
+      {
+        "season": 9,
+        "episode": 8,
+        "title": "Lisa the Skeptic",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58355"
+      },
+      {
+        "season": 9,
+        "episode": 9,
+        "title": "Realty Bites",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58356"
+      },
+      {
+        "season": 9,
+        "episode": 10,
+        "title": "Miracle on Evergreen Terrace",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58357"
+      },
+      {
+        "season": 9,
+        "episode": 11,
+        "title": "All Singing, All Dancing",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58358"
+      },
+      {
+        "season": 9,
+        "episode": 12,
+        "title": "Bart Carny",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58359"
+      },
+      {
+        "season": 9,
+        "episode": 13,
+        "title": "The Joy of Sect",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58360"
+      },
+      {
+        "season": 9,
+        "episode": 14,
+        "title": "Das Bus",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58361"
+      },
+      {
+        "season": 9,
+        "episode": 16,
+        "title": "Dumbbell Indemnity",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58363"
+      },
+      {
+        "season": 9,
+        "episode": 17,
+        "title": "Lisa the Simpson",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58364"
+      },
+      {
+        "season": 9,
+        "episode": 18,
+        "title": "This Little Wiggy",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58365"
+      },
+      {
+        "season": 9,
+        "episode": 19,
+        "title": "Simpson Tide",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58366"
+      },
+      {
+        "season": 9,
+        "episode": 20,
+        "title": "The Trouble with Trillions",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58367"
+      },
+      {
+        "season": 9,
+        "episode": 21,
+        "title": "Girly Edition",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58368"
+      },
+      {
+        "season": 9,
+        "episode": 22,
+        "title": "Trash of the Titans",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58369"
+      },
+      {
+        "season": 9,
+        "episode": 23,
+        "title": "King of the Hill",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58370"
+      },
+      {
+        "season": 9,
+        "episode": 24,
+        "title": "Lost Our Lisa",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58371"
+      },
+      {
+        "season": 9,
+        "episode": 25,
+        "title": "Natural Born Kissers",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58372"
+      }
+    ],
+    "10": [
+      {
+        "season": 10,
+        "episode": 1,
+        "title": "Lard of the Dance",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57949"
+      },
+      {
+        "season": 10,
+        "episode": 2,
+        "title": "The Wizard of Evergreen Terrace",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57950"
+      },
+      {
+        "season": 10,
+        "episode": 3,
+        "title": "Bart the Mother",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57951"
+      },
+      {
+        "season": 10,
+        "episode": 4,
+        "title": "Treehouse of Horror IX",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57952"
+      },
+      {
+        "season": 10,
+        "episode": 5,
+        "title": "When You Dish Upon a Star",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57953"
+      },
+      {
+        "season": 10,
+        "episode": 9,
+        "title": "Mayored to the Mob",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57957"
+      },
+      {
+        "season": 10,
+        "episode": 10,
+        "title": "Viva Ned Flanders",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57958"
+      },
+      {
+        "season": 10,
+        "episode": 11,
+        "title": "Wild Barts Can't Be Broken",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57959"
+      },
+      {
+        "season": 10,
+        "episode": 12,
+        "title": "Sunday, Cruddy Sunday",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57960"
+      },
+      {
+        "season": 10,
+        "episode": 13,
+        "title": "Homer to the Max",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57961"
+      },
+      {
+        "season": 10,
+        "episode": 14,
+        "title": "I'm with Cupid",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57962"
+      },
+      {
+        "season": 10,
+        "episode": 16,
+        "title": "Make Room for Lisa",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57964"
+      },
+      {
+        "season": 10,
+        "episode": 17,
+        "title": "Maximum Homerdrive",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57965"
+      },
+      {
+        "season": 10,
+        "episode": 18,
+        "title": "Simpsons Bible Stories",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57966"
+      },
+      {
+        "season": 10,
+        "episode": 19,
+        "title": "Mom and Pop Art",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57967"
+      },
+      {
+        "season": 10,
+        "episode": 21,
+        "title": "Monty Can't Buy Me Love",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57969"
+      },
+      {
+        "season": 10,
+        "episode": 22,
+        "title": "They Saved Lisa's Brain",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57970"
+      }
+    ],
+    "11": [
+      {
+        "season": 11,
+        "episode": 1,
+        "title": "Beyond Blunderdome",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57973"
+      },
+      {
+        "season": 11,
+        "episode": 2,
+        "title": "Brother's Little Helper",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57974"
+      },
+      {
+        "season": 11,
+        "episode": 3,
+        "title": "Guess Who's Coming to Criticize Dinner",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57975"
+      },
+      {
+        "season": 11,
+        "episode": 4,
+        "title": "Treehouse of Horror X",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57976"
+      },
+      {
+        "season": 11,
+        "episode": 6,
+        "title": "Hello Gutter, Hello Fadder",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57978"
+      },
+      {
+        "season": 11,
+        "episode": 7,
+        "title": "Eight Misbehavin",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57979"
+      },
+      {
+        "season": 11,
+        "episode": 8,
+        "title": "Take My Wife, Sleaze",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57980"
+      },
+      {
+        "season": 11,
+        "episode": 9,
+        "title": "Grift of the Magi",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57981"
+      },
+      {
+        "season": 11,
+        "episode": 10,
+        "title": "Little Big Mom",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57982"
+      },
+      {
+        "season": 11,
+        "episode": 11,
+        "title": "Faith Off",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57983"
+      },
+      {
+        "season": 11,
+        "episode": 12,
+        "title": "The Mansion Family",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57984"
+      },
+      {
+        "season": 11,
+        "episode": 13,
+        "title": "Saddlesore Galactica",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57985"
+      },
+      {
+        "season": 11,
+        "episode": 15,
+        "title": "Missionary Impossible",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57987"
+      },
+      {
+        "season": 11,
+        "episode": 16,
+        "title": "Pygmoelian",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57988"
+      },
+      {
+        "season": 11,
+        "episode": 17,
+        "title": "Bart to the Future",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57989"
+      },
+      {
+        "season": 11,
+        "episode": 19,
+        "title": "Kill the Alligator and Run",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57991"
+      },
+      {
+        "season": 11,
+        "episode": 20,
+        "title": "Last Tap Dance in Springfield",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57992"
+      },
+      {
+        "season": 11,
+        "episode": 21,
+        "title": "It's a Mad, Mad, Mad, Mad Marge",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57993"
+      },
+      {
+        "season": 11,
+        "episode": 22,
+        "title": "Behind the Laughter",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57994"
+      }
+    ],
+    "12": [
+      {
+        "season": 12,
+        "episode": 1,
+        "title": "Treehouse of Horror XI",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57996"
+      },
+      {
+        "season": 12,
+        "episode": 2,
+        "title": "A Tale of Two Springfields",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57997"
+      },
+      {
+        "season": 12,
+        "episode": 3,
+        "title": "Insane Clown Poppy",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F57998"
+      },
+      {
+        "season": 12,
+        "episode": 5,
+        "title": "Homer vs. Dignity",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58000"
+      },
+      {
+        "season": 12,
+        "episode": 6,
+        "title": "The Computer Wore Menace Shoes",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58001"
+      },
+      {
+        "season": 12,
+        "episode": 7,
+        "title": "The Great Money Caper",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58002"
+      },
+      {
+        "season": 12,
+        "episode": 8,
+        "title": "Skinner's Sense of Snow",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58003"
+      },
+      {
+        "season": 12,
+        "episode": 10,
+        "title": "Pokey Mom",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58005"
+      },
+      {
+        "season": 12,
+        "episode": 11,
+        "title": "Worst Episode Ever",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58006"
+      },
+      {
+        "season": 12,
+        "episode": 12,
+        "title": "Tennis the Menace",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58007"
+      },
+      {
+        "season": 12,
+        "episode": 13,
+        "title": "Day of the Jackanapes",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58008"
+      },
+      {
+        "season": 12,
+        "episode": 14,
+        "title": "New Kids on the Blecch",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58009"
+      },
+      {
+        "season": 12,
+        "episode": 15,
+        "title": "Hungry Hungry Homer",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58010"
+      },
+      {
+        "season": 12,
+        "episode": 16,
+        "title": "Bye Bye Nerdy",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58011"
+      },
+      {
+        "season": 12,
+        "episode": 18,
+        "title": "Trilogy of Error",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58013"
+      },
+      {
+        "season": 12,
+        "episode": 20,
+        "title": "Children of a Lesser Clod",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58015"
+      },
+      {
+        "season": 12,
+        "episode": 21,
+        "title": "Simpsons Tall Tales",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58016"
+      }
+    ],
+    "13": [
+      {
+        "season": 13,
+        "episode": 1,
+        "title": "Treehouse of Horror XII",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58018"
+      },
+      {
+        "season": 13,
+        "episode": 2,
+        "title": "The Parent Rap",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58019"
+      },
+      {
+        "season": 13,
+        "episode": 3,
+        "title": "Homer the Moe",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58020"
+      },
+      {
+        "season": 13,
+        "episode": 4,
+        "title": "Hunka Hunka Burns in Love",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58021"
+      },
+      {
+        "season": 13,
+        "episode": 5,
+        "title": "The Blunder Years",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58022"
+      },
+      {
+        "season": 13,
+        "episode": 6,
+        "title": "She of Little Faith",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58023"
+      },
+      {
+        "season": 13,
+        "episode": 7,
+        "title": "Brawl in the Family",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58024"
+      },
+      {
+        "season": 13,
+        "episode": 8,
+        "title": "Sweets and Sour Marge",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58025"
+      },
+      {
+        "season": 13,
+        "episode": 9,
+        "title": "Jaws Wired Shut",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58026"
+      },
+      {
+        "season": 13,
+        "episode": 10,
+        "title": "Half-Decent Proposal",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58027"
+      },
+      {
+        "season": 13,
+        "episode": 11,
+        "title": "The Bart Wants What It Wants",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58028"
+      },
+      {
+        "season": 13,
+        "episode": 12,
+        "title": "The Lastest Gun in the West",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58029"
+      },
+      {
+        "season": 13,
+        "episode": 13,
+        "title": "The Old Man and the Key",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58030"
+      },
+      {
+        "season": 13,
+        "episode": 14,
+        "title": "Tales from the Public Domain",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58031"
+      },
+      {
+        "season": 13,
+        "episode": 15,
+        "title": "Blame It on Lisa",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58032"
+      },
+      {
+        "season": 13,
+        "episode": 17,
+        "title": "Gump Roast",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58034"
+      },
+      {
+        "season": 13,
+        "episode": 18,
+        "title": "I Am Furious Yellow",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58035"
+      },
+      {
+        "season": 13,
+        "episode": 19,
+        "title": "The Sweetest Apu",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58036"
+      },
+      {
+        "season": 13,
+        "episode": 20,
+        "title": "Little Girl in the Big Ten",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58037"
+      },
+      {
+        "season": 13,
+        "episode": 21,
+        "title": "Frying Game",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58038"
+      },
+      {
+        "season": 13,
+        "episode": 22,
+        "title": "Papa's Got a Brand New Badge",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58039"
+      }
+    ],
+    "14": [
+      {
+        "season": 14,
+        "episode": 1,
+        "title": "Treehouse of Horror XIII",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58041"
+      },
+      {
+        "season": 14,
+        "episode": 2,
+        "title": "How I Spent My Strummer Vacation",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58042"
+      },
+      {
+        "season": 14,
+        "episode": 4,
+        "title": "Large Marge",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58044"
+      },
+      {
+        "season": 14,
+        "episode": 5,
+        "title": "Helter Shelter",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58045"
+      },
+      {
+        "season": 14,
+        "episode": 6,
+        "title": "The Great Louse Detective",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58046"
+      },
+      {
+        "season": 14,
+        "episode": 8,
+        "title": "The Dad Who Knew Too Little",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58048"
+      },
+      {
+        "season": 14,
+        "episode": 10,
+        "title": "Pray Anything",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58050"
+      },
+      {
+        "season": 14,
+        "episode": 11,
+        "title": "Barting Over",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58051"
+      },
+      {
+        "season": 14,
+        "episode": 12,
+        "title": "I'm Spelling As Fast As I Can",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58052"
+      },
+      {
+        "season": 14,
+        "episode": 14,
+        "title": "Mr. Spritz Goes to Washington",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58054"
+      },
+      {
+        "season": 14,
+        "episode": 15,
+        "title": "C. E. D'oh",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58055"
+      },
+      {
+        "season": 14,
+        "episode": 16,
+        "title": "'Scuse Me While I Miss the Sky",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58056"
+      },
+      {
+        "season": 14,
+        "episode": 17,
+        "title": "Three Gays of the Condo",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58057"
+      },
+      {
+        "season": 14,
+        "episode": 20,
+        "title": "Brake My Wife, Please",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58060"
+      },
+      {
+        "season": 14,
+        "episode": 21,
+        "title": "The Bart of War",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58061"
+      },
+      {
+        "season": 14,
+        "episode": 22,
+        "title": "Moe Baby Blues",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58062"
+      }
+    ],
+    "15": [
+      {
+        "season": 15,
+        "episode": 1,
+        "title": "Treehouse of Horror XIV",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58064"
+      },
+      {
+        "season": 15,
+        "episode": 2,
+        "title": "My Mother the Carjacker",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58065"
+      },
+      {
+        "season": 15,
+        "episode": 3,
+        "title": "The President Wore Pearls",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58066"
+      },
+      {
+        "season": 15,
+        "episode": 4,
+        "title": "The Regina Monologues",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58067"
+      },
+      {
+        "season": 15,
+        "episode": 5,
+        "title": "The Fat and the Furriest",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58068"
+      },
+      {
+        "season": 15,
+        "episode": 7,
+        "title": "'Tis the Fifteenth Season",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58070"
+      },
+      {
+        "season": 15,
+        "episode": 10,
+        "title": "Diatribe of a Mad Housewife",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58073"
+      },
+      {
+        "season": 15,
+        "episode": 11,
+        "title": "Margical History Tour",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58074"
+      },
+      {
+        "season": 15,
+        "episode": 12,
+        "title": "Milhouse Doesn't Live Here Anymore",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58075"
+      },
+      {
+        "season": 15,
+        "episode": 14,
+        "title": "The Ziff Who Came to Dinner",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58077"
+      },
+      {
+        "season": 15,
+        "episode": 15,
+        "title": "Co-Dependent's Day",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58078"
+      },
+      {
+        "season": 15,
+        "episode": 16,
+        "title": "Wandering Juvie",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58079"
+      },
+      {
+        "season": 15,
+        "episode": 17,
+        "title": "My Big Fat Geek Wedding",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58080"
+      },
+      {
+        "season": 15,
+        "episode": 18,
+        "title": "Catch 'Em If You Can",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58081"
+      },
+      {
+        "season": 15,
+        "episode": 19,
+        "title": "Simple Simpson",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58082"
+      },
+      {
+        "season": 15,
+        "episode": 20,
+        "title": "The Way We Weren't",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58083"
+      },
+      {
+        "season": 15,
+        "episode": 21,
+        "title": "Bart-Mangled Banner",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58084"
+      },
+      {
+        "season": 15,
+        "episode": 22,
+        "title": "Fraudcast News",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58085"
+      }
+    ],
+    "16": [
+      {
+        "season": 16,
+        "episode": 1,
+        "title": "Treehouse of Horror XV",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58087"
+      },
+      {
+        "season": 16,
+        "episode": 2,
+        "title": "All's Fair in Oven War",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58088"
+      },
+      {
+        "season": 16,
+        "episode": 3,
+        "title": "Sleeping with the Enemy",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58089"
+      },
+      {
+        "season": 16,
+        "episode": 4,
+        "title": "She Used to Be My Girl",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58090"
+      },
+      {
+        "season": 16,
+        "episode": 6,
+        "title": "Midnight Rx",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58092"
+      },
+      {
+        "season": 16,
+        "episode": 7,
+        "title": "Mommie Beerest",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58093"
+      },
+      {
+        "season": 16,
+        "episode": 8,
+        "title": "Homer and Ned's Hail Mary Pass",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58094"
+      },
+      {
+        "season": 16,
+        "episode": 9,
+        "title": "Pranksta Rap",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58095"
+      },
+      {
+        "season": 16,
+        "episode": 10,
+        "title": "There's Something About Marrying",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58096"
+      },
+      {
+        "season": 16,
+        "episode": 11,
+        "title": "On a Clear Day I Can't See My Sister",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58097"
+      },
+      {
+        "season": 16,
+        "episode": 12,
+        "title": "Goo Goo Gai Pan",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58098"
+      },
+      {
+        "season": 16,
+        "episode": 13,
+        "title": "Mobile Homer",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58099"
+      },
+      {
+        "season": 16,
+        "episode": 14,
+        "title": "The Seven-Beer Snitch",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58100"
+      },
+      {
+        "season": 16,
+        "episode": 15,
+        "title": "Future-Drama",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58101"
+      },
+      {
+        "season": 16,
+        "episode": 16,
+        "title": "Don't Fear the Roofer",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58102"
+      },
+      {
+        "season": 16,
+        "episode": 17,
+        "title": "The Heartbroke Kid",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58103"
+      },
+      {
+        "season": 16,
+        "episode": 18,
+        "title": "A Star is Torn",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58104"
+      },
+      {
+        "season": 16,
+        "episode": 20,
+        "title": "Home Away from Homer",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58106"
+      }
+    ],
+    "17": [
+      {
+        "season": 17,
+        "episode": 1,
+        "title": "Bonfire of the Manatees",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58109"
+      },
+      {
+        "season": 17,
+        "episode": 2,
+        "title": "The Girl Who Slept Too Little",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58110"
+      },
+      {
+        "season": 17,
+        "episode": 4,
+        "title": "Treehouse of Horror XVI",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58112"
+      },
+      {
+        "season": 17,
+        "episode": 5,
+        "title": "Marge's Son Poisoning",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58113"
+      },
+      {
+        "season": 17,
+        "episode": 6,
+        "title": "See Homer Run",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58114"
+      },
+      {
+        "season": 17,
+        "episode": 7,
+        "title": "The Last of the Red Hat Mamas",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58115"
+      },
+      {
+        "season": 17,
+        "episode": 8,
+        "title": "The Italian Bob",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58116"
+      },
+      {
+        "season": 17,
+        "episode": 9,
+        "title": "Simpsons Christmas Stories",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58117"
+      },
+      {
+        "season": 17,
+        "episode": 10,
+        "title": "Homer's Paternity Coot",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58118"
+      },
+      {
+        "season": 17,
+        "episode": 12,
+        "title": "My Fair Laddy",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58120"
+      },
+      {
+        "season": 17,
+        "episode": 13,
+        "title": "The Seemingly Never-Ending Story",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58121"
+      },
+      {
+        "season": 17,
+        "episode": 14,
+        "title": "Bart Has Two Mommies",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58122"
+      },
+      {
+        "season": 17,
+        "episode": 15,
+        "title": "Homer Simpson, This is Your Wife",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58123"
+      },
+      {
+        "season": 17,
+        "episode": 16,
+        "title": "Million Dollar Abie",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58124"
+      },
+      {
+        "season": 17,
+        "episode": 18,
+        "title": "The Wettest Stories Ever Told",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58126"
+      },
+      {
+        "season": 17,
+        "episode": 19,
+        "title": "Girls Just Want to Have Sums",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58127"
+      },
+      {
+        "season": 17,
+        "episode": 20,
+        "title": "Regarding Margie",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58128"
+      },
+      {
+        "season": 17,
+        "episode": 21,
+        "title": "The Monkey Suit",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58129"
+      },
+      {
+        "season": 17,
+        "episode": 22,
+        "title": "Marge and Homer Turn a Couple Play",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58130"
+      }
+    ],
+    "18": [
+      {
+        "season": 18,
+        "episode": 3,
+        "title": "Please Homer, Don't Hammer 'em",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58134"
+      },
+      {
+        "season": 18,
+        "episode": 4,
+        "title": "Treehouse of Horror XVII",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58135"
+      },
+      {
+        "season": 18,
+        "episode": 6,
+        "title": "Moe 'N' a Lisa",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58137"
+      },
+      {
+        "season": 18,
+        "episode": 7,
+        "title": "Ice Cream of Margie (With the Light Blue Hair)",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58138"
+      },
+      {
+        "season": 18,
+        "episode": 8,
+        "title": "The Haw-Hawed Couple",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58139"
+      },
+      {
+        "season": 18,
+        "episode": 10,
+        "title": "The Wife Aquatic",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58141"
+      },
+      {
+        "season": 18,
+        "episode": 11,
+        "title": "Revenge is a Dish Best Served Three Times",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58142"
+      },
+      {
+        "season": 18,
+        "episode": 12,
+        "title": "Little Big Girl",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58143"
+      },
+      {
+        "season": 18,
+        "episode": 13,
+        "title": "Springfield Up",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58144"
+      },
+      {
+        "season": 18,
+        "episode": 14,
+        "title": "Yokel Chords",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58145"
+      },
+      {
+        "season": 18,
+        "episode": 15,
+        "title": "Rome-old and Juli-eh",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58146"
+      },
+      {
+        "season": 18,
+        "episode": 16,
+        "title": "Homerazzi",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58147"
+      },
+      {
+        "season": 18,
+        "episode": 17,
+        "title": "Marge Gamer",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58148"
+      },
+      {
+        "season": 18,
+        "episode": 18,
+        "title": "The Boys of Bummer",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58149"
+      },
+      {
+        "season": 18,
+        "episode": 19,
+        "title": "Crook and Ladder",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58150"
+      },
+      {
+        "season": 18,
+        "episode": 20,
+        "title": "Stop or My Dog Will Shoot",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58151"
+      },
+      {
+        "season": 18,
+        "episode": 21,
+        "title": "24 Minutes",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58152"
+      },
+      {
+        "season": 18,
+        "episode": 22,
+        "title": "You Kent Always Say What You Want",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58153"
+      }
+    ],
+    "19": [
+      {
+        "season": 19,
+        "episode": 2,
+        "title": "Homer of Seville",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58156"
+      },
+      {
+        "season": 19,
+        "episode": 3,
+        "title": "Midnight Towboy",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58157"
+      },
+      {
+        "season": 19,
+        "episode": 4,
+        "title": "I Don't Wanna Know Why the Caged Bird Sings",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58158"
+      },
+      {
+        "season": 19,
+        "episode": 5,
+        "title": "Treehouse of Horror XVIII",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58159"
+      },
+      {
+        "season": 19,
+        "episode": 6,
+        "title": "Little Orphan Millie",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58160"
+      },
+      {
+        "season": 19,
+        "episode": 7,
+        "title": "Husbands and Knives",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58161"
+      },
+      {
+        "season": 19,
+        "episode": 8,
+        "title": "Funeral for a Fiend",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58162"
+      },
+      {
+        "season": 19,
+        "episode": 9,
+        "title": "Eternal Moonshine of the Simpson Mind",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58163"
+      },
+      {
+        "season": 19,
+        "episode": 11,
+        "title": "That 90's Show",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58165"
+      },
+      {
+        "season": 19,
+        "episode": 12,
+        "title": "Love, Springfieldian Style",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58166"
+      },
+      {
+        "season": 19,
+        "episode": 13,
+        "title": "The Debarted",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58167"
+      },
+      {
+        "season": 19,
+        "episode": 14,
+        "title": "Dial 'N' for Nerder",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58168"
+      },
+      {
+        "season": 19,
+        "episode": 15,
+        "title": "Smoke on the Daughter",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58169"
+      },
+      {
+        "season": 19,
+        "episode": 16,
+        "title": "Papa Don't Leech",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58170"
+      },
+      {
+        "season": 19,
+        "episode": 17,
+        "title": "Apocalypse Cow",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58171"
+      },
+      {
+        "season": 19,
+        "episode": 18,
+        "title": "Any Given Sundance",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58172"
+      },
+      {
+        "season": 19,
+        "episode": 19,
+        "title": "Mona Leaves-a",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F58173"
+      }
+    ]
+  },
+  "aqua teen": {
+    "1": [
+      {
+        "season": 1,
+        "episode": 1,
+        "title": "Rabbot",
+        "url": "https://play.hbomax.com/video/watch/9c2a7469-5089-4229-9278-d1768494166b/3de46859-f297-4458-9719-a4ae22784998"
+      },
+      {
+        "season": 1,
+        "episode": 2,
+        "title": "Escape from Leprauchpolis",
+        "url": "https://play.hbomax.com/video/watch/d69642f6-bba4-4f3f-b3c5-3222cd976125/980d7fcb-116f-4ad0-96a4-43910a07de24"
+      },
+      {
+        "season": 1,
+        "episode": 3,
+        "title": "Bus of the Undead",
+        "url": "https://play.hbomax.com/video/watch/4af8fe89-c942-4e8d-b2f3-5858e63317a2/99f8afc1-6a96-4f31-b01f-07e7e12d4f48"
+      },
+      {
+        "season": 1,
+        "episode": 4,
+        "title": "Mayhem of the Mooninites",
+        "url": "https://play.hbomax.com/video/watch/3cafa1d1-3cc1-4848-92db-21283a4c697a/de9e364d-d913-4083-a243-eea33e7d3558"
+      },
+      {
+        "season": 1,
+        "episode": 5,
+        "title": "Balloonenstein",
+        "url": "https://play.hbomax.com/video/watch/bcf5f1a5-5748-4f3f-b73c-2e0e8f0ed72f/8b156aa8-43b2-4233-bc83-a9cfc7705d6a"
+      },
+      {
+        "season": 1,
+        "episode": 6,
+        "title": "Space Conflict from Beyond Pluto",
+        "url": "https://play.hbomax.com/video/watch/6e9f625e-a4fd-48bb-a525-14c87bacaa90/22c983b7-1d7e-4fae-ac3b-f515980cea0c"
+      },
+      {
+        "season": 1,
+        "episode": 7,
+        "title": "Ol' Drippy",
+        "url": "https://play.hbomax.com/video/watch/07787b70-58c0-4cf5-9afc-aadbedc7814d/4378fb97-32fb-4e5d-8dbb-2aa4d4f82825"
+      },
+      {
+        "season": 1,
+        "episode": 8,
+        "title": "Revenge of the Mooninites",
+        "url": "https://play.hbomax.com/video/watch/4e1636ba-32fd-4a4f-b2f3-89cf67a7dd3e/b22fc06f-a26e-4453-b852-853f0de8c898"
+      },
+      {
+        "season": 1,
+        "episode": 9,
+        "title": "MC Pee Pants",
+        "url": "https://play.hbomax.com/video/watch/2512e1c1-694a-462f-8c63-173cde6bde2f/b8bd0781-8222-4411-81d3-4611bb917937"
+      },
+      {
+        "season": 1,
+        "episode": 10,
+        "title": "Dumber Dolls",
+        "url": "https://play.hbomax.com/video/watch/25779735-a8f3-4415-b9e2-51119b1eb6f0/20a33861-6751-46b1-b140-0e6ad42f01a4"
+      },
+      {
+        "season": 1,
+        "episode": 11,
+        "title": "Bad Replicant",
+        "url": "https://play.hbomax.com/video/watch/2f52066a-6823-419b-a95e-fd1af1e15805/3730c076-a41a-4103-9bb6-eee403c5358b"
+      },
+      {
+        "season": 1,
+        "episode": 12,
+        "title": "Circus",
+        "url": "https://play.hbomax.com/video/watch/18703313-9a66-4552-bbca-9f411bea8207/504996da-bdf4-44a3-9dc4-df655e82da40"
+      },
+      {
+        "season": 1,
+        "episode": 13,
+        "title": "Love Mummy",
+        "url": "https://play.hbomax.com/video/watch/cec1917f-6b6d-4e33-ae81-d5a669ddd681/7a79ae15-d48b-4250-9a2e-741fe2cef7d4"
+      },
+      {
+        "season": 1,
+        "episode": 14,
+        "title": "Dumber Days",
+        "url": "https://play.hbomax.com/video/watch/507af5f6-5789-4353-8fcc-3699b8b88ebb/1a48943b-0e43-40eb-b252-c3ac8d9b4e46"
+      },
+      {
+        "season": 1,
+        "episode": 15,
+        "title": "Interfection",
+        "url": "https://play.hbomax.com/video/watch/8c9c92c0-9ca8-4308-b7c2-26ad691d5fce/c04a4a08-7447-42fd-a660-edc3b91faa42"
+      },
+      {
+        "season": 1,
+        "episode": 16,
+        "title": "PDA",
+        "url": "https://play.hbomax.com/video/watch/c996b574-a52e-474b-be2b-622ec7c359c7/5b55be47-76dd-4d26-96e4-6a3c2d3976ce"
+      },
+      {
+        "season": 1,
+        "episode": 17,
+        "title": "Mail Order Bride",
+        "url": "https://play.hbomax.com/video/watch/cb61bd41-dab9-4c41-b006-d20d550e8614/3db86f02-be91-4469-9c8d-86754800e4eb"
+      },
+      {
+        "season": 1,
+        "episode": 18,
+        "title": "Cybernetic Ghost of Christmas Past from the Future",
+        "url": "https://play.hbomax.com/video/watch/56e1595f-5ace-492e-8b8d-de1c6eaf24cb/4087daeb-f983-429b-b872-937c7028d642"
+      }
+    ],
+    "2": [
+      {
+        "season": 2,
+        "episode": 1,
+        "title": "Super Birthday Snake",
+        "url": "https://play.hbomax.com/video/watch/86b26ea9-2fe3-4ba3-9302-fdafe212344d/de0c3bc8-e1e0-4ace-8a27-e2cd320672c1"
+      },
+      {
+        "season": 2,
+        "episode": 2,
+        "title": "Super Hero",
+        "url": "https://play.hbomax.com/video/watch/b3558318-afce-4584-8fbe-919f233b574a/ece9eca3-f207-4040-ae03-6e776902335b"
+      },
+      {
+        "season": 2,
+        "episode": 3,
+        "title": "Super Bowl",
+        "url": "https://play.hbomax.com/video/watch/30944708-0126-46c9-87c8-0f7fcacf92dc/0e55d91f-3f9b-409c-a839-067a96341dab"
+      },
+      {
+        "season": 2,
+        "episode": 4,
+        "title": "Super Computer",
+        "url": "https://play.hbomax.com/video/watch/5e916cbc-517f-435e-ad10-e0792f08e395/dfee3c93-345d-4378-8816-5e1216fe30c9"
+      },
+      {
+        "season": 2,
+        "episode": 5,
+        "title": "Super Model",
+        "url": "https://play.hbomax.com/video/watch/1d8341d7-1310-4892-81f1-979fda9ca0b2/2fd61152-0659-45e7-9f92-2311cf139f0f"
+      },
+      {
+        "season": 2,
+        "episode": 6,
+        "title": "Super Spore",
+        "url": "https://play.hbomax.com/video/watch/0e7fd858-801d-402c-bd76-950082271df1/0784a18e-b1f1-4caf-be97-549327e0aba1"
+      },
+      {
+        "season": 2,
+        "episode": 7,
+        "title": "Super Sir Loin",
+        "url": "https://play.hbomax.com/video/watch/8b55f337-0d56-4a2b-8ca0-0e7cc13d749e/b4c55acb-619e-465b-93f1-4886f2a60a98"
+      },
+      {
+        "season": 2,
+        "episode": 8,
+        "title": "Super Squatter",
+        "url": "https://play.hbomax.com/video/watch/993a3530-5a87-4b0a-9aa2-e7f7083c3564/735f1dc5-7b44-45f9-8a4d-f1b12d2502c3"
+      },
+      {
+        "season": 2,
+        "episode": 9,
+        "title": "The Meat Zone",
+        "url": "https://play.hbomax.com/video/watch/0e0556b1-e07f-4c19-a11b-1cf1220e7a32/7cf6c344-5481-42a8-95fe-5bbefa359a35"
+      },
+      {
+        "season": 2,
+        "episode": 10,
+        "title": "Super Trivia",
+        "url": "https://play.hbomax.com/video/watch/58e71d6d-8c37-4cae-b264-f130cff8507b/8519925f-689c-44d4-bbb5-bf510a2d97ac"
+      },
+      {
+        "season": 2,
+        "episode": 11,
+        "title": "Universal Remonster",
+        "url": "https://play.hbomax.com/video/watch/52f9da4a-af0c-48f3-b51b-9a369959e771/cdcba0fd-7180-4292-89aa-b49e74c43dbc"
+      },
+      {
+        "season": 2,
+        "episode": 12,
+        "title": "Total Re-Carl",
+        "url": "https://play.hbomax.com/video/watch/44dbade5-3200-4582-b5c4-c1b7151a0cb0/d5b45b35-0ea0-49aa-8d23-163728947e36"
+      },
+      {
+        "season": 2,
+        "episode": 13,
+        "title": "Revenge of the Trees",
+        "url": "https://play.hbomax.com/video/watch/a10b8970-75d2-4541-9c7b-b829415cb8d1/5aa23a29-bb99-4cf3-b1d9-32228cb341ef"
+      },
+      {
+        "season": 2,
+        "episode": 14,
+        "title": "Spirit Journey Formation Anniversary",
+        "url": "https://play.hbomax.com/video/watch/fe32586e-431c-4d3a-bee9-cb020c9e4dde/8781e808-7c9d-44b3-af49-3c4e3db8c947"
+      },
+      {
+        "season": 2,
+        "episode": 15,
+        "title": "The Shaving",
+        "url": "https://play.hbomax.com/video/watch/bc83e79b-9ac0-4f51-b907-a3a66744378f/4bb05c58-4d94-4ba2-a543-65d97ebc1189"
+      },
+      {
+        "season": 2,
+        "episode": 16,
+        "title": "Broodwich",
+        "url": "https://play.hbomax.com/video/watch/5bf39d72-69dd-4ae2-b2dc-40dd5e6390b3/1203a998-1a58-4554-82d9-a056d2c2fb0c"
+      },
+      {
+        "season": 2,
+        "episode": 17,
+        "title": "Kidney Car",
+        "url": "https://play.hbomax.com/video/watch/93720366-6556-44bc-adcf-0278d139fb60/bd233949-97bf-44a3-818b-36d30842e877"
+      },
+      {
+        "season": 2,
+        "episode": 18,
+        "title": "The Cubing",
+        "url": "https://play.hbomax.com/video/watch/97cb4934-151d-46d9-8757-aad78f022bf6/65ce6d1b-fbfa-4164-abc6-5b4258b85434"
+      },
+      {
+        "season": 2,
+        "episode": 19,
+        "title": "Frat Aliens",
+        "url": "https://play.hbomax.com/video/watch/d60c2831-75de-4fdc-b6bb-908283c33aab/9417b9c0-fe77-40fa-9a95-e1456e6d3199"
+      },
+      {
+        "season": 2,
+        "episode": 20,
+        "title": "The Clowning",
+        "url": "https://play.hbomax.com/video/watch/5ba39130-e826-424d-a872-4af91da0b503/07e31386-6ac0-4360-b5be-c4e9722be5ca"
+      },
+      {
+        "season": 2,
+        "episode": 21,
+        "title": "The Dressing",
+        "url": "https://play.hbomax.com/video/watch/c0bc2eb2-af53-4b6e-9849-eb86f0e7d97b/629ffea1-6b01-42a0-996e-9c47f8591667"
+      },
+      {
+        "season": 2,
+        "episode": 22,
+        "title": "THE",
+        "url": "https://play.hbomax.com/video/watch/e3998bbd-8c42-4b71-b7fd-621813cc6e49/f46ebac7-5f0d-4ad8-a389-17d1e50d2394"
+      },
+      {
+        "season": 2,
+        "episode": 23,
+        "title": "The Cloning",
+        "url": "https://play.hbomax.com/video/watch/160e98b8-85e4-4d0a-9bf4-742adf3f18a6/0a41479a-daba-48d8-ae89-ff66d4d13a03"
+      },
+      {
+        "season": 2,
+        "episode": 24,
+        "title": "The Last One",
+        "url": "https://play.hbomax.com/video/watch/c30f8bec-a2e4-467b-ba02-1ac9d372aedd/66af7b5d-0b43-4320-ab64-5f5ebc7e7e8d"
+      }
+    ],
+    "3": [
+      {
+        "season": 3,
+        "episode": 1,
+        "title": "Video Ouija",
+        "url": "https://play.hbomax.com/video/watch/d7551a9f-88f6-400c-b680-aff7333db19c/1108c0f8-c540-440c-a71f-c08ba7f0ebdc"
+      },
+      {
+        "season": 3,
+        "episode": 2,
+        "title": "Unremarkable Voyage",
+        "url": "https://play.hbomax.com/video/watch/f480c0d1-d10a-4bbd-ab69-72f22c897beb/4110e02c-9639-4dfc-8777-0bcf9f7ea9dd"
+      },
+      {
+        "season": 3,
+        "episode": 3,
+        "title": "Remooned",
+        "url": "https://play.hbomax.com/video/watch/871de1a3-061c-457b-b811-093e4d5e3148/ac9e922b-111e-40ef-bc44-731a14d5d7d0"
+      },
+      {
+        "season": 3,
+        "episode": 4,
+        "title": "Gee Whiz",
+        "url": "https://play.hbomax.com/video/watch/fb9ff6a5-9039-433f-9dc1-3228a8ee246e/4a13ed98-a041-4d15-a818-25f81fdd67db"
+      },
+      {
+        "season": 3,
+        "episode": 5,
+        "title": "eDork",
+        "url": "https://play.hbomax.com/video/watch/76815a84-94ab-4b83-a8c7-de9cdcde00a5/13bae03a-571f-45bc-bccf-090593385e11"
+      },
+      {
+        "season": 3,
+        "episode": 6,
+        "title": "Little Brittle",
+        "url": "https://play.hbomax.com/video/watch/23b597a1-7617-4f4a-aa6a-78be7d9d5d65/d74fb510-e65c-485c-b7a5-48f012cbe89a"
+      },
+      {
+        "season": 3,
+        "episode": 7,
+        "title": "Robositter",
+        "url": "https://play.hbomax.com/video/watch/4e30db57-51e9-4b95-9146-5312abb57b5b/ecbffa1b-b267-4a59-897f-75d8545b908f"
+      },
+      {
+        "season": 3,
+        "episode": 8,
+        "title": "Moon Master",
+        "url": "https://play.hbomax.com/video/watch/78e577e2-a7c6-4ad5-a01c-1ce10c1c29cb/0938acfa-345a-42e7-bee9-9835a0465ca7"
+      },
+      {
+        "season": 3,
+        "episode": 9,
+        "title": "Diet",
+        "url": "https://play.hbomax.com/video/watch/4aa0795d-8764-4e9a-bfba-aa8bb420e900/5487dd40-fa10-4dfb-abe3-57a490fc3ecd"
+      },
+      {
+        "season": 3,
+        "episode": 10,
+        "title": "Dusty Gozongas",
+        "url": "https://play.hbomax.com/video/watch/e7f92b50-5957-4d82-9f21-b705628947fa/0ba307c3-6d16-4c57-bae3-f6923b31c47f"
+      },
+      {
+        "season": 3,
+        "episode": 11,
+        "title": "T-Shirt of the Living Dead",
+        "url": "https://play.hbomax.com/video/watch/69a05372-ad0f-4560-a6aa-bf678f068623/432d14ac-0639-4301-b46d-35a00508901c"
+      },
+      {
+        "season": 3,
+        "episode": 12,
+        "title": "Hypno-Germ",
+        "url": "https://play.hbomax.com/video/watch/bc89ce4c-ad40-48cf-af80-e7a56cc4d75b/0434d547-3b8f-4fdb-a65c-d98801496fd3"
+      },
+      {
+        "season": 3,
+        "episode": 13,
+        "title": "Carl",
+        "url": "https://play.hbomax.com/video/watch/79e9dfea-86c5-4ad1-9e38-75f0b40e27e8/389d84c7-14cf-4ea3-9959-bc599ab438ef"
+      }
+    ],
+    "4": [
+      {
+        "season": 4,
+        "episode": 1,
+        "title": "Dirtfoot",
+        "url": "https://play.hbomax.com/video/watch/a1089353-0b86-449a-8ae2-371c6451bd44/28102a05-d890-4752-b6cd-ff81d6ef2ff0"
+      },
+      {
+        "season": 4,
+        "episode": 2,
+        "title": "Boost Mobile",
+        "url": "https://play.hbomax.com/video/watch/e7d08188-3942-407c-8efc-f72c052bdf70/56683f2f-486f-4040-ad88-aaf678e72cda"
+      },
+      {
+        "season": 4,
+        "episode": 3,
+        "title": "Deleted Scenes",
+        "url": "https://play.hbomax.com/video/watch/14969812-a38e-4a0d-96cd-539207615b41/358c2b3d-0460-41ee-b6d4-7e7cb85d5c33"
+      },
+      {
+        "season": 4,
+        "episode": 4,
+        "title": "Dickisode",
+        "url": "https://play.hbomax.com/video/watch/2e8078de-13b9-47a3-ada1-6027acacfaab/75a90500-4f65-48a9-b2a8-231ec508d346"
+      },
+      {
+        "season": 4,
+        "episode": 5,
+        "title": "Hand Banana",
+        "url": "https://play.hbomax.com/video/watch/9c490929-e7b3-4e98-9d6a-7792d437842b/0d6a9e76-e94f-45e4-bd3a-a19261d6b888"
+      },
+      {
+        "season": 4,
+        "episode": 6,
+        "title": "Party All the Time",
+        "url": "https://play.hbomax.com/video/watch/f237d963-33b9-4c61-826c-ab5129e51ecf/2bb52506-7c76-4d56-8b8a-d8c69ee87823"
+      },
+      {
+        "season": 4,
+        "episode": 7,
+        "title": "Global Grilling",
+        "url": "https://play.hbomax.com/video/watch/2676f2ce-d0f1-499d-a4fe-0733356fd520/66fa0f97-afba-4298-ab8e-5fb82d3e9836"
+      },
+      {
+        "season": 4,
+        "episode": 8,
+        "title": "Grim Reaper Gutters",
+        "url": "https://play.hbomax.com/video/watch/5f9587e9-d8f4-40b1-a8ec-06eaa82392d1/7605e651-b1b0-4c60-8a91-36165b3705b1"
+      },
+      {
+        "season": 4,
+        "episode": 9,
+        "title": "Moonajuana",
+        "url": "https://play.hbomax.com/video/watch/af9a4a20-4133-4f65-938b-df2d2bb23f8d/6d0b9828-4f6a-4fe9-bf06-513201143e40"
+      },
+      {
+        "season": 4,
+        "episode": 10,
+        "title": "Bart Oates",
+        "url": "https://play.hbomax.com/video/watch/a481907d-19f9-4840-ab9a-9c544760cf0d/b645533b-abdd-43df-9bd1-1e37e08c52e0"
+      },
+      {
+        "season": 4,
+        "episode": 11,
+        "title": "Antenna",
+        "url": "https://play.hbomax.com/video/watch/6df94f71-c223-4019-8db8-853e2849c34c/43ac201c-9e5c-4414-895c-26c5e59ef9dc"
+      },
+      {
+        "season": 4,
+        "episode": 12,
+        "title": "Ezekial",
+        "url": "https://play.hbomax.com/video/watch/8e2ed24c-feca-45eb-af82-ef1cfa4285a6/6228b759-88b4-4b5a-b128-4b95228a37a4"
+      },
+      {
+        "season": 4,
+        "episode": 13,
+        "title": "Carl Wash",
+        "url": "https://play.hbomax.com/video/watch/4c6a5f24-13b4-4cd4-bdf4-8cbc2de02157/435b1b35-3ac5-445f-b288-1d9f664d8359"
+      }
+    ],
+    "5": [
+      {
+        "season": 5,
+        "episode": 1,
+        "title": "Robots Everywhere",
+        "url": "https://play.hbomax.com/video/watch/3b5b7867-bdd3-49fa-afe6-3a18ad9ead11/06f4cad4-1863-41a5-9258-e4340bd16313"
+      },
+      {
+        "season": 5,
+        "episode": 2,
+        "title": "Sirens",
+        "url": "https://play.hbomax.com/video/watch/6a0a4e54-a6dc-415f-800d-93521135cf05/294969b9-780f-47dc-bd07-4847ccd8c460"
+      },
+      {
+        "season": 5,
+        "episode": 3,
+        "title": "Couple Skate",
+        "url": "https://play.hbomax.com/video/watch/d9c0c065-dc23-419e-a2ae-8b285442ff16/8b5e01b4-ca39-4c18-bd7e-52a5130acf37"
+      },
+      {
+        "season": 5,
+        "episode": 4,
+        "title": "Reedickyoulus",
+        "url": "https://play.hbomax.com/video/watch/a5ad34fb-b376-4efc-8c6d-f2ff6f257dd5/cfb5961d-4149-4747-becc-0663c8cb0211"
+      },
+      {
+        "season": 5,
+        "episode": 5,
+        "title": "Hoppy Bunny",
+        "url": "https://play.hbomax.com/video/watch/ffb042a8-404a-4429-8cee-953985e06c5d/d0c6d82f-f487-45a1-b3d6-a72366d41b73"
+      },
+      {
+        "season": 5,
+        "episode": 6,
+        "title": "Laser Lenses",
+        "url": "https://play.hbomax.com/video/watch/370ab863-b407-4ad2-bcf4-bf0a66fe6cd2/055b7aa0-733a-457f-9719-5bc8120a5dfe"
+      },
+      {
+        "season": 5,
+        "episode": 7,
+        "title": "Dummy Love",
+        "url": "https://play.hbomax.com/video/watch/204c6bb5-47bb-44e7-bb9a-d091f6a01ba8/4dada6e2-44f2-4085-838a-5bc56ac4ccfb"
+      },
+      {
+        "season": 5,
+        "episode": 8,
+        "title": "The Marines",
+        "url": "https://play.hbomax.com/video/watch/1f49f114-d3a1-44ba-9de7-694772f9c92b/a025eb8d-8871-47cb-ab2b-c782f346a269"
+      },
+      {
+        "season": 5,
+        "episode": 9,
+        "title": "Bible Fruit",
+        "url": "https://play.hbomax.com/video/watch/6aaaacc0-e4c9-4a9f-8d22-9d4f24bb792e/709db339-d43f-44d3-abca-c495362c33c3"
+      }
+    ],
+    "6": [
+      {
+        "season": 6,
+        "episode": 1,
+        "title": "Gene E.",
+        "url": "https://play.hbomax.com/video/watch/fc804f5f-093c-4419-9c42-bde791445b6b/6c76a60a-e0a9-4bb1-b41a-24c1e0532c34"
+      },
+      {
+        "season": 6,
+        "episode": 3,
+        "title": "She Creature",
+        "url": "https://play.hbomax.com/video/watch/190701a4-a8b9-4194-8ebc-8920945de7a5/4ae7a2a7-0764-4dd1-a69b-7f001abbe97d"
+      },
+      {
+        "season": 6,
+        "episode": 4,
+        "title": "Chic Magnet",
+        "url": "https://play.hbomax.com/video/watch/0d5cb4c7-e2dc-4223-8c65-ef3bc819bc45/23b1829b-e15c-4b22-8147-48f3b41e83df"
+      },
+      {
+        "season": 6,
+        "episode": 5,
+        "title": "Creature from Plaque Lagoon",
+        "url": "https://play.hbomax.com/video/watch/3724fab7-95b6-4907-9e85-c3c2c25afe50/300f1cbe-296f-4683-94dd-f9ce452dd551"
+      },
+      {
+        "season": 6,
+        "episode": 6,
+        "title": "Time Machine",
+        "url": "https://play.hbomax.com/video/watch/5eb86c65-d623-480d-af51-6344c38d40d4/f005f836-b6fc-4860-815c-d39207e54fdd"
+      },
+      {
+        "season": 6,
+        "episode": 7,
+        "title": "2-and-a-Half-Star Wars Out of Five",
+        "url": "https://play.hbomax.com/video/watch/de43ee66-76a1-4074-a6b8-f46e13adc24c/675f002c-04db-42cb-b5b4-f78b254face5"
+      },
+      {
+        "season": 6,
+        "episode": 8,
+        "title": "Fry Legs",
+        "url": "https://play.hbomax.com/video/watch/def2a7bb-8796-4c25-a7cd-464c8d429820/5faf8662-294a-424d-ac82-647285f872ee"
+      },
+      {
+        "season": 6,
+        "episode": 9,
+        "title": "Der Inflatable Fuhrer",
+        "url": "https://play.hbomax.com/video/watch/d85d8bbb-4e84-49c2-beaa-63adbd078e0c/91e5bc73-8197-4b6a-a74b-619ced20cc83"
+      },
+      {
+        "season": 6,
+        "episode": 10,
+        "title": "The Last Last One Forever and Ever",
+        "url": "https://play.hbomax.com/video/watch/ae69e809-6927-4590-acb7-15521ec1e6e0/26e1b5b4-5ec0-4a4c-a976-87ac8caac9b7"
+      }
+    ],
+    "7": [
+      {
+        "season": 7,
+        "episode": 1,
+        "title": "Rabbot Redux",
+        "url": "https://play.hbomax.com/video/watch/7ded5b2e-f558-432b-b5aa-d879ed72d4a9/dc148438-2240-421b-90c3-4f5ba03f97a7"
+      },
+      {
+        "season": 7,
+        "episode": 2,
+        "title": "Rubberman",
+        "url": "https://play.hbomax.com/video/watch/814dc3b9-33af-4fd1-b8fe-203ac61694a3/c0735b59-87bd-4058-b680-f3b580783ad4"
+      },
+      {
+        "season": 7,
+        "episode": 3,
+        "title": "Eggball",
+        "url": "https://play.hbomax.com/video/watch/c2044e9e-2322-45a4-be23-b5b5123f2912/64c92dd3-d2af-4e6c-8c38-dd6a30553dbb"
+      },
+      {
+        "season": 7,
+        "episode": 4,
+        "title": "Monster",
+        "url": "https://play.hbomax.com/video/watch/3b81ab78-d98d-41bb-a4fb-9bd6bd8625b6/3024b257-5278-4ca9-9d35-c952dab4c7d5"
+      },
+      {
+        "season": 7,
+        "episode": 5,
+        "title": "Hands on a Hamburger",
+        "url": "https://play.hbomax.com/video/watch/5ab63f6c-cfba-4d30-a790-b29352d7f523/b0a8f1ee-c4f9-4bfb-9e4c-0626f9f824b9"
+      },
+      {
+        "season": 7,
+        "episode": 6,
+        "title": "IAMAPOD",
+        "url": "https://play.hbomax.com/video/watch/3755355f-6820-4caf-a2a9-0211aa1a09cc/65863164-3384-44ad-8704-460c4f3fd2e0"
+      },
+      {
+        "season": 7,
+        "episode": 7,
+        "title": "Juggalo",
+        "url": "https://play.hbomax.com/video/watch/28b618dd-2802-4d8f-9d5e-ba88df4ba74a/d7304bbf-90b1-4f12-9489-af4f4060edb7"
+      },
+      {
+        "season": 7,
+        "episode": 8,
+        "title": "Multiple Meat",
+        "url": "https://play.hbomax.com/video/watch/d25e3dee-e7e4-4a44-8726-2be824c53176/eedaca6d-0d42-4b30-b7ae-c495836a11cb"
+      },
+      {
+        "season": 7,
+        "episode": 9,
+        "title": "Kangarilla and the Magic Tarantula",
+        "url": "https://play.hbomax.com/video/watch/09e4722f-4440-495a-b9d9-47bb9788047f/943b8e4b-d315-4d86-b6cc-212f4dbb45c8"
+      },
+      {
+        "season": 7,
+        "episode": 10,
+        "title": "Larry Miller Hair System",
+        "url": "https://play.hbomax.com/video/watch/a9f3e148-f7f2-4aea-8bfb-56a19ff737fb/d85a7dd0-952c-436b-92de-1f0b8d2b832f"
+      },
+      {
+        "season": 7,
+        "episode": 11,
+        "title": "One Hundred",
+        "url": "https://play.hbomax.com/video/watch/11983e93-69ae-41f8-a94b-9013fccd60a1/4bd59f08-70f2-45a6-9361-ced15d75c604"
+      }
+    ],
+    "8": [
+      {
+        "season": 8,
+        "episode": 1,
+        "title": "Allen Part One",
+        "url": "https://play.hbomax.com/video/watch/70e6911c-88b1-414c-8e87-55d459f491ed/396e554d-1ed7-4da5-828b-8013219578e7"
+      },
+      {
+        "season": 8,
+        "episode": 2,
+        "title": "Allen Part Two",
+        "url": "https://play.hbomax.com/video/watch/32efb7b8-8eb9-4c36-8cd5-babfadd1859e/bafcb7d0-f0eb-48c9-9ed6-de9f91bead51"
+      },
+      {
+        "season": 8,
+        "episode": 3,
+        "title": "Intervention",
+        "url": "https://play.hbomax.com/video/watch/0d1c0c94-5557-4fc6-829d-d483ae38712a/27b92688-8d72-4934-b55d-1f05cbab7b4d"
+      },
+      {
+        "season": 8,
+        "episode": 4,
+        "title": "Freedom Cobra",
+        "url": "https://play.hbomax.com/video/watch/ead33bbb-f489-4054-82f9-da292d1a4003/1f1cda86-6b52-40cf-b6e6-7dbdf4029294"
+      },
+      {
+        "season": 8,
+        "episode": 5,
+        "title": "The Creditor",
+        "url": "https://play.hbomax.com/video/watch/bf4c3eeb-bf01-4c75-a86b-75073b7641cc/44a03a6c-4993-4b87-ae02-e2cd70b329bc"
+      },
+      {
+        "season": 8,
+        "episode": 6,
+        "title": "Vampirus",
+        "url": "https://play.hbomax.com/video/watch/61f18d66-45b2-46dc-8079-01bb4f432b81/eca364f4-b4dd-425a-a730-553a5b407f4d"
+      },
+      {
+        "season": 8,
+        "episode": 7,
+        "title": "Wi-Tri",
+        "url": "https://play.hbomax.com/video/watch/ba7fde83-9b04-46bd-a229-4623b6bb2b18/fafed415-2abd-4510-96a3-61be986be1a5"
+      },
+      {
+        "season": 8,
+        "episode": 8,
+        "title": "Jumpy George",
+        "url": "https://play.hbomax.com/video/watch/014f3879-4147-4ed0-a717-08585a592aef/0e99f665-c9df-43d4-b937-d7cf652701ac"
+      },
+      {
+        "season": 8,
+        "episode": 9,
+        "title": "Lasagna",
+        "url": "https://play.hbomax.com/video/watch/efda382d-d3e1-4d52-bd31-e990d22a7f88/e44fb8a9-afb9-42bc-892d-fdd0899148ef"
+      },
+      {
+        "season": 8,
+        "episode": 10,
+        "title": "Last Dance for Napkin Lad",
+        "url": "https://play.hbomax.com/video/watch/c17145be-fa11-4a02-82be-3951b67e8e3d/c2d52c90-9559-4ca2-91a0-32c4f5cef1ca"
+      }
+    ],
+    "9": [
+      {
+        "season": 9,
+        "episode": 1,
+        "title": "Big Bro",
+        "url": "https://play.hbomax.com/video/watch/1aef97eb-d5f1-4eab-a88a-e9187fc6fe22/340ea7a2-3109-4737-ab0b-bbd58e0f146f"
+      },
+      {
+        "season": 9,
+        "episode": 2,
+        "title": "Chicken and Beans",
+        "url": "https://play.hbomax.com/video/watch/1be511ac-936c-406f-82c3-37b0258c31e6/44b1a6e0-8823-474f-ab7d-410ab42822f1"
+      },
+      {
+        "season": 9,
+        "episode": 3,
+        "title": "Shirt Herpes",
+        "url": "https://play.hbomax.com/video/watch/a37545ad-2c1f-44a0-81e0-99a8408fa6ad/78dbde25-c4c1-41bb-95c9-01ad5e0a3055"
+      },
+      {
+        "season": 9,
+        "episode": 4,
+        "title": "Rocket Horse Jet Chicken",
+        "url": "https://play.hbomax.com/video/watch/8d86efa9-7c6b-42b3-b62c-1855f7155ecf/6e8ee035-4d83-4e5f-a079-b40d816a0466"
+      },
+      {
+        "season": 9,
+        "episode": 5,
+        "title": "The Granite Family",
+        "url": "https://play.hbomax.com/video/watch/bd6ddaef-7b3c-4097-9d68-e7b5ee4c12ea/345b96bf-e347-41a8-89cb-ef681fd48c33"
+      },
+      {
+        "season": 9,
+        "episode": 6,
+        "title": "Bookie",
+        "url": "https://play.hbomax.com/video/watch/5a9d9039-fc45-492e-9b08-3c546d330b25/f9f10d46-12bd-4705-9349-c08ac0207af3"
+      },
+      {
+        "season": 9,
+        "episode": 7,
+        "title": "Fightan Titan",
+        "url": "https://play.hbomax.com/video/watch/e0043305-41b2-4ae4-9941-8a0e485f7bad/cae89b05-122b-418f-8c06-de4565dc50f5"
+      },
+      {
+        "season": 9,
+        "episode": 8,
+        "title": "Buddy Nugget",
+        "url": "https://play.hbomax.com/video/watch/9d7b9e8a-f9ab-4872-a92b-80bbc263be45/529c343e-ebb0-4893-857c-e346fba3c4b4"
+      },
+      {
+        "season": 9,
+        "episode": 9,
+        "title": "Zucotti Manicotti",
+        "url": "https://play.hbomax.com/video/watch/9bdf2fd3-f83a-4be5-9b85-0f420dd11d57/c03f2d70-687f-40e6-9f8f-b0cb930b1773"
+      },
+      {
+        "season": 9,
+        "episode": 10,
+        "title": "Totem Pole",
+        "url": "https://play.hbomax.com/video/watch/7c4c6168-6173-4e39-b55e-47ff6e83f295/6a27196a-5031-40c5-8118-8f08897ebbdb"
+      }
+    ],
+    "10": [
+      {
+        "season": 10,
+        "episode": 1,
+        "title": "Muscles",
+        "url": "https://play.hbomax.com/video/watch/74f8e360-66a1-42be-a700-ce5306e64484/bfec0ef3-7e16-4937-9ace-28f4b21d414e"
+      },
+      {
+        "season": 10,
+        "episode": 2,
+        "title": "The Dudies",
+        "url": "https://play.hbomax.com/video/watch/dc03d8fc-0253-407f-930e-5dd1ddcda9f1/b1c571c6-952a-4ac3-9d79-8162a0f5e1bc"
+      },
+      {
+        "season": 10,
+        "episode": 3,
+        "title": "Merlo Sauvignon Blanco",
+        "url": "https://play.hbomax.com/video/watch/0a528741-0239-4772-aad5-60afaa0ffafe/20c53493-a0c9-49f4-8c92-a6b7291274b0"
+      },
+      {
+        "season": 10,
+        "episode": 4,
+        "title": "Banana Planet",
+        "url": "https://play.hbomax.com/video/watch/ce4102fe-3536-4eb9-9ed7-bbfa11066dce/6c28bb36-1137-48b2-9172-0e4ddc841de3"
+      },
+      {
+        "season": 10,
+        "episode": 5,
+        "title": "Working Stiffs",
+        "url": "https://play.hbomax.com/video/watch/f7a38b6d-5d7a-493d-80da-a006c0d3508d/a4858a79-89d8-46b4-b0b4-ef93b427c2db"
+      },
+      {
+        "season": 10,
+        "episode": 6,
+        "title": "Skins",
+        "url": "https://play.hbomax.com/video/watch/83ae5c68-fc77-4ee1-8520-3a675c993ae1/29eee563-a36b-4f14-aec4-90871d5f6a01"
+      },
+      {
+        "season": 10,
+        "episode": 7,
+        "title": "Freda",
+        "url": "https://play.hbomax.com/video/watch/b1979fe6-76d8-4fa7-8b17-66fba201ac6b/8eaddca4-beb6-4ce2-abd6-e54a2bac80fe"
+      },
+      {
+        "season": 10,
+        "episode": 8,
+        "title": "Storage Zeebles",
+        "url": "https://play.hbomax.com/video/watch/f28f5731-c8bb-4794-82e9-355dbc4972ee/4c15e66a-1506-4788-972d-bb3e3e9f2ddf"
+      },
+      {
+        "season": 10,
+        "episode": 9,
+        "title": "Piranha Germs",
+        "url": "https://play.hbomax.com/video/watch/9c18e7b5-4583-4b61-9a4a-2ed64576a0fa/d67c2b15-e081-46ff-8557-9dac90dad8e9"
+      },
+      {
+        "season": 10,
+        "episode": 10,
+        "title": "Spacecadeuce",
+        "url": "https://play.hbomax.com/video/watch/c64e1201-94f2-4a0f-994f-a95d861aee27/0c4227ca-49c5-4477-8a83-9866bfd25e29"
+      }
+    ],
+    "11": [
+      {
+        "season": 11,
+        "episode": 1,
+        "title": "Mouth Quest",
+        "url": "https://play.hbomax.com/video/watch/6ff89e2e-39da-4105-a6b2-48f5bc0779aa/6d475253-60a3-48e9-bd9b-23358b7ae0c3"
+      },
+      {
+        "season": 11,
+        "episode": 2,
+        "title": "Brain Fairy",
+        "url": "https://play.hbomax.com/video/watch/c74e1e27-acad-490a-9b63-9c035f5576fe/f1514d80-2f5b-4211-a00d-50afbc8896d2"
+      },
+      {
+        "season": 11,
+        "episode": 3,
+        "title": "The Hairy Bus",
+        "url": "https://play.hbomax.com/video/watch/30b33e89-b2c4-4b78-9686-ded4db35a162/1aa0a06b-09c7-4306-bfdc-dc4be6e64d23"
+      },
+      {
+        "season": 11,
+        "episode": 4,
+        "title": "Sweet C",
+        "url": "https://play.hbomax.com/video/watch/cf2c504e-0b50-4964-9d26-d2d8dd40653b/032e247f-d8d7-4470-a20a-98d7157569cb"
+      },
+      {
+        "season": 11,
+        "episode": 5,
+        "title": "Knapsack!",
+        "url": "https://play.hbomax.com/video/watch/cc6ece05-658b-4af9-a175-bfe723950350/f31e7e1b-2c6d-4b63-8aa1-d573641a3254"
+      },
+      {
+        "season": 11,
+        "episode": 6,
+        "title": "Rabbit, Not Rabbit",
+        "url": "https://play.hbomax.com/video/watch/32d8b266-37e7-4bc4-ac15-676e206d4259/487eb9f7-35ed-42bc-9cf6-5d1763b3b802"
+      },
+      {
+        "season": 11,
+        "episode": 7,
+        "title": "Hospice",
+        "url": "https://play.hbomax.com/video/watch/c0812fa1-324e-44ac-b92a-f6c95bba0217/cacc4558-7894-4230-bfd9-e528c930ba13"
+      },
+      {
+        "season": 11,
+        "episode": 8,
+        "title": "The Last One Forever and Ever (For Real This Time) (We ... Mean It)",
+        "url": "https://play.hbomax.com/video/watch/7ecc7d12-4fd8-4c41-8149-3c8e0bcbf748/3aa80b11-2e13-4703-b2ad-dfe88a536c91"
+      },
+      {
+        "season": 11,
+        "episode": 9,
+        "title": "The Greatest Story Ever Told",
+        "url": "https://play.hbomax.com/video/watch/53d8fbf0-1443-4f6f-b15a-7f2588664207/fe9d3048-1300-489a-aa7e-56a69854669c"
+      }
+    ],
+    "12": [
+      {
+        "season": 12,
+        "episode": 1,
+        "title": "Shaketopia",
+        "url": "https://play.hbomax.com/video/watch/59165427-7352-4d6b-a477-637f56b47db5/b7dc9baa-894a-47d5-9c90-a76d29e11312"
+      },
+      {
+        "season": 12,
+        "episode": 2,
+        "title": "A Quiet Shake",
+        "url": "https://play.hbomax.com/video/watch/58995db8-a811-4e0f-a198-c8f53bb3d8e6/32b68bc2-0f5f-41ef-9aef-f2b2f64e2184"
+      },
+      {
+        "season": 12,
+        "episode": 3,
+        "title": "Scrip2 2i2le: The Ts Are 2s",
+        "url": "https://play.hbomax.com/video/watch/8e3ee51f-72fc-456a-a1c9-d163c62529e8/62e8444d-d31d-4c78-a096-3ef16d0c537a"
+      },
+      {
+        "season": 12,
+        "episode": 4,
+        "title": "Get Lit Upon A Situpon",
+        "url": "https://play.hbomax.com/video/watch/f204cf50-3009-453c-b7e8-6df7429ff99d/7330f663-8f35-4c63-ab53-28ea34262dea"
+      },
+      {
+        "season": 12,
+        "episode": 5,
+        "title": "Anubis",
+        "url": "https://play.hbomax.com/video/watch/4df348fd-fbc6-4583-8920-536ea6d0eefc/a08b63a6-a63d-4f94-9e90-4eaeee627ada"
+      }
+    ]
+  },
+  "futurama": {
+    "0": [
+      {
+        "season": 0,
+        "episode": 0,
+        "title": "Futurama",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56411"
+      }
+    ],
+    "1": [
+      {
+        "season": 1,
+        "episode": 1,
+        "title": "Space Pilot 3000",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56413"
+      },
+      {
+        "season": 1,
+        "episode": 2,
+        "title": "The Series Has Landed",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56414"
+      },
+      {
+        "season": 1,
+        "episode": 3,
+        "title": "I, Roommate",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56415"
+      },
+      {
+        "season": 1,
+        "episode": 4,
+        "title": "Love's Labors Lost in Space",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56416"
+      },
+      {
+        "season": 1,
+        "episode": 5,
+        "title": "Fear of a Bot Planet",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56417"
+      },
+      {
+        "season": 1,
+        "episode": 6,
+        "title": "A Fishful of Dollars",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56418"
+      },
+      {
+        "season": 1,
+        "episode": 7,
+        "title": "My Three Suns",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56419"
+      },
+      {
+        "season": 1,
+        "episode": 8,
+        "title": "A Big Piece of Garbage",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56420"
+      },
+      {
+        "season": 1,
+        "episode": 9,
+        "title": "Hell is Other Robots",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56421"
+      }
+    ],
+    "2": [
+      {
+        "season": 2,
+        "episode": 1,
+        "title": "A Flight to Remember",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56423"
+      },
+      {
+        "season": 2,
+        "episode": 2,
+        "title": "Mars University",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56424"
+      },
+      {
+        "season": 2,
+        "episode": 3,
+        "title": "When Aliens Attack",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56425"
+      },
+      {
+        "season": 2,
+        "episode": 4,
+        "title": "Fry & the Slurm Factory",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56426"
+      },
+      {
+        "season": 2,
+        "episode": 5,
+        "title": "I Second That Emotion",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56427"
+      },
+      {
+        "season": 2,
+        "episode": 6,
+        "title": "Brannigan, Begin Again",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56428"
+      },
+      {
+        "season": 2,
+        "episode": 7,
+        "title": "A Head in the Polls",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56429"
+      },
+      {
+        "season": 2,
+        "episode": 8,
+        "title": "Xmas Story",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56430"
+      },
+      {
+        "season": 2,
+        "episode": 9,
+        "title": "Why Must I Be a Crustacean in Love",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56431"
+      },
+      {
+        "season": 2,
+        "episode": 10,
+        "title": "Put Your Head on My Shoulder",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56432"
+      },
+      {
+        "season": 2,
+        "episode": 11,
+        "title": "Lesser of Two Evils",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56433"
+      },
+      {
+        "season": 2,
+        "episode": 12,
+        "title": "Raging Bender",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56434"
+      },
+      {
+        "season": 2,
+        "episode": 13,
+        "title": "A Bicyclops Built for Two",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56435"
+      },
+      {
+        "season": 2,
+        "episode": 14,
+        "title": "How Hermes Requisitioned His Groove Back",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56436"
+      },
+      {
+        "season": 2,
+        "episode": 15,
+        "title": "A Clone of My Own",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56437"
+      },
+      {
+        "season": 2,
+        "episode": 16,
+        "title": "The Deep South",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56438"
+      },
+      {
+        "season": 2,
+        "episode": 17,
+        "title": "Bender Gets Made",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56439"
+      },
+      {
+        "season": 2,
+        "episode": 18,
+        "title": "The Problem With Popplers",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56440"
+      },
+      {
+        "season": 2,
+        "episode": 19,
+        "title": "Mother's Day",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56441"
+      },
+      {
+        "season": 2,
+        "episode": 20,
+        "title": "Anthology of Interest I",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56442"
+      }
+    ],
+    "3": [
+      {
+        "season": 3,
+        "episode": 1,
+        "title": "The Honking",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56444"
+      },
+      {
+        "season": 3,
+        "episode": 2,
+        "title": "War Is the H-Word",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56445"
+      },
+      {
+        "season": 3,
+        "episode": 3,
+        "title": "The Cryonic Woman",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56446"
+      },
+      {
+        "season": 3,
+        "episode": 4,
+        "title": "Parasites Lost",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56447"
+      },
+      {
+        "season": 3,
+        "episode": 5,
+        "title": "Amazon Women in the Mood",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56448"
+      },
+      {
+        "season": 3,
+        "episode": 6,
+        "title": "Bendless Love",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56449"
+      },
+      {
+        "season": 3,
+        "episode": 7,
+        "title": "The Day the Earth Stood Stupid",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56450"
+      },
+      {
+        "season": 3,
+        "episode": 8,
+        "title": "That's Lobstertainment!",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56451"
+      },
+      {
+        "season": 3,
+        "episode": 9,
+        "title": "The Birdbot of Ice Catraz",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56452"
+      },
+      {
+        "season": 3,
+        "episode": 10,
+        "title": "The Luck of the Fryrish",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56453"
+      },
+      {
+        "season": 3,
+        "episode": 11,
+        "title": "The Cyber House Rules",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56454"
+      },
+      {
+        "season": 3,
+        "episode": 12,
+        "title": "Insane in the Mainframe",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56455"
+      },
+      {
+        "season": 3,
+        "episode": 13,
+        "title": "Bendin' in the Wind",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56456"
+      },
+      {
+        "season": 3,
+        "episode": 14,
+        "title": "Time Keeps on Slipping",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56457"
+      },
+      {
+        "season": 3,
+        "episode": 15,
+        "title": "I Dated a Robot",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56458"
+      }
+    ],
+    "4": [
+      {
+        "season": 4,
+        "episode": 1,
+        "title": "Roswell That Ends Well",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56460"
+      },
+      {
+        "season": 4,
+        "episode": 2,
+        "title": "A Tale of Two Santas",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56461"
+      },
+      {
+        "season": 4,
+        "episode": 3,
+        "title": "Anthology of Interest II",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56462"
+      },
+      {
+        "season": 4,
+        "episode": 4,
+        "title": "Love and Rocket",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56463"
+      },
+      {
+        "season": 4,
+        "episode": 5,
+        "title": "Leela's Homeworld",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56464"
+      },
+      {
+        "season": 4,
+        "episode": 6,
+        "title": "Where the Buggalo Roam",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56465"
+      },
+      {
+        "season": 4,
+        "episode": 7,
+        "title": "A Pharaoh to Remember",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56466"
+      },
+      {
+        "season": 4,
+        "episode": 8,
+        "title": "Godfellas",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56467"
+      },
+      {
+        "season": 4,
+        "episode": 9,
+        "title": "Future Stock",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56468"
+      },
+      {
+        "season": 4,
+        "episode": 10,
+        "title": "A Leela of Her Own",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56469"
+      },
+      {
+        "season": 4,
+        "episode": 11,
+        "title": "The 30% Iron Chef",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56470"
+      },
+      {
+        "season": 4,
+        "episode": 12,
+        "title": "Where No Fan Has Gone Before",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56471"
+      }
+    ],
+    "5": [
+      {
+        "season": 5,
+        "episode": 1,
+        "title": "Crimes of the Hot",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56473"
+      },
+      {
+        "season": 5,
+        "episode": 2,
+        "title": "Jurassic Bark",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56474"
+      },
+      {
+        "season": 5,
+        "episode": 3,
+        "title": "The Route of All Evil",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56475"
+      },
+      {
+        "season": 5,
+        "episode": 4,
+        "title": "A Taste of Freedom",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56476"
+      },
+      {
+        "season": 5,
+        "episode": 5,
+        "title": "Kif Gets Knocked Up a Notch",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56477"
+      },
+      {
+        "season": 5,
+        "episode": 6,
+        "title": "Less Than Hero",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56478"
+      },
+      {
+        "season": 5,
+        "episode": 7,
+        "title": "Teenage Mutant Leela's Hurdles",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56479"
+      },
+      {
+        "season": 5,
+        "episode": 8,
+        "title": "The Why of Fry",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56480"
+      },
+      {
+        "season": 5,
+        "episode": 9,
+        "title": "The Sting",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56481"
+      },
+      {
+        "season": 5,
+        "episode": 10,
+        "title": "The Farnsworth Parabox",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56482"
+      },
+      {
+        "season": 5,
+        "episode": 11,
+        "title": "Three Hundred Big Boys",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56483"
+      },
+      {
+        "season": 5,
+        "episode": 12,
+        "title": "Spanish Fry",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56484"
+      },
+      {
+        "season": 5,
+        "episode": 13,
+        "title": "Bend Her",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56485"
+      },
+      {
+        "season": 5,
+        "episode": 14,
+        "title": "Obsoletely Fabulous",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56486"
+      },
+      {
+        "season": 5,
+        "episode": 15,
+        "title": "Bender Should Not Be Allowed on TV",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56487"
+      },
+      {
+        "season": 5,
+        "episode": 16,
+        "title": "The Devil's Hands Are Idle Playthings",
+        "url": "https://app.plex.tv/desktop/#!/server/b1421a90f65be97693a5a44a78ce5201d3255efe/details?key=%2Flibrary%2Fmetadata%2F56488"
+      }
+    ],
+    "6": [
+      {
+        "season": 6,
+        "episode": 1,
+        "title": "Rebirth",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4207"
+      },
+      {
+        "season": 6,
+        "episode": 2,
+        "title": "In-A-Gadda-Da-Leela",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4208"
+      },
+      {
+        "season": 6,
+        "episode": 3,
+        "title": "Attack of the Killer App",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4209"
+      },
+      {
+        "season": 6,
+        "episode": 4,
+        "title": "Proposition Infinity",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4210"
+      },
+      {
+        "season": 6,
+        "episode": 5,
+        "title": "The Duh-Vinci Code",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4211"
+      },
+      {
+        "season": 6,
+        "episode": 6,
+        "title": "Lethal Inspection",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4212"
+      },
+      {
+        "season": 6,
+        "episode": 7,
+        "title": "The Late Philip J. Fry",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4213"
+      },
+      {
+        "season": 6,
+        "episode": 8,
+        "title": "That Darn Katz!",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4214"
+      },
+      {
+        "season": 6,
+        "episode": 9,
+        "title": "A Clockwork Origin",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4215"
+      },
+      {
+        "season": 6,
+        "episode": 10,
+        "title": "The Prisoner of Benda",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4216"
+      },
+      {
+        "season": 6,
+        "episode": 11,
+        "title": "Lrrreconcilable Ndndifferences",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4217"
+      },
+      {
+        "season": 6,
+        "episode": 12,
+        "title": "The Mutants Are Revolting",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4218"
+      },
+      {
+        "season": 6,
+        "episode": 13,
+        "title": "The Futurama Holiday Spectacular",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4219"
+      },
+      {
+        "season": 6,
+        "episode": 14,
+        "title": "Neutopia",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4220"
+      },
+      {
+        "season": 6,
+        "episode": 15,
+        "title": "Benderama",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4221"
+      },
+      {
+        "season": 6,
+        "episode": 16,
+        "title": "Ghost in the Machines",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4222"
+      },
+      {
+        "season": 6,
+        "episode": 17,
+        "title": "Law and Oracle",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4223"
+      },
+      {
+        "season": 6,
+        "episode": 18,
+        "title": "The Silence of the Clamps",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4224"
+      },
+      {
+        "season": 6,
+        "episode": 19,
+        "title": "Yo Leela Leela",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4225"
+      },
+      {
+        "season": 6,
+        "episode": 20,
+        "title": "All the Presidents' Heads",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4226"
+      },
+      {
+        "season": 6,
+        "episode": 22,
+        "title": "Fry am the Egg Man",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4228"
+      },
+      {
+        "season": 6,
+        "episode": 23,
+        "title": "The Tip of the Zoidberg",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4229"
+      },
+      {
+        "season": 6,
+        "episode": 24,
+        "title": "Cold Warriors",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4230"
+      },
+      {
+        "season": 6,
+        "episode": 25,
+        "title": "Overclockwise",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4231"
+      },
+      {
+        "season": 6,
+        "episode": 26,
+        "title": "Reincarnation",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4232"
+      }
+    ],
+    "7": [
+      {
+        "season": 7,
+        "episode": 1,
+        "title": "The Bots and the Bees",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4234"
+      },
+      {
+        "season": 7,
+        "episode": 2,
+        "title": "A Farewell to Arms",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4235"
+      },
+      {
+        "season": 7,
+        "episode": 3,
+        "title": "Decision 3012",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4236"
+      },
+      {
+        "season": 7,
+        "episode": 4,
+        "title": "The Thief of Baghead",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4237"
+      },
+      {
+        "season": 7,
+        "episode": 5,
+        "title": "Zapp Dingbat",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4238"
+      },
+      {
+        "season": 7,
+        "episode": 6,
+        "title": "The Butterjunk Effect",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4239"
+      },
+      {
+        "season": 7,
+        "episode": 7,
+        "title": "The Six Million Dollar Mon",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4240"
+      },
+      {
+        "season": 7,
+        "episode": 8,
+        "title": "Fun on a Bun",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4241"
+      },
+      {
+        "season": 7,
+        "episode": 9,
+        "title": "Free Will Hunting",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4242"
+      },
+      {
+        "season": 7,
+        "episode": 10,
+        "title": "Near-Death Wish",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4243"
+      },
+      {
+        "season": 7,
+        "episode": 11,
+        "title": "Viva Mars Vegas",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4244"
+      },
+      {
+        "season": 7,
+        "episode": 12,
+        "title": "31st Century Fox",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4257"
+      },
+      {
+        "season": 7,
+        "episode": 13,
+        "title": "Naturama",
+        "url": "https://app.plex.tv/desktop/#!/server/df127e3414a9a9cd66b38f4364f62b6a5172af7f/details?key=%2Flibrary%2Fmetadata%2F4258"
+      }
+    ]
+  }
+}

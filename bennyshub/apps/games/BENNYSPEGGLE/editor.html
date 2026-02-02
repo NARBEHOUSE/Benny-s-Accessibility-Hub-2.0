@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Peggle Level Designer — Full Peg Editor (Levels 1–10)</title>
+<style>
+  :root{--w:820; --h:540}
+  html,body{margin:0;height:100%;background:#141414;color:#eaeaea;font-family:system-ui,Segoe UI,Arial,sans-serif}
+  .wrap{display:grid;grid-template-columns:380px 1fr;gap:12px;height:100%}
+  aside{padding:12px;border-right:1px solid #2a2a2a;background:#0f0f0f;overflow:auto}
+  main{display:grid;grid-template-rows:auto 1fr auto;gap:8px;padding:8px}
+  h1{font-size:16px;margin:0 0 8px 0;color:#fff}
+  label{font-size:13px;color:#cfcfcf}
+  select,button,textarea,input{background:#1b1b1b;border:1px solid #333;color:#f5f5f5;border-radius:8px;padding:8px;font-size:14px}
+  button{cursor:pointer}
+  button.primary{background:#2b6cf0;border-color:#2b6cf0}
+  button.ghost{background:#161616}
+  button:disabled{opacity:.55;cursor:not-allowed}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:6px}
+  .pill{display:inline-flex;gap:6px;padding:4px;background:#111;border:1px solid #2a2a2a;border-radius:999px}
+  .pill button{padding:6px 10px;border-radius:999px}
+  canvas{background:#000;border-radius:12px;box-shadow:0 0 0 1px #222 inset}
+  .hint{font-size:12px;color:#bdbdbd}
+  .kbd{font-family:ui-monospace,Consolas,monospace;background:#111;border:1px solid #2a2a2a;border-bottom-color:#1b1b1b;padding:2px 6px;border-radius:6px}
+  .list{max-height:220px;overflow:auto;border:1px solid #2a2a2a;border-radius:8px}
+  .list table{width:100%;border-collapse:collapse;font-size:13px}
+  .list th,.list td{padding:6px 8px;border-bottom:1px solid #222;white-space:nowrap}
+  .list tr:last-child td{border-bottom:none}
+  .rightbar{display:flex;gap:10px;align-items:center}
+  .badge{font:12px ui-monospace,Consolas,monospace;background:#101010;border:1px solid #2a2a2a;border-radius:999px;padding:4px 8px;color:#cfcfcf}
+  .swatch{width:16px;height:16px;border-radius:4px;border:1px solid #333;display:inline-block;vertical-align:middle;margin-left:6px}
+
+  /* Context menu */
+  .ctxmenu {
+    position: fixed;
+    z-index: 9999;
+    min-width: 160px;
+    background:#0f0f0f;
+    border:1px solid #2a2a2a;
+    border-radius:8px;
+    box-shadow:0 8px 24px rgba(0,0,0,0.35);
+    display:none;
+    padding:6px 0;
+  }
+  .ctxmenu ul { list-style:none; margin:0; padding:0; }
+  .ctxmenu li {
+    padding:8px 12px;
+    font-size:14px;
+    color:#f5f5f5;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .ctxmenu li:hover { background:#1b1b1b; }
+  .ctxmenu .sep { height:1px; margin:6px 0; background:#222; }
+
+  /* Level strip (drag/swap) */
+  .level-strip{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .level-badge{
+    user-select:none; cursor:grab; min-width:28px; height:28px;
+    display:flex; align-items:center; justify-content:center;
+    border:1px solid #2a2a2a; border-radius:6px; background:#111; color:#ddd; font:12px ui-monospace,Consolas,monospace;
+  }
+  .level-badge.active{ border-color:#2b6cf0; color:#fff; background:#16213a }
+  .level-badge.drag-over{ outline:2px dashed #4facfe; outline-offset:2px }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside>
+    <h1>Peggle Level Designer</h1>
+    <div class="col">
+      <div class="row">
+        <label for="level">Level</label>
+        <select id="level"></select>
+        <button id="addLevel" class="ghost" title="Add a new level">+ Level</button>
+        <button id="delLevel" class="ghost" title="Delete current level">− Level</button>
+        <button id="clearLevel" class="ghost" title="Remove all pegs on this level">Clear</button>
+        <button id="resetAll" class="ghost" title="Remove pegs on all levels">Reset All</button>
+        <!-- NEW: duplicate current level -->
+        <button id="dupLevelBtn" class="ghost" title="Duplicate current level">Duplicate Level</button>
+      </div>
+
+      <!-- NEW: draggable level strip -->
+      <div id="levelStrip" class="level-strip"></div>
+
+      <div class="row">
+        <label>Game Title</label>
+        <input id="gameTitle" type="text" placeholder="My Custom Game" style="width:140px" />
+      </div>
+
+      <div class="row">
+        <label>Radius</label>
+        <input id="radius" type="number" min="8" max="60" value="18" style="width:80px" />
+      </div>
+
+      <div class="row">
+        <label class="row" style="gap:6px"><input type="checkbox" id="snap" /> Snap 5px</label>
+        <label class="row" style="gap:6px"><input type="checkbox" id="clamp" checked /> Clamp to safe area</label>
+        <label class="row" style="gap:6px"><input type="checkbox" id="showSafe" checked /> Show safe box</label>
+      </div>
+
+      <div class="row">
+        <button id="dupBtn" class="ghost" title="Duplicate selected (Ctrl+D)">Duplicate</button>
+        <button id="nudgeGridBtn" class="ghost" title="Align selected to grid">Align to grid</button>
+      </div>
+
+      <div class="col" style="margin-top:10px">
+        <div class="hint">Controls:
+          <div>• Left-click to <b>select</b>, then drag to move</div>
+          <div>• <b>Mouse wheel</b> on selected: change radius (Shift = faster)</div>
+          <div>• <b>Right-click</b> a peg: Delete or Change type</div>
+          <div>• <b>Right-click</b> empty space: Add a new peg (Normal)</div>
+          <div>• Arrow keys nudge selected ±1px (Shift = ±5px), Ctrl+D duplicate selected</div>
+        </div>
+      </div>
+
+      <div class="col" style="margin-top:10px">
+        <div class="row">
+          <button id="copyLevelBtn" class="primary">Copy Level JSON</button>
+          <button id="downloadLevelBtn" class="ghost">Download Level</button>
+        </div>
+        <div class="row">
+          <button id="saveAllBtn" class="primary" title="Save game to file system">Save Game</button>
+          <input id="loadFile" type="file" accept=".json,application/json" style="display:none" />
+          <button id="loadAllBtn" class="ghost" title="Open local JSON file">Load File</button>
+        </div>
+        <div class="row">
+          <button id="updateManifestBtn" class="ghost" title="Pick files to update level manifest">Update Manifest</button>
+        </div>
+        <textarea id="io" rows="8" placeholder="Export (JS/JSON) appears here. You can also paste JSON here to import for the CURRENT level."></textarea>
+        <div class="row">
+          <button id="exportBtn" class="ghost">Export JS (all levels)</button>
+          <button id="importBtn" class="ghost">Import to Current</button>
+        </div>
+      </div>
+
+      <div class="col" style="margin-top:10px">
+        <label>Pegs on this level</label>
+        <div class="list">
+          <table id="tbl"><thead><tr><th>#</th><th>x</th><th>y</th><th>r</th><th>type</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="row" style="justify-content:space-between">
+      <div class="hint">Canvas: 820 × 540. Coordinates are game space. Safe placement area is x:40–780, y:160–500.</div>
+      <div class="rightbar">
+        <span class="badge" id="mouseBadge">mouse: –, –</span>
+        <span class="badge" id="selBadge">selected: –, – (r –)</span>
+        <span class="badge">preview <span id="typeSwatch" class="swatch"></span></span>
+      </div>
+    </div>
+    <canvas id="c" width="820" height="540"></canvas>
+    <!-- Custom context menus -->
+    <div id="ctxMenu" class="ctxmenu">
+      <ul>
+        <li data-action="add">Add</li>
+        <li data-action="delete">Delete</li>
+        <div class="sep"></div>
+        <li data-action="change">Change type…</li>
+      </ul>
+    </div>
+    <div id="typeMenu" class="ctxmenu">
+      <ul id="typeMenuList"><!-- filled dynamically --></ul>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <div class="hint">Tip: Leave gaps ≥ sum of radii + 2px so the game's <span class="kbd">deOverlap()</span> doesn’t nudge them.</div>
+      <div class="hint">Export pastes directly into each level’s <span class="kbd">pegs</span> array.</div>
+    </div>
+  </main>
+</div>
+
+<script>
+const W=820,H=540; const SAFE={x1:40,x2:780,y1:160,y2:500};
+const LS_KEY='pegLevelDesignerV2';
+const canvas=document.getElementById('c'); const ctx=canvas.getContext('2d');
+// controls
+const levelSel=document.getElementById('level');
+const addLevelBtn=document.getElementById('addLevel');
+const delLevelBtn=document.getElementById('delLevel');
+const clearBtn=document.getElementById('clearLevel');
+const resetAllBtn=document.getElementById('resetAll');
+// const btnPlace=document.getElementById('modePlace');
+// const btnMove=document.getElementById('modeMove');
+// const btnDelete=document.getElementById('modeDelete');
+// const typeSel=document.getElementById('type');
+const radiusInput=document.getElementById('radius');
+const snapChk=document.getElementById('snap');
+const clampChk=document.getElementById('clamp');
+const showSafeChk=document.getElementById('showSafe');
+const nudgeGridBtn=document.getElementById('nudgeGridBtn');
+const dupBtn=document.getElementById('dupBtn');
+const mouseBadge=document.getElementById('mouseBadge');
+const selBadge=document.getElementById('selBadge');
+const typeSwatch=document.getElementById('typeSwatch');
+// NEW: duplicate level button and strip
+const dupLevelBtn=document.getElementById('dupLevelBtn');
+const levelStrip=document.getElementById('levelStrip');
+
+// IO controls
+const io=document.getElementById('io');
+const copyLevelBtn=document.getElementById('copyLevelBtn');
+const downloadLevelBtn=document.getElementById('downloadLevelBtn');
+// Add missing refs so handlers don’t throw
+const saveAllBtn=document.getElementById('saveAllBtn');
+const loadAllBtn=document.getElementById('loadAllBtn');
+// Optional
+const downloadAllBtn=document.getElementById('downloadAllBtn');
+const loadFileInput=document.getElementById('loadFile');
+const updateManifestBtn=document.getElementById('updateManifestBtn');
+
+const exportBtn=document.getElementById('exportBtn');
+const importBtn=document.getElementById('importBtn');
+const tbl=document.getElementById('tbl').querySelector('tbody');
+
+// context menu elements/state
+const ctxMenu = document.getElementById('ctxMenu');
+const typeMenu = document.getElementById('typeMenu');
+const typeMenuList = document.getElementById('typeMenuList');
+let ctxAt = { x:0, y:0 };         // last context position (canvas coords)
+let ctxHitIdx = -1;               // index of peg under context
+const TYPES = ['NORMAL','BLOCK','HAZARD','EXTRA','MULTIBALL','MULTI','SPRAY','INVINCIBLE','EXPLODE'];
+
+// modes
+// const modes={PLACE:'place',MOVE:'move',DELETE:'delete'}; let mode=modes.PLACE;
+
+// data
+let levels = loadLS() || (()=>{ const o={}; for(let i=1;i<=10;i++) o[i]=[]; return o; })();
+// Undo/Redo & Clipboard
+const undoStack = [];
+const redoStack = [];
+let clipboard = null; // Array of peg objects
+
+function saveState(){
+  // deep copy
+  undoStack.push(JSON.stringify(levels));
+  if(undoStack.length>50) undoStack.shift();
+  redoStack.length = 0;
+}
+function restoreState(jsonStr){
+  if(!jsonStr) return;
+  levels = JSON.parse(jsonStr);
+  persist();
+  ensureLevelArrays();
+  rebuildLevelOptions(curLevel());
+  buildLevelStrip();
+  // try to restore selection if possible? complicated with object identity.
+  // clear selection to be safe
+  setSelection(null);
+  draw(); syncTable();
+}
+function undo(){
+  if(undoStack.length===0) return;
+  redoStack.push(JSON.stringify(levels));
+  restoreState(undoStack.pop());
+}
+function redo(){
+  if(redoStack.length===0) return;
+  undoStack.push(JSON.stringify(levels));
+  restoreState(redoStack.pop());
+}
+function copySelection(){
+  if(selection.size===0) return;
+  clipboard = Array.from(selection).map(p=>({...p})); // deep clone properties
+}
+function cutSelection(){
+  if(selection.size===0) return;
+  copySelection();
+  saveState();
+  const arr = levels[curLevel()];
+  const newArr = arr.filter(p => !selection.has(p));
+  levels[curLevel()] = newArr;
+  selection.clear();
+  updateInspector(); persist(); draw(); syncTable(); updateSelBadge();
+}
+function pasteClipboard(){
+  if(!clipboard || !clipboard.length) return;
+  saveState();
+  const newPegs = [];
+  // Calculate center of clipboard to center paste at mouse or offset relative to original?
+  // Standard behavior: paste at slight offset from original position if from copy, 
+  // or at mouse/center if from external? 
+  // Simple offset for now: +10,+10
+  for(const p of clipboard){
+      const np = {...p}; 
+      np.x += 15; np.y += 15;
+      levels[curLevel()].push(np);
+      newPegs.push(np);
+  }
+  setSelection(newPegs);
+  persist(); draw(); syncTable(); updateSelBadge();
+  // Update clipboard so next paste offsets again
+  clipboard = newPegs.map(p=>({...p}));
+}
+
+let selection = new Set();
+let dragOff = null; // { peg: p, dx, dy } or just global dx/dy?
+// We need to move ALL selected items. 
+// We will track the mouse offset from the *last mouse position*.
+let lastMouse = null; // for delta calcs
+let boxStart = null;  // if non-null, we are box selecting
+let hoverIdx = -1;
+
+// --- Helper: centralize selection + inspector sync ---
+function setSelection(items){
+    selection.clear();
+    if(Array.isArray(items)) items.forEach(i=>selection.add(i));
+    else if(items) selection.add(items);
+    updateInspector(); draw(); syncTable(); updateSelBadge();
+}
+function toggleSelection(item){
+    if(selection.has(item)) selection.delete(item); else selection.add(item);
+    updateInspector(); draw(); syncTable(); updateSelBadge();
+}
+
+function updateInspector(){
+  const has = selection.size > 0;
+  if (radiusInput) radiusInput.disabled = false;
+  if(has){
+    let r=null, first=true;
+    for(const p of selection){
+        if(first){ r=p.radius; first=false; }
+        else {
+            if(r && r!==p.radius) r='VARIES';
+        }
+    }
+    if(r && r!=='VARIES') radiusInput.value = r; else radiusInput.value='';
+  }
+  updateSwatch();
+}
+// For radius, we want to capture state before a batch of edits, but 'input' fires continuously.
+// We'll capture state on focus buffer?
+// Simpler: Just saveState on radius change, but maybe use 'change' instead of 'input' for undo, and live update just visual?
+// Existing code uses 'input'. I'll add a separate 'focus' listener to save state?
+// Or just let it fill the stack?
+// Let's rely on 'change' for inspector manual entry? No, users want live preview.
+// I'll stick 'saveState()' here but wrap it? 
+// Optimization: track if we just saved state for this interaction?
+// For now, I'll just add saveState() to the start.
+radiusInput.addEventListener('focus', ()=> saveState() );
+radiusInput.addEventListener('input', ()=>{
+  if(selection.size===0) return;
+  let r = parseInt(radiusInput.value,10); 
+  if(!Number.isFinite(r)) return; 
+  r = Math.max(8, Math.min(60, r));
+  // Apply to all
+  for(const p of selection){
+      p.radius = r;
+      if(clampChk.checked) clamp(p);
+  }
+  persist(); draw(); syncTable(); updateSelBadge();
+});
+
+// --- Level management helpers (restore defaults and dropdown) ---
+function totalLevels(){
+  const keys = Object.keys(levels).map(k=>+k).filter(n=>Number.isFinite(n) && n>0);
+  return Math.max(10, ...(keys.length ? keys : [10]));
+}
+function ensureLevelArrays(){
+  const n = totalLevels();
+  for(let i=1;i<=n;i++){ if(!Array.isArray(levels[i])) levels[i]=[]; }
+}
+function rebuildLevelOptions(selectLevel=1){
+  levelSel.innerHTML='';
+  const n=totalLevels();
+  for(let i=1;i<=n;i++){
+    const o=document.createElement('option');
+    o.value=String(i);
+    o.textContent='Level '+i;
+    levelSel.appendChild(o);
+  }
+  levelSel.value = String(Math.min(Math.max(1, selectLevel), n));
+}
+
+// NEW: build draggable level strip
+function buildLevelStrip(){
+  if(!levelStrip) return;
+  levelStrip.innerHTML='';
+  const n = totalLevels();
+  for(let i=1;i<=n;i++){
+    const el = document.createElement('div');
+    el.className = 'level-badge' + (i===curLevel() ? ' active':'')
+    el.textContent = i;
+    el.setAttribute('draggable','true');
+    el.dataset.idx = String(i);
+
+    el.onclick = ()=>{ levelSel.value = String(i); levelSel.onchange(); buildLevelStrip(); };
+
+    el.addEventListener('dragstart', (e)=>{
+      dragSrcIdx = i;
+      try { e.dataTransfer.setData('text/plain', String(i)); } catch(_) {}
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    el.addEventListener('dragover', (e)=>{ e.preventDefault(); e.dataTransfer.dropEffect='move'; el.classList.add('drag-over'); });
+    el.addEventListener('dragleave', ()=>{ el.classList.remove('drag-over'); });
+    el.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      el.classList.remove('drag-over');
+      let src = dragSrcIdx;
+      try { const t = parseInt(e.dataTransfer.getData('text/plain'),10); if(t) src = t; } catch(_){}
+      const dst = i;
+      if(src && dst && src!==dst){ swapLevels(src, dst); }
+    });
+
+    levelStrip.appendChild(el);
+  }
+}
+
+// NEW: swap two levels (by index)
+function swapLevels(a, b){
+  if(a===b) return;
+  saveState();
+  const na = Math.min(Math.max(1,a|0), totalLevels());
+  const nb = Math.min(Math.max(1,b|0), totalLevels());
+  const tmp = levels[na];
+  levels[na] = levels[nb];
+  levels[nb] = tmp;
+  persist();
+  // keep current selection consistent if it was one of the swapped
+  const cur = curLevel();
+  const nextSel = (cur===na) ? nb : (cur===nb ? na : cur);
+  rebuildLevelOptions(nextSel);
+  buildLevelStrip();
+  setSelection(null); draw(); syncTable();
+}
+
+// NEW: deep clone helper for peg arrays
+function cloneLevelArray(arr){ return (arr||[]).map(p=>({ ...p })); }
+
+// NEW: duplicate current level to a new last level
+function duplicateLevel(idx){
+  saveState();
+  const src = Math.min(Math.max(1, idx|0), totalLevels());
+  const n = totalLevels()+1;
+  levels[n] = cloneLevelArray(levels[src]);
+  persist();
+  rebuildLevelOptions(n);
+  buildLevelStrip();
+  setSelection(null); draw(); syncTable();
+}
+
+// Wire duplicate level button
+if(dupLevelBtn){ dupLevelBtn.onclick = ()=> duplicateLevel(curLevel()); }
+
+// Extend existing helpers to update strip too
+function addLevel(){
+  saveState();
+  const n=totalLevels()+1;
+  levels[n] = [];
+  persist();
+  rebuildLevelOptions(n);
+  buildLevelStrip();
+  setSelection(null); draw(); syncTable();
+}
+function deleteLevel(idx){
+  const n=totalLevels();
+  if(n<=1) return;
+  saveState();
+  const del = Math.min(Math.max(1, idx|0), n);
+  // shift down to keep 1..N contiguous
+  for(let i=del;i<n;i++){ levels[i] = levels[i+1] || []; }
+  delete levels[n];
+  persist();
+  const nextSel = Math.min(del, n-1);
+  rebuildLevelOptions(nextSel);
+  buildLevelStrip();
+  setSelection(null); draw(); syncTable();
+}
+
+// UI init
+ensureLevelArrays();
+// Make sure the Radius row is visible (wheel + input both work)
+if (radiusInput && radiusInput.parentElement) { radiusInput.parentElement.style.display = ''; }
+rebuildLevelOptions(1);
+updateSwatch();
+updateInspector(); // start disabled
+
+addLevelBtn.onclick=()=>addLevel();
+delLevelBtn.onclick=()=>deleteLevel(curLevel());
+
+clearBtn.onclick=()=>{ if(confirm('Remove all pegs on this level?')){ saveState(); levels[curLevel()].length=0; setSelection(null); persist(); draw(); syncTable(); }}
+resetAllBtn.onclick=()=>{ if(confirm('Reset ALL levels?')){ saveState(); levels={}; for(let i=1;i<=10;i++) levels[i]=[]; persist(); ensureLevelArrays(); rebuildLevelOptions(1); setSelection(null); draw(); syncTable(); }}
+
+function curLevel(){ return parseInt(levelSel.value,10); }
+levelSel.onchange=()=>{
+  setSelection(null);
+  buildLevelStrip();
+};
+if(radiusInput) radiusInput.onchange=()=> updateSwatch();
+
+nudgeGridBtn.onclick=()=>{ 
+  if(selection.size===0) return;
+  saveState();
+  for(const p of selection) snap(p);
+  persist(); draw(); syncTable(); updateSelBadge(); 
+};
+
+dupBtn.onclick=()=>{ 
+  if(selection.size===0) return; 
+  saveState();
+  const newSet = [];
+  for(const p of selection) {
+     const np = {...p}; 
+     np.x += (np.radius||18) + 5; 
+     np.y += 5; 
+     levels[curLevel()].push(np);
+     newSet.push(np);
+  }
+  setSelection(newSet);
+  persist(); draw(); syncTable(); updateSelBadge(); 
+};
+
+// Hide legacy radius row: use scroll wheel instead
+// try { radiusInput.parentElement.style.display='none'; } catch(_){}
+
+// Mouse: select/drag with left button (no auto-add on left click)
+let lastDown=null;
+canvas.addEventListener('mousedown', (e)=>{
+  const p=getMouse(e);
+  lastDown=p;
+
+  if (e.button === 2){
+    // Right-click: open custom context menu
+    e.preventDefault();
+    const idx=hitIndex(p, curLevel());
+    if(idx>-1){
+      // if clicking one not in selection, select only it. if in selection, keep selection
+      const t = levels[curLevel()][idx];
+      if(!selection.has(t)) setSelection(t);
+    } else {
+      setSelection(null);
+    }
+    ctxAt = p; ctxHitIdx = idx;
+    openCtxMenu(e.clientX, e.clientY);
+    return;
+  }
+
+  if (e.button === 0){
+    hideMenus();
+    const idx=hitIndex(p, curLevel());
+    if(idx>-1){
+      const t = levels[curLevel()][idx];
+      // Modifier keys: toggle
+      if(e.ctrlKey || e.shiftKey){
+          toggleSelection(t);
+          return;
+      }
+      
+      // If not in selection, strict select it
+      if(!selection.has(t)){
+          setSelection(t);
+      }
+      // Start drag - Save Data State before drag modifies it
+      saveState();
+      dragOff = { x:p.x, y:p.y };
+      return;
+    }
+    
+    // Clicked empty: Box Select start
+    if(!e.ctrlKey && !e.shiftKey) setSelection(null);
+    boxStart = { x:p.x, y:p.y };
+    boxEnd = { x:p.x, y:p.y };
+    draw();
+  }
+});
+
+// Prevent default browser context menu on canvas
+canvas.addEventListener('contextmenu', (e)=>{ e.preventDefault(); });
+
+// Hover highlight + dragging
+window.addEventListener('mousemove', (e)=>{
+  const p=getMouse(e);
+  mouseBadge.textContent = `mouse: ${p.x}, ${p.y}`;
+
+  if(boxStart){
+      boxEnd = { x:p.x, y:p.y };
+      draw();
+      return;
+  }
+
+  // Hover tracking for feedback (only if not dragging)
+  if(!dragOff){
+    const idx = hitIndex(p, curLevel());
+    if(idx !== hoverIdx){
+      hoverIdx = idx;
+      draw();
+    }
+  }
+
+  // Drag selected peg if dragging
+  if(selection.size>0 && dragOff){
+      const dx = p.x - dragOff.x;
+      const dy = p.y - dragOff.y;
+      if(dx===0 && dy===0) return;
+
+      for(const item of selection){
+          item.x += dx;
+          item.y += dy;
+          if(snapChk.checked) snap(item);
+          if(clampChk.checked) clamp(item);
+      }
+      // re-center drag anchor to prevent acceleration/drift
+      dragOff = { x:p.x, y:p.y };
+      
+      persist(); draw(); updateSelBadge();
+  }
+});
+window.addEventListener('mouseup', (e)=>{ 
+    if(boxStart){
+        // Finalize box select
+        const x1=Math.min(boxStart.x, boxEnd.x), x2=Math.max(boxStart.x, boxEnd.x);
+        const y1=Math.min(boxStart.y, boxEnd.y), y2=Math.max(boxStart.y, boxEnd.y);
+        const hits = levels[curLevel()].filter(p => p.x>=x1 && p.x<=x2 && p.y>=y1 && p.y<=y2);
+        
+        if(e.ctrlKey || e.shiftKey){
+            hits.forEach(h=>selection.add(h));
+            setSelection(Array.from(selection));
+        } else {
+            setSelection(hits);
+        }
+    }
+    dragOff=null; boxStart=null; boxEnd=null; draw();
+});
+
+// Wheel to resize selected peg (Shift = faster)
+let wheelTimer = null;
+canvas.addEventListener('wheel', (e)=>{
+  if(selection.size===0) return;
+  e.preventDefault();
+  
+  // Group wheel events for undo: save state on first of burst
+  if(!wheelTimer) saveState();
+  clearTimeout(wheelTimer);
+  wheelTimer = setTimeout(()=> wheelTimer=null, 500);
+
+  const step = e.shiftKey ? 5 : 2;
+  const dir = e.deltaY < 0 ? +1 : -1; // up grows, down shrinks
+  
+  let changed=false;
+  for(const p of selection){
+      const next = Math.max(8, Math.min(60, (p.radius||18) + dir*step));
+      if(next !== p.radius){
+          p.radius = next;
+          if(clampChk.checked) clamp(p);
+          changed=true;
+      }
+  }
+  if(changed){
+    updateInspector();
+    persist(); draw(); syncTable(); updateSelBadge();
+  }
+}, { passive:false });
+
+// Add via context menu only
+function newPeg(x,y){
+  // Default to NORMAL since Type selector is gone
+  const t = 'NORMAL'; 
+  const peg={
+    x:Math.round(x), y:Math.round(y),
+    radius: (+radiusInput.value || 18),
+    type: t,
+    shape: 'CIRCLE'
+  };
+  if(snapChk.checked) snap(peg);
+  if(clampChk.checked) clamp(peg);
+  return peg;
+}
+
+function getMouse(e){ const r=canvas.getBoundingClientRect(); return {x:Math.round((e.clientX-r.left)*W/r.width), y:Math.round((e.clientY-r.top)*H/r.height)}; }
+function clamp(p){ if(!clampChk.checked) return; p.x=Math.max(SAFE.x1+p.radius, Math.min(SAFE.x2-p.radius, Math.round(p.x))); p.y=Math.max(SAFE.y1+p.radius, Math.min(SAFE.y2-p.radius, Math.round(p.y))); }
+function snap(p, force=false){ if(!force && !snapChk.checked) return; p.x = Math.round(p.x/5)*5; p.y = Math.round(p.y/5)*5; }
+function hitIndex(p, lvl){ const a=levels[lvl]; for(let i=a.length-1;i>=0;i--){ const d=Math.hypot(p.x-a[i].x, p.y-a[i].y); if(d<=a[i].radius) return i; } return -1; }
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // background grid
+  ctx.fillStyle='#0a0a0a'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#202020'; ctx.lineWidth=1;            // slight contrast bump
+  for(let x=0; x<=W; x+=20){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for(let y=0; y<=H; y+=20){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+  if(showSafeChk.checked){ ctx.strokeStyle='#2b2b2b'; ctx.lineWidth=2; ctx.strokeRect(SAFE.x1,SAFE.y1,SAFE.x2-SAFE.x1,SAFE.y2-SAFE.y1); }
+
+  const arr=levels[curLevel()];
+  arr.forEach((p,i)=>{
+    ctx.save();
+    // shadow
+    ctx.globalAlpha=0.9; ctx.fillStyle='rgba(0,0,0,0.35)';
+    pegPath(p, true, false, p.x+3, p.y+3);
+    // body color by type
+    const col = colorFor(p.type);
+    const isSel = selection.has(p);
+
+    ctx.globalAlpha=1; ctx.fillStyle = isSel? lighten(col,0.25) : col;
+    ctx.strokeStyle = '#111'; ctx.lineWidth=3;
+    pegPath(p, true, true);
+
+    // selection highlight outline
+    if(isSel){
+      ctx.save();
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#4facfe';
+      ctx.setLineDash([6,4]);
+      pegPath(p, false, true);
+      ctx.restore();
+    } else if (i === hoverIdx){
+      // subtle hover outline to show what you'll click
+      ctx.save();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.setLineDash([3,5]);
+      pegPath(p, false, true);
+      ctx.restore();
+    }
+
+    // center dot + index
+    ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#ddd'; ctx.font='12px ui-monospace,Consolas,monospace'; ctx.fillText(i+1, p.x - (p.radius) + 4, p.y - (p.radius) + 12);
+    ctx.restore();
+  });
+
+  if(boxStart && boxEnd){
+      const x1=Math.min(boxStart.x, boxEnd.x), w=Math.abs(boxEnd.x-boxStart.x);
+      const y1=Math.min(boxStart.y, boxEnd.y), h=Math.abs(boxEnd.y-boxStart.y);
+      ctx.save();
+      ctx.fillStyle='rgba(79, 172, 254, 0.2)';
+      ctx.strokeStyle='#4facfe';
+      ctx.lineWidth=1;
+      ctx.setLineDash([4,4]);
+      ctx.fillRect(x1,y1,w,h);
+      ctx.strokeRect(x1,y1,w,h);
+      ctx.restore();
+  }
+}
+
+// Draw: only CIRCLE for non-BLOCK, SQUARE for BLOCK
+function pegPath(p, filled=true, stroked=true, ox=0, oy=0){
+  const x=(ox?ox:p.x), y=(oy?oy:p.y), r=p.radius;
+  const isBlock = p.type === 'BLOCK';
+  ctx.beginPath();
+  if(isBlock){
+    ctx.rect(x-r, y-r, r*2, r*2);
+  }else{
+    ctx.arc(x,y,r,0,Math.PI*2);
+  }
+  if(filled) ctx.fill(); if(stroked) ctx.stroke();
+}
+
+function colorFor(type){
+  switch(type){
+    case 'BLOCK': return '#8b8b8b';     // unbreakable = square gray box
+    case 'HAZARD': return '#8b0000';
+    case 'EXTRA': return '#15c36b';
+    case 'MULTIBALL': return '#9d00ff';
+    case 'MULTI': return '#ffd166';
+    case 'SPRAY': return '#ffd21a';
+    case 'INVINCIBLE': return '#ffffff';
+    case 'EXPLODE': return '#ff5722';
+    default: return '#58a6ff'; // NORMAL
+  }
+}
+function lighten(hex,amt=0.2){
+  const c=parseInt(hex.slice(1),16); let r=(c>>16)&255,g=(c>>8)&255,b=c&255; r=cl(r+(255-r)*amt); g=cl(g+(255-g)*amt); b=cl(b+(255-b)*amt); function cl(v){return Math.max(0,Math.min(255,Math.round(v)));}
+  return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1);
+}
+
+function syncTable(){
+  const arr=levels[curLevel()];
+  tbl.innerHTML='';
+  arr.forEach((p,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `<td>${i+1}</td><td>${Math.round(p.x)}</td><td>${Math.round(p.y)}</td><td>${p.radius}</td><td>${p.type}</td>`;
+    if(selection.has(p)) tr.style.background = '#1e3a5f';
+    tr.onclick=(e)=>{ 
+      if(e.ctrlKey || e.shiftKey) toggleSelection(p);
+      else setSelection(p);
+    };
+    tbl.appendChild(tr);
+  });
+}
+
+function exportLevelArray(lvl){
+  // Always export shape derived from type
+  return levels[lvl].map(p=>({
+    x:Math.round(p.x),
+    y:Math.round(p.y),
+    radius:p.radius,
+    shape:(p.type==='BLOCK' ? 'SQUARE' : 'CIRCLE'),
+    type:p.type,
+    ...(p.type==='BLOCK'?{block:true}:{})
+  }));
+}
+function exportAllJSON(){
+  const out={}; const n=totalLevels();
+  for(let i=1;i<=n;i++){ out[i]=exportLevelArray(i); }
+  return out;
+}
+
+if(saveAllBtn) saveAllBtn.onclick = async () => {
+  // Use "Save As" flow if available, else download fallout
+  const n=totalLevels();
+  const title = (document.getElementById('gameTitle').value || 'My Peggle Game').trim();
+  const payload={
+    meta:{ format:'bennys-peggle-levels-v1', title: title },
+    levels:Array.from({length:n}, (_,i)=>({ id:i+1, pegs: exportLevelArray(i+1) }))
+  };
+  const str = JSON.stringify(payload, null, 2);
+
+  if(window.showSaveFilePicker){
+    try {
+      const opts = {
+        types: [{
+          description: 'Ben\'s Peggle Levels',
+          accept: { 'application/json': ['.json'] },
+        }],
+        suggestedName: title.toLowerCase().replace(/\s+/g,'-') + '.json',
+      };
+      const handle = await window.showSaveFilePicker(opts);
+      const writable = await handle.createWritable();
+      await writable.write(str);
+      await writable.close();
+      alert('Saved successfully!');
+    } catch(err) {
+      if(err.name !== 'AbortError') {
+          console.error(err);
+          // If browser restricted permissions or errored, try fallback too?
+          alert('Save API failed: ' + err.message + '. Trying basic download...');
+          downloadText(title.toLowerCase().replace(/\s+/g,'-') + '.json', str);
+      }
+    }
+  } else {
+    // Fallback
+    downloadText(title.toLowerCase().replace(/\s+/g,'-') + '.json', str);
+  }
+};
+
+if(updateManifestBtn) updateManifestBtn.onclick = async () => {
+    // Option B: Select multiple game files to update manifest
+    if(!window.showOpenFilePicker){
+        alert('Your browser does not support the File System Access API needed for this features.');
+        return;
+    }
+    
+    try {
+        const handles = await window.showOpenFilePicker({
+            multiple: true,
+            types: [{
+                 description: 'Level JSON Files',
+                 accept: { 'application/json': ['.json'] }
+            }]
+        });
+        
+        const packs = [];
+        for(const h of handles){
+            const file = await h.getFile();
+            // We read the file content to get the real title from meta.title
+            const text = await file.text();
+            let json = {};
+            try { json = JSON.parse(text); } catch(e){}
+            
+            const metaTitle = json.meta && json.meta.title ? json.meta.title : null;
+            const simpleName = file.name.replace('.json','');
+            
+            // Use metadata title if distinct, else filename backup
+            const displayName = metaTitle || simpleName;
+
+            packs.push({
+                id: simpleName.toLowerCase().replace(/\s+/g,'_'),
+                name: displayName, 
+                file: 'levels/' + file.name,
+                description: 'Custom levels'
+            });
+        }
+        
+        const manifest = {
+            packs: packs,
+            default: packs.length > 0 ? packs[0].id : 'default'
+        };
+        
+        // Now save the manifest
+        const saveHandle = await window.showSaveFilePicker({
+             suggestedName: 'level_manifest.json',
+             types: [{
+                 description: 'Manifest JSON',
+                 accept: { 'application/json': ['.json'] }
+             }]
+        });
+        const writable = await saveHandle.createWritable();
+        await writable.write(JSON.stringify(manifest, null, 2));
+        await writable.close();
+        alert('Manifest updated and saved!');
+        
+    } catch(err) {
+        if(err.name !== 'AbortError') {
+             console.error(err);
+             alert('Error updating manifest: ' + err.message);
+        }
+    }
+};
+
+// New: Load levels.json back into the editor (supports our v1 schema or plain object-of-arrays)
+function loadLevelsFromObject(obj){
+  const t = obj.meta && obj.meta.title ? obj.meta.title : '';
+  if(t) document.getElementById('gameTitle').value = t;
+
+  const next={};
+  if(Array.isArray(obj?.levels)){
+    for(const entry of obj.levels){
+      const id = +entry.id || 0;
+      if(id>0) next[id] = Array.isArray(entry.pegs) ? entry.pegs : [];
+    }
+  }else{
+    // fallback: { "1":[...], "2":[...] }
+    for(const k of Object.keys(obj||{})){
+      const id=+k; if(id>0) next[id] = Array.isArray(obj[k]) ? obj[k] : [];
+    }
+  }
+  if(Object.keys(next).length===0) throw new Error('No levels found in JSON');
+  // normalize shapes/types/flags
+  for(const k of Object.keys(next)){
+    next[k] = next[k].map(p=>({
+      x:+p.x||0,
+      y:+p.y||0,
+      radius:+p.radius||18,
+      type:(p.type||'NORMAL'),
+      shape: ((p.type||'NORMAL')==='BLOCK' ? 'SQUARE' : 'CIRCLE'),
+      ...((p.type||'NORMAL')==='BLOCK'?{block:true}:{})
+    }));
+  }
+  levels = next;
+  persist(); ensureLevelArrays(); rebuildLevelOptions(1);
+  setSelection(null); draw(); syncTable(); updateSelBadge();
+}
+
+if(loadAllBtn) loadAllBtn.onclick=()=>loadFileInput.click();
+loadFileInput.onchange=(e)=>{
+    const f=e.target.files && e.target.files[0]; if(!f) return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{
+        const obj = JSON.parse(String(reader.result || '{}'));
+        loadLevelsFromObject(obj);
+        alert('Levels loaded.');
+      }catch(err){
+        alert('Load failed: ' + (err?.message || err));
+      }finally{
+        loadFileInput.value='';
+      }
+    };
+    reader.readAsText(f);
+  };
+copyLevelBtn.onclick=async()=>{
+  const txt = JSON.stringify(exportLevelArray(curLevel()));
+  try{ await navigator.clipboard.writeText(txt); io.value = txt; alert('Copied current level JSON to clipboard.'); }
+  catch{ io.value = txt; alert('Clipboard blocked; JSON placed in the textbox below.'); }
+};
+
+downloadLevelBtn.onclick=()=>{ const lvl=curLevel(); const data=JSON.stringify(exportLevelArray(lvl), null, 2); downloadText(`level${lvl}-pegs.json`, data); };
+
+// Guard "download all" binding so missing element won't break the app
+if (downloadAllBtn) {
+  downloadAllBtn.onclick=()=>{ const data=JSON.stringify(exportAllJSON(), null, 2); downloadText('all-level-pegs.json', data); };
+}
+
+function downloadText(filename, text){ const blob=new Blob([text], {type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+
+function persist(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(levels)); }catch(e){} }
+function loadLS(){ try{ const t=localStorage.getItem(LS_KEY); return t? JSON.parse(t): null; }catch(e){ return null; } }
+
+function updateSelBadge(){ 
+  if(selection.size===0){ selBadge.textContent='selected: none'; return; } 
+  if(selection.size===1){
+    const p = selection.values().next().value;
+    selBadge.textContent=`selected: ${Math.round(p.x)}, ${Math.round(p.y)} (r ${p.radius})`; 
+    return;
+  }
+  selBadge.textContent=`selected: ${selection.size} items`; 
+}
+function updateSwatch(){ 
+    let t = 'NORMAL';
+    if(selection.size === 1) {
+        const p = selection.values().next().value;
+        t = p.type;
+    }
+    if(typeSwatch) typeSwatch.style.background=colorFor(t); 
+}
+
+// Context menu helpers
+function openCtxMenu(clientX, clientY){
+  // Enable/disable Delete/Change based on hit
+  const items = ctxMenu.querySelectorAll('li[data-action]');
+  items.forEach(li=>{
+    const act = li.getAttribute('data-action');
+    const disabled = (ctxHitIdx<0) && (act==='delete' || act==='change');
+    li.style.opacity = disabled ? 0.45 : 1;
+    li.style.pointerEvents = disabled ? 'none' : 'auto';
+  });
+  positionMenu(ctxMenu, clientX, clientY);
+  typeMenu.style.display='none';
+}
+function positionMenu(menu, clientX, clientY){
+  menu.style.display='block';
+  const r = menu.getBoundingClientRect();
+  let x = clientX, y = clientY;
+  if(x + r.width > window.innerWidth) x = window.innerWidth - r.width - 8;
+  if(y + r.height > window.innerHeight) y = window.innerHeight - r.height - 8;
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+}
+function openTypeMenu(clientX, clientY){
+  typeMenuList.innerHTML = '';
+  let common = null;
+  if(selection.size>0) common = selection.values().next().value.type;
+
+  for(const t of TYPES){
+    const li = document.createElement('li');
+    li.textContent = t;
+    if(selection.size>0 && common===t) li.style.opacity = 0.85; // highlight
+    li.onclick = (ev)=>{
+      ev.stopPropagation();
+      if(selection.size>0){
+        saveState();
+        for(const peg of selection){
+            peg.type = t;
+            peg.shape = (t==='BLOCK' ? 'SQUARE' : 'CIRCLE');
+            if(t==='BLOCK') peg.block = true; else delete peg.block;
+        }
+        setSelection(Array.from(selection)); // refresh
+      }
+      hideMenus();
+    };
+    typeMenuList.appendChild(li);
+  }
+  positionMenu(typeMenu, clientX, clientY);
+}
+
+// Keep menus from closing immediately due to window click
+ctxMenu.addEventListener('mousedown', (e)=>{ e.stopPropagation(); });
+typeMenu.addEventListener('mousedown', (e)=>{ e.stopPropagation(); });
+
+// Context menu actions
+ctxMenu.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  const li = e.target.closest('li[data-action]');
+  if(!li) return;
+  const action = li.getAttribute('data-action');
+  if(action==='add'){
+    saveState();
+    const peg = newPeg(ctxAt.x, ctxAt.y);
+    levels[curLevel()].push(peg);
+    setSelection(peg);
+    hideMenus();
+  } else if(action==='delete'){
+    if(selection.size>0){
+      saveState();
+      const arr = levels[curLevel()];
+      const newArr = arr.filter(p => !selection.has(p));
+      levels[curLevel()] = newArr;
+      selection.clear();
+      updateInspector(); persist(); draw(); syncTable(); updateSelBadge();
+    }
+    hideMenus();
+  } else if(action==='change'){
+    if(selection.size>0){
+      const r = ctxMenu.getBoundingClientRect();
+      openTypeMenu(r.right + 6, r.top);
+    }
+  }
+});
+
+
+// Hide menus on outside click or Escape
+window.addEventListener('click', (e)=>{
+  if(!e.target.closest('.ctxmenu')) hideMenus();
+});
+window.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape') hideMenus();
+
+  // Undo / Redo
+  if(e.ctrlKey && !e.shiftKey && e.key.toLowerCase()==='z'){
+      e.preventDefault(); undo();
+  }
+  if((e.ctrlKey && e.key.toLowerCase()==='y') || (e.ctrlKey && e.shiftKey && e.key.toLowerCase()==='z')){
+      e.preventDefault(); redo();
+  }
+
+  // Copy / Paste / Cut
+  if(e.ctrlKey && e.key.toLowerCase()==='c'){
+      e.preventDefault(); copySelection();
+  }
+  if(e.ctrlKey && e.key.toLowerCase()==='x'){
+      e.preventDefault(); cutSelection();
+  }
+  if(e.ctrlKey && e.key.toLowerCase()==='v'){
+      e.preventDefault(); pasteClipboard();
+  }
+
+  // Delete
+  // Delete
+  if(e.key==='Delete' || e.key==='Backspace'){
+      // Don't delete if we are in an input field
+      if(e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA') return;
+      
+      if(selection.size>0){
+          saveState();
+          const arr = levels[curLevel()];
+          const newArr = arr.filter(p => !selection.has(p));
+          levels[curLevel()] = newArr;
+          selection.clear();
+          updateInspector(); persist(); draw(); syncTable(); updateSelBadge();
+      }
+  }
+
+  // Arrow keys nudge
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
+    if(selection.size>0 && e.target.tagName!=='INPUT' && e.target.tagName!=='TEXTAREA'){
+        e.preventDefault();
+        saveState();
+        let dx=0, dy=0;
+        const dist = e.shiftKey ? 5 : 1;
+        if(e.key==='ArrowUp') dy = -dist;
+        if(e.key==='ArrowDown') dy = dist;
+        if(e.key==='ArrowLeft') dx = -dist;
+        if(e.key==='ArrowRight') dx = dist;
+        
+        for(const p of selection){
+          p.x += dx; 
+          p.y += dy;
+          if(clampChk.checked) clamp(p);
+        }
+        persist(); draw(); syncTable(); updateSelBadge();
+    }
+  }
+});
+
+function hideMenus(){
+  ctxMenu.style.display='none';
+  typeMenu.style.display='none';
+}
+
+// initial render
+ensureLevelArrays();
+rebuildLevelOptions(1);
+draw(); syncTable(); updateSelBadge();
+buildLevelStrip();
+
+// live mouse badge
+canvas.addEventListener('mousemove', (e)=>{ const p=getMouse(e); mouseBadge.textContent = `mouse: ${p.x}, ${p.y}`; });
+</script>
+</body>
+</html>

@@ -1,0 +1,100 @@
+{
+  "games": [
+    {
+      "id": "bennysays",
+      "title": "Benny Says",
+      "description": "A simon says style game where you need to match the growing sequence every round",
+      "path": "apps/games/BENNYSAYS/index.html",
+      "image": "images/games/bennysays.png",
+      "genres": ["Memory", "Interactive"]
+    },
+    {
+      "id": "bennysbaseball",
+      "title": "Benny's Baseball",
+      "description": "A full baseball simluation game with no reaction needed, simply make choices and play a full season of baseball.",
+      "path": "apps/games/BENNYSBASEBALL/index.html",
+      "image": "images/games/bennysbaseball.png",
+      "genres": ["Sports", "Strategy"]
+    },
+    {
+      "id": "bennysbasketball",
+      "title": "Benny's Basketball Shooter",
+      "description": "A fun basketball shooting game with special bonus mode to try to get the highest score possible.",
+      "path": "apps/games/BENNYSBASKETBALLSHOOTER/index.html",
+      "image": "images/games/bennysbasketball.png",
+      "genres": ["Sports", "Arcade"]
+    },
+    {
+      "id": "bennysbowling",
+      "title": "Benny's Bowling",
+      "description": "A fun simple bowling game with physics and realistic sound effects. Choose your a ball style or fun background theme.",
+      "path": "apps/games/BENNYSBOWLING/index.html",
+      "image": "images/games/bennysbowling.png",
+      "genres": ["Sports", "Simulation"]
+    },
+    {
+      "id": "bennysbugblaster",
+      "title": "Benny's Bug Blaster",
+      "description": "A tower defense style game where you squash bugs with your boot and have to buy items to keep your defenses up against the bugs.",
+      "path": "apps/games/BENNYSBUGBLASTER/index.html",
+      "image": "images/games/bennysbugblaster.png",
+      "genres": ["Strategy", "Action"]
+    },
+    {
+      "id": "bennyscheckers",
+      "title": "Benny's Chess and Checkers",
+      "description": "Play classic Chess or Checkers against the computer or with a friend!",
+      "path": "apps/games/BENNYSCHESSCHECKERS/index.html",
+      "image": "images/games/bennyscheckers.png",
+      "genres": ["Classic", "Board", "Strategy"]
+    },
+    {
+      "id": "bennysmatchymatch",
+      "title": "Benny's Matchy Match",
+      "description": "Previously called concentration. A fun matching game with competitive modes and cooperative play. This comes with an editor app to make your own games!",
+      "path": "apps/games/BENNYSMATCHYMATCH/index.html",
+      "image": "images/games/bennysmatchymatch.png",
+      "genres": ["Memory", "Puzzle"]
+    },
+    {
+      "id": "bennysminigolf",
+      "title": "Benny's Mini Golf",
+      "description": "A top-down minigolf game you can play with up to four people. The balls have collision on so have fun smacking eachothers balls around! This game has a level editor to create your own golf courses.",
+      "path": "apps/games/BENNYSMINIGOLF/index.html",
+      "image": "images/games/bennysminigolf.png",
+      "genres": ["Sports", "Simulation"]
+    },
+    {
+      "id": "bennyspeggle",
+      "title": "Benny's P3GL Game",
+      "description": "A peggle style game with a campaign/level editor built in. Have fun making different kinds of peg blasting games!",
+      "path": "apps/games/BENNYSPEGGLE/index.html",
+      "image": "images/games/bennyspeggle.png",
+      "genres": ["Arcade", "Action"]
+    },
+    {
+      "id": "bennystictactoe",
+      "title": "Benny's Tic Tac Toe",
+      "description": "Play tic tac toe against the computer or against your friends.",
+      "path": "apps/games/BENNYSTICTACTOE/index.html",
+      "image": "images/games/bennystictactoe.png",
+      "genres": ["Strategy", "Classic"]
+    },
+    {
+      "id": "bennyswordjumble",
+      "title": "Benny's Word Jumble",
+      "description": "A word puzzle game where you have to rearrange the word to advance.",
+      "path": "apps/games/BENNYSWORDJUMBLE/index.html",
+      "image": "images/games/bennyswordjumble.png",
+      "genres": ["Puzzle", "Educational"]
+    },
+    {
+      "id": "triviamaster",
+      "title": "Trivia Master",
+      "description": "A trivia game engine that lets you build your own trivia games! Add pictures and videos to make it more fun!",
+      "path": "apps/games/TRIVIAMASTER/index.html",
+      "image": "images/games/triviamaster.png",
+      "genres": ["Educational", "Trivia"]
+    }
+  ]
+}

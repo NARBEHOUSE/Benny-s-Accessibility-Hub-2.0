@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benny's Mini Golf - Course Creator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <div id="sidebar">
+            <h2>Course Creator</h2>
+            
+            <div class="section">
+                <label>Course Name</label>
+                <input type="text" id="courseName" value="My Custom Course">
+                <button id="newCourse" class="full-width" style="margin-top: 10px;">New Course</button>
+            </div>
+
+            <div class="section">
+                <div class="row">
+                    <button id="prevHole">&lt;</button>
+                    <span id="holeLabel">Hole 1</span>
+                    <button id="nextHole">&gt;</button>
+                </div>
+                <button id="addHole" class="full-width">+ Add Hole</button>
+                <button id="duplicateHole" class="full-width" style="margin-top: 5px;">Duplicate Hole</button>
+                <button id="deleteHole" class="full-width danger">Delete Hole</button>
+            </div>
+
+            <div class="section">
+                <label>Par</label>
+                <input type="number" id="holePar" value="3" min="1" max="10">
+            </div>
+
+            <div class="section">
+                <h3>Tools</h3>
+                <div class="tools-grid">
+                    <button class="tool-btn active" data-tool="select">Select/Move</button>
+                    <button class="tool-btn" data-tool="wall">Place Wall</button>
+                    <button class="tool-btn" data-tool="water-poly">Draw Water Shape</button>
+                    <button class="tool-btn" data-tool="sand-poly">Draw Sand Shape</button>
+                    <button class="tool-btn" data-tool="ice-poly">Draw Ice Shape</button>
+                    <button class="tool-btn" data-tool="boost-poly">Draw Boost Pad</button>
+                    <button class="tool-btn" data-tool="bridge">Place Bridge</button>
+                    <button class="tool-btn" data-tool="tree">Place Bush</button>
+                </div>
+            </div>
+
+            <div class="section" id="propertiesPanel">
+                <h3>Properties</h3>
+                <div id="selectedInfo">No selection</div>
+                
+                <div class="prop-row">
+                    <label>Size/Width:</label>
+                    <input type="number" id="propSize">
+                </div>
+                <div class="prop-row">
+                    <label>Height:</label>
+                    <input type="number" id="propHeight">
+                </div>
+                <div class="prop-row">
+                    <label>Rotation:</label>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="number" id="propRotation" style="width: 70px;">
+                        <div id="angleDial" class="angle-dial" style="display:none;">
+                            <div id="angleArrow" class="angle-arrow"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="prop-row" id="propSmoothRow" style="display:none">
+                    <label>Smooth:</label>
+                    <input type="checkbox" id="propSmooth">
+                </div>
+                <small>Tip: Use Mouse Wheel to resize/rotate</small>
+            </div>
+
+            <div class="section bottom">
+                <button id="saveCourse" class="primary full-width">Save Course (JSON)</button>
+                <label for="loadCourse" class="button full-width">Load Course</label>
+                <input type="file" id="loadCourse" accept=".json" style="display:none">
+            </div>
+        </div>
+        
+        <div id="canvas-container">
+            <canvas id="editorCanvas"></canvas>
+            <div id="overlay-info">
+                Mouse Wheel: Resize | Shift + Wheel: Rotate
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/utils.js"></script>
+    <script src="editor.js"></script>
+</body>
+</html>

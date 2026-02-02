@@ -1,0 +1,21 @@
+Benny’s Bowling — Accessible Edition
+
+Modified October 2025 by NARBEHOUSE, LLC to support players with severe mobility disabilities (single‑switch controls, TTS, high‑contrast UI). These small games can make a mega difference in someone’s life. We appreciate the work done on the physics engine and other open‑source components.
+
+Original project: iliagrigorevdev — https://github.com/iliagrigorevdev/bowling/
+License: GNU GPLv3 — No warranty.
+Source and license: see LICENSE and this repository.
+Dedicated to @BEAMINBENNY
+
+Key changes:
+- One‑switch menus (Space scan forward; hold Space ≥3s scans backward every 2s; Enter select/toggle).
+- TTS for UI focus, settings (ball styles and alley themes), outcomes ("Strike!"), frame calls, final score.
+- Aiming/throw system with charge power; thicker aiming guide.
+- Single‑ and Two‑Player modes; per‑player ball styles and scores.
+- Themes with animated walls/backdrops; alley tinting to match themes.
+- Gutter‑aware floor and aligned walls/backdrop; pins remain bright white for visibility.
+- Audio loop and effects (ambient, rolling, per‑pin) plus optional music.
+
+Appropriate Legal Notices (GPLv3):
+- This program is free software; you can redistribute it and/or modify it under GPLv3.
+- This program is provided “AS IS”, without any warranty. See LICENSE for full terms.

@@ -1,0 +1,2419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NARBE Phrase & Media Board</title>
+  <style>
+    :root {
+      --brand: #5bb0ff;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --danger: #ef4444;
+      --ok: #16a34a;
+      --border: #e5e7eb;
+      --tileRadius: 16px;
+      --scanHighlight: #ff6b35;
+      --rowHighlight: #ffff00;
+      --columnHighlight: #00ff00;
+      --muted-red: #dc8686;
+      --muted-blue: #7fa3c7;
+      --muted-green: #86b39a;
+      --muted-yellow: #d4c896;
+    }
+    
+    /* Dark theme */
+    [data-theme="dark"] {
+      --brand: #2d3748;
+      --bg: #1a202c;
+    }
+    
+    /* Blue theme */
+    [data-theme="blue"] {
+      --brand: #2b6cb0;
+      --bg: #ebf8ff;
+    }
+    
+    /* Green theme */
+    [data-theme="green"] {
+      --brand: #38a169;
+      --bg: #f0fff4;
+    }
+    
+    /* Purple theme */
+    [data-theme="purple"] {
+      --brand: #805ad5;
+      --bg: #faf5ff;
+    }
+    * { box-sizing: border-box; }
+    body { 
+      margin: 0; 
+      background: var(--bg); 
+      color: var(--text); 
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      overflow: hidden;
+    }
+    
+    .app-container {
+      height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+    
+    header { 
+  background: var(--brand); 
+  color: #fff; 
+  padding: 12px 20px; 
+}
+.header-inner{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.brand{ font-size:20px; font-weight:800; white-space:nowrap; }
+.header-title{ font-size:18px; font-weight:700; margin:0 auto; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:70vw; }
+.header-right{ width:24px; }
+    
+    .main-grid {
+      padding: 20px;
+      display: grid;
+      gap: 15px;
+      grid-template-columns: repeat(var(--grid-cols, 4), 1fr);
+      grid-template-rows: repeat(var(--grid-rows, 4), 1fr); /* Default uniform spacing */
+      align-items: stretch;
+    }
+    
+    /* Only use auto row sizing when sentence mode is active */
+    .main-grid.sentence-active {
+      grid-template-rows: auto repeat(var(--grid-rows, 4), 1fr); /* auto for sentence bar, rest for buttons */
+    }
+    
+    .sentence-row {
+      grid-column: 1 / -1;
+      display: none;
+      grid-template-columns: 3fr auto auto;
+      gap: 15px;
+      align-items: center;
+    }
+    
+    .sentence-row.active {
+      display: grid;
+      height: 80px; /* Fixed height to prevent button shrinking */
+      padding: 0; /* Remove padding */
+      align-items: center;
+    }
+    
+    .sentence-display {
+      background: var(--card);
+      border: 2px solid #000000;
+      border-radius: var(--tileRadius);
+      padding: 5px 10px; /* Reduced padding */
+      font-size: 20px; /* Slightly reduced font size */
+      height: 60px; /* Fixed height */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      word-wrap: break-word;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    /* Sentence row buttons should also have fixed height to match */
+    .sentence-row .grid-button {
+      height: 60px; /* Match sentence display height */
+      min-height: 60px;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+    
+    .grid-button {
+      background: var(--card);
+      border: 2px solid #000000;
+      border-radius: var(--tileRadius);
+      padding: 15px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 600;
+      min-height: 80px;
+      transition: all 0.2s;
+      position: relative;
+    }
+    
+    .grid-button:hover {
+      background: #f8fafc;
+      border-color: #000000;
+    }
+    
+    .grid-button.scan-highlight {
+      border: 2px solid #000000 !important;
+      background: var(--columnHighlight) !important;
+      color: #000 !important;
+      font-weight: 800 !important;
+    }
+    
+    .grid-button.back-btn {
+      background: var(--muted);
+      color: white;
+    }
+    
+    .grid-button.next-btn {
+      background: var(--brand);
+      color: white;
+    }
+    
+    .grid-button.settings-btn {
+      background: var(--ok);
+      color: white;
+    }
+    
+    .grid-button.danger-btn {
+      background: var(--danger);
+      color: white;
+    }
+    
+    .grid-button.muted-red-btn {
+      background: var(--muted-red);
+      color: white;
+    }
+    
+    .grid-button.muted-blue-btn {
+      background: var(--muted-blue);
+      color: white;
+    }
+    
+    .grid-button.muted-green-btn {
+      background: var(--muted-green);
+      color: white;
+    }
+    
+    .grid-button.muted-yellow-btn {
+      background: var(--muted-yellow);
+      color: white;
+    }
+    
+    .grid-button.voice-toggle {
+      background: var(--brand);
+      color: white;
+      font-size: 14px !important;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .grid-button.voice-toggle:hover {
+      background: var(--brand);
+      opacity: 0.8;
+    }
+    
+    /* Mobile Responsive Styles */
+    @media (max-width: 768px) {
+      .main-grid {
+        padding: 10px;
+        gap: 8px;
+      }
+      
+      .grid-button {
+        min-height: 60px;
+        padding: 8px;
+        font-size: 14px;
+      }
+      
+      .sentence-display {
+        padding: 10px;
+        font-size: 18px;
+        min-height: 60px;
+      }
+      
+      header {
+        padding: 8px 15px;
+      }
+      
+      .brand {
+        font-size: 16px;
+      }
+      
+      .header-title {
+        font-size: 14px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .main-grid {
+        padding: 8px;
+        gap: 6px;
+      }
+      
+      .grid-button {
+        min-height: 50px;
+        padding: 6px;
+        font-size: 12px;
+      }
+      
+      .sentence-display {
+        padding: 8px;
+        font-size: 16px;
+        min-height: 50px;
+      }
+      
+      header {
+        padding: 6px 10px;
+      }
+      
+      .brand {
+        font-size: 14px;
+      }
+      
+      .header-title {
+        font-size: 12px;
+      }
+      
+      .grid-button .icon {
+        font-size: 16px;
+      }
+    }
+    
+    .grid-button img {
+      max-width: 60%;
+      max-height: 50px;
+      object-fit: contain;
+      margin-bottom: 8px;
+    }
+    
+    .grid-button .icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    
+    .page-indicator {
+      position: absolute;
+      top: 5px;
+      right: 8px;
+      background: var(--muted);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    
+    footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 10px;
+      font-size: 14px;
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    #iframeModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 1000;
+    }
+    
+    /* Bigger card and player area */
+    #iframeCard {
+      background: #000;
+      width: min(96vw, 1600px);
+      height: min(85vh, 900px);
+      border-radius: 12px;
+      overflow: hidden;
+      display: grid;
+      grid-template-rows: 1fr auto;
+    }
+    
+    #mediaFrame {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #000;
+    }
+    
+    #iframeControls {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      background: #111827;
+    }
+    
+    #iframeControls .grid-button {
+      background: #374151;
+      color: white;
+      min-height: 50px;
+      flex: 1;
+    }
+    
+    .grid-button.active-green {
+      background: var(--ok) !important;
+      color: white !important;
+    }
+    
+    /* Ensure scan highlights override all button colors */
+    .grid-button.row-highlight,
+    .grid-button.scan-highlight {
+      border: 2px solid #000000 !important;
+      font-weight: 800 !important;
+    }
+    
+    .grid-button.row-highlight {
+      background: var(--rowHighlight) !important;
+      color: #000 !important;
+    }
+    
+    .grid-button.scan-highlight {
+      background: var(--columnHighlight) !important;
+      color: #000 !important;
+    }
+
+    /* Warning Modal Styles */
+    .warning-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    
+    .warning-modal.active {
+      display: flex;
+    }
+    
+    .warning-content {
+      background: var(--card);
+      border-radius: var(--tileRadius);
+      padding: 30px;
+      max-width: 500px;
+      text-align: center;
+    }
+    
+    .warning-title {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: var(--danger);
+    }
+    
+    .warning-message {
+      font-size: 18px;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+    
+    .warning-buttons {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+    }
+    
+    .warning-button {
+      padding: 15px 30px;
+      font-size: 18px;
+      font-weight: bold;
+      border: 2px solid #000000;
+      border-radius: var(--tileRadius);
+      cursor: pointer;
+      background: var(--card);
+      transition: all 0.2s;
+    }
+    
+    .warning-button.back {
+      background: var(--muted-blue);
+      color: white;
+    }
+    
+    .warning-button.proceed {
+      background: var(--muted-green);
+      color: white;
+    }
+    
+    .warning-button.modal-highlight {
+      border: 4px solid var(--scanHighlight) !important;
+      background: var(--rowHighlight) !important;
+      color: #000 !important;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+  <div class="header-inner">
+    <div class="brand">🧡 NARBE Phrase & Media Board</div>
+    <div id="viewTitle" class="header-title">Main Menu</div>
+    <div class="header-right"></div>
+  </div>
+</header>
+
+    <main class="main-grid" id="mainGrid">
+      <div class="sentence-row" id="sentenceRow">
+        <div class="sentence-display" id="sentenceDisplay"></div>
+        <button class="grid-button" id="deleteWordBtn">
+          <span class="icon">⌫</span>
+          Delete
+        </button>
+        <button class="grid-button danger-btn" id="clearSentenceBtn">
+          <span class="icon">🗑️</span>
+          Clear All
+        </button>
+      </div>
+    </main>
+
+    <footer id="statusFooter">Ready - Load CSV to begin</footer>
+  </div>
+
+  <div id="iframeModal" role="dialog" aria-modal="true">
+    <div id="iframeCard">
+      <!-- The iframe is created fresh in JS so reopens never break -->
+      <iframe id="mediaFrame" src="" allow="autoplay; fullscreen" allowfullscreen></iframe>
+      <div id="iframeControls">
+        <button class="grid-button" id="playPauseBtn">Play/Pause</button>
+        <button class="grid-button" id="prevBtn">⏮ Previous</button>
+        <button class="grid-button" id="rewindBtn">Rewind</button>
+        <button class="grid-button" id="forwardBtn">Fast Forward</button>
+        <button class="grid-button" id="nextBtn">⏭ Next</button>
+        <button class="grid-button" id="muteBtn">Mute</button>
+        <button class="grid-button" id="refreshBtn">Refresh</button>
+        <button class="grid-button danger-btn" id="closeIframeBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warning Modal for Create Board -->
+  <div id="createBoardWarning" class="warning-modal" role="dialog" aria-modal="true">
+    <div class="warning-content">
+      <div class="warning-title">⚠️ Warning</div>
+      <div class="warning-message">
+        Creating a Board will open a new tab and you will not be able to use the scan and select method to return to the NARBE Phrase & Media Board.
+      </div>
+      <div class="warning-buttons">
+        <button class="warning-button back" id="createBoardBack">GO BACK</button>
+        <button class="warning-button proceed" id="createBoardProceed">PROCEED</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warning Modal for Load Board -->
+  <div id="loadBoardWarning" class="warning-modal" role="dialog" aria-modal="true">
+    <div class="warning-content">
+      <div class="warning-title">⚠️ Warning</div>
+      <div class="warning-message">
+        Loading a Board from file will open a file dialog and you will not be able to use the scan and select method to return to the NARBE Phrase & Media Board.
+      </div>
+      <div class="warning-buttons">
+        <button class="warning-button back" id="loadBoardBack">GO BACK</button>
+        <button class="warning-button proceed" id="loadBoardProceed">PROCEED</button>
+      </div>
+    </div>
+  </div>
+
+  <input id="csvFile" type="file" accept=".csv" style="display:none" />
+
+  <!-- Include shared voice manager -->
+  <script src="../../../shared/voice-manager.js"></script>
+  <script src="../../../shared/scan-manager.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+  
+  <script>
+    const state = {
+      raw: [],
+      categories: [],
+      byCat: new Map(),
+      currentMenu: 'main',
+      currentCategory: null,
+      gridSize: { rows: 4, cols: 4 },
+      page: 0,
+      scanIndex: -1,
+      scanning: false,
+      autoScan: false,
+      scanSpeed: 1200,
+      scanTimer: null,
+      spacePressed: false,
+      spaceStartTime: 0,
+      returnPressed: false,
+      returnStartTime: 0,
+      // TTS settings now handled by unified voice manager
+      ttsOnScan: true,
+      sentenceMode: false,
+      sentence: [],
+      // Voice settings now handled by unified voice manager
+      childVoices: { boy: null, girl: null },
+      ytPlayer: null,
+      lastUrl: null,
+      navigationHistory: [],
+      scanMode: 'row',
+      currentRow: 0,
+      scannableRows: [],
+      csvLoaded: false,
+      highlightColor: '#ffff00',
+      availableBoards: [],
+      theme: 'light',
+      modalActive: false,
+      modalScanIndex: 0,
+      modalButtons: [],
+      pendingAction: null,
+      lastKeyPressTime: 0,
+      debounceDelay: 500,
+      returnActionExecuted: false,
+      playerKind: 'unknown',
+      isPlaylist: false,
+      videoModalActive: false
+    };
+
+    // Expose state globally for header title updater
+    window.state = state;
+
+    const SCAN_SPEEDS = { slow: 2000, medium: 1200, fast: 600 };
+
+    const HIGHLIGHT_COLORS = {
+      yellow: '#ffff00', green: '#00ff00', orange: '#ffa500', red: '#ff0000',
+      blue: '#0000ff', purple: '#800080', cyan: '#00ffff', pink: '#ff69b4'
+    };
+
+    const THEMES = { light: 'Light', dark: 'Dark', blue: 'Blue', green: 'Green', purple: 'Purple' };
+
+    const el = {
+      mainGrid: document.getElementById('mainGrid'),
+      sentenceRow: document.getElementById('sentenceRow'),
+      sentenceDisplay: document.getElementById('sentenceDisplay'),
+      deleteWordBtn: document.getElementById('deleteWordBtn'),
+      clearSentenceBtn: document.getElementById('clearSentenceBtn'),
+      statusFooter: document.getElementById('statusFooter'),
+      csvFile: document.getElementById('csvFile'),
+      iframeModal: document.getElementById('iframeModal'),
+      mediaFrame: document.getElementById('mediaFrame'),
+      playPauseBtn: document.getElementById('playPauseBtn'),
+      prevBtn: document.getElementById('prevBtn'),
+      rewindBtn: document.getElementById('rewindBtn'),
+      forwardBtn: document.getElementById('forwardBtn'),
+      nextBtn: document.getElementById('nextBtn'),
+      muteBtn: document.getElementById('muteBtn'),
+      refreshBtn: document.getElementById('refreshBtn'),
+      closeIframeBtn: document.getElementById('closeIframeBtn'),
+      createBoardWarning: document.getElementById('createBoardWarning'),
+      loadBoardWarning: document.getElementById('loadBoardWarning'),
+      createBoardBack: document.getElementById('createBoardBack'),
+      loadBoardBack: document.getElementById('loadBoardBack'),
+      createBoardProceed: document.getElementById('createBoardProceed'),
+      loadBoardProceed: document.getElementById('loadBoardProceed')
+    };
+
+    
+// ---- Dynamic header title ----
+function updateHeaderForCurrentView(){
+  const t = document.getElementById('viewTitle');
+  if(!t) return;
+  let title = 'Main Menu';
+  switch(state.currentMenu){
+    case 'main': title = 'Main Menu'; break;
+    case 'categories': title = state.currentBoardTitle || 'Categories'; break;
+    case 'settings': title = 'Settings'; break;
+    case 'gridsize': title = 'Grid Size'; break;
+    case 'tts': title = 'Voice & TTS'; break;
+    case 'scan': title = 'Scan Settings'; break;
+    case 'highlight': title = 'Highlight Colors'; break;
+    case 'theme': title = 'Theme'; break;
+    case 'category': title = state.currentCategory || 'Category'; break;
+  }
+  t.textContent = title;
+}
+// Modal Functions
+    function showWarningModal(type) {
+      state.modalActive = true;
+      state.modalScanIndex = -1;
+      if (state.scanning || state.autoScan) { stopScanning(); state.autoScan = false; }
+      if (type === 'create') {
+        el.createBoardWarning.classList.add('active');
+        state.modalButtons = [el.createBoardBack, el.createBoardProceed];
+        state.pendingAction = () => {
+          const newTab = window.open('phrase-builder.html', '_blank', 'noopener,noreferrer');
+          setTimeout(() => window.focus(), 0);
+        };
+        if (window.NarbeVoiceManager.getSettings().ttsEnabled) {
+          speak('Warning: Creating a board opens a new tab and scanning will not return to the phrase board.');
+        }
+      } else if (type === 'load') {
+        el.loadBoardWarning.classList.add('active');
+        state.modalButtons = [el.loadBoardBack, el.loadBoardProceed];
+        state.pendingAction = () => el.csvFile.click();
+        if (window.NarbeVoiceManager.getSettings().ttsEnabled) {
+          speak('Warning: Loading a board opens a file dialog and scanning will not return to the NARBE Phrase & Media Board.');
+        }
+      }
+    }
+
+    function hideWarningModal() {
+      state.modalActive = false;
+      el.createBoardWarning.classList.remove('active');
+      el.loadBoardWarning.classList.remove('active');
+      state.modalButtons.forEach(btn => btn.classList.remove('modal-highlight'));
+      state.modalButtons = [];
+      state.pendingAction = null;
+      state.modalScanIndex = -1;
+    }
+
+    function highlightModalButton() {
+      state.modalButtons.forEach(btn => btn.classList.remove('modal-highlight'));
+      if (state.modalScanIndex >= 0 && state.modalButtons[state.modalScanIndex]) {
+        state.modalButtons[state.modalScanIndex].classList.add('modal-highlight');
+        if (window.NarbeVoiceManager.getSettings().ttsEnabled && state.ttsOnScan) { speak(state.modalButtons[state.modalScanIndex].textContent); }
+      }
+    }
+
+    function scanModalForward() {
+      if (!state.modalActive || state.modalButtons.length === 0) return;
+      if (state.modalScanIndex === -1) state.modalScanIndex = 0;
+      else state.modalScanIndex = (state.modalScanIndex + 1) % state.modalButtons.length;
+      highlightModalButton();
+    }
+
+    function selectModalButton() {
+      if (!state.modalActive || state.modalScanIndex < 0 || !state.modalButtons[state.modalScanIndex]) return;
+      const selectedButton = state.modalButtons[state.modalScanIndex];
+      if (selectedButton.textContent === 'GO BACK') { hideWarningModal(); if (window.NarbeVoiceManager.getSettings().ttsEnabled) speak('Returning to menu'); }
+      else if (selectedButton.textContent === 'PROCEED') { hideWarningModal(); if (state.pendingAction) state.pendingAction(); }
+    }
+
+    // TTS using unified voice manager
+    function isIOS() {
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    }
+
+    function initVoices() {
+      // Voice management now handled by unified voice manager
+      // Set up child voices based on available voices
+      window.NarbeVoiceManager.waitForVoices().then(() => {
+        const voices = window.NarbeVoiceManager.getEnglishVoices();
+        const femaleVoice = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('woman')) || voices[0];
+        const maleVoice = voices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('man')) || voices[1] || voices[0];
+        state.childVoices.girl = femaleVoice;
+        state.childVoices.boy = maleVoice;
+      });
+    }
+
+    function speak(text, isChild = false, gender = null, specificVoiceIndex = null) {
+      const voiceSettings = window.NarbeVoiceManager.getSettings();
+      if (!voiceSettings.ttsEnabled || !text) return;
+      
+      if (specificVoiceIndex !== null) {
+        const voices = window.NarbeVoiceManager.getEnglishVoices();
+        if (voices[specificVoiceIndex]) {
+          window.NarbeVoiceManager.cancel();
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.voice = voices[specificVoiceIndex];
+          window.speechSynthesis.speak(utterance);
+          return;
+        }
+      }
+      
+      if (isChild && gender && state.childVoices[gender]) {
+        window.NarbeVoiceManager.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.voice = state.childVoices[gender];
+        utterance.pitch = gender === 'girl' ? 1.8 : 1.6;
+        utterance.rate = 1.3;
+        window.speechSynthesis.speak(utterance);
+      } else {
+        window.NarbeVoiceManager.speak(text);
+      }
+    }
+
+    function speakWithVoice(text, voice) {
+      const voiceSettings = window.NarbeVoiceManager.getSettings();
+      if (!voiceSettings.ttsEnabled || !text) return;
+      window.NarbeVoiceManager.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      if (voice) u.voice = voice;
+      window.speechSynthesis.speak(u);
+    }
+
+    function cleanTextForTTS(text) {
+      if (!text) return '';
+      return text.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[←→↑↓▶◀⚙️📁🔊🎯🎨💬⌫🗑️🏠⊞🔄🐌🚶🏃🎤👦👧●]/gu, '').trim();
+    }
+
+    // Grid
+    function setGridSize(rows, cols) {
+      state.gridSize = { rows, cols };
+      el.mainGrid.style.setProperty('--grid-rows', rows);
+      el.mainGrid.style.setProperty('--grid-cols', cols);
+      renderCurrentMenu();
+    }
+
+    function clearGrid() {
+      const buttons = el.mainGrid.querySelectorAll('.grid-button:not(#deleteWordBtn):not(#clearSentenceBtn)');
+      buttons.forEach(btn => btn.remove());
+    }
+
+    function createButton(text, icon = '', clickHandler = null, className = '') {
+      const btn = document.createElement('button');
+      btn.className = `grid-button ${className}`;
+      btn.innerHTML = `${icon ? `<span class="icon">${icon}</span>` : ''}${text}`;
+      if (clickHandler) btn.addEventListener('click', clickHandler);
+      return btn;
+    }
+
+    // Menus
+    function renderMainMenu() {
+      clearGrid();
+      state.currentMenu = 'main';
+      // Don't subtract sentence row space - it's now in its own dedicated row
+      const totalSlots = state.gridSize.rows * state.gridSize.cols;
+      
+      const coreItems = [
+        { text: 'Settings', icon: '⚙️', action: () => navigateTo('settings'), className: 'muted-blue-btn' },
+        { text: 'Exit', icon: '🚪', action: () => exitToHub(), className: 'muted-red-btn' },
+        { text: 'Create Board', icon: '✏️', action: () => showWarningModal('create'), className: 'muted-green-btn' },
+        { text: 'Load Board', icon: '📁', action: () => showWarningModal('load'), className: 'muted-yellow-btn' }
+      ];
+      
+      // Add local board if exists
+      const localBoard = getLocalSavedBoard();
+      let allMainItems = [...coreItems];
+      if (localBoard) {
+        // Parse the local board CSV to check for board image
+        const localBoardData = parseCSV(localBoard.csv);
+        const boardHasImage = localBoardData.length > 0 && localBoardData[0].boardImage;
+        
+        allMainItems.push({
+          text: localBoard.name, 
+          icon: boardHasImage ? '' : '📋', // Only use clipboard icon if no image is available
+          boardData: localBoardData.length > 0 ? {
+            image: localBoardData[0].boardImage,
+            color: localBoardData[0].boardColor
+          } : null,
+          action: () => {
+            const cleanBoardName = cleanTextForTTS(localBoard.name);
+            if (cleanBoardName) speak(cleanBoardName);
+            
+            state.currentBoardTitle = localBoard.name;
+            buildIndex(parseCSV(localBoard.csv));
+            el.statusFooter.textContent = `Loaded board: ${localBoard.name}`;
+          }
+        });
+      }
+      
+      // Add available boards to main items list
+      state.availableBoards.forEach(board => {
+        allMainItems.push({
+          text: board.name,
+          icon: board.image ? '' : '📋', // Only use clipboard icon if no image is available
+          boardData: board, // Store board data for styling
+          action: async () => {
+            const cleanBoardName = cleanTextForTTS(board.name);
+            if (cleanBoardName) speak(cleanBoardName);
+            
+            const success = await loadBoard(board.path);
+            el.statusFooter.textContent = success ? `Loaded board: ${board.name}` : `Failed to load board: ${board.name}`;
+          }
+        });
+      });
+      
+      // Calculate pagination - reserve 1 slot for Next button if needed
+      let itemsPerPage = totalSlots;
+      const totalPages = Math.ceil(allMainItems.length / itemsPerPage);
+      
+      // If we need multiple pages, reserve 1 slot for Next button
+      if (totalPages > 1) {
+        itemsPerPage = totalSlots - 1;
+        // Recalculate total pages with the reserved slot
+        const recalcTotalPages = Math.ceil(allMainItems.length / itemsPerPage);
+        
+        const startIdx = state.page * itemsPerPage;
+        const endIdx = Math.min(startIdx + itemsPerPage, allMainItems.length);
+        
+        // Add items for current page
+        for (let i = startIdx; i < endIdx; i++) {
+          const item = allMainItems[i];
+          const btn = createButton(item.text, item.icon, item.action, item.className || '');
+          
+          // Apply board color and image if available
+          if (item.boardData) {
+            if (item.boardData.color) {
+              btn.style.background = rgbaFromHex(item.boardData.color, 0.2);
+              btn.style.borderColor = item.boardData.color;
+            }
+            if (item.boardData.image) {
+              const img = document.createElement('img');
+              img.src = item.boardData.image;
+              img.alt = '';
+              btn.insertBefore(img, btn.firstChild);
+            }
+          }
+          
+          el.mainGrid.appendChild(btn);
+        }
+        
+        // Always add Next button if multiple pages
+        const nextBtn = createButton('Next', '▶', () => { 
+          state.page = (state.page + 1) % recalcTotalPages; 
+          renderMainMenu(); 
+          updateHeaderForCurrentView(); 
+        }, 'next-btn');
+        el.mainGrid.appendChild(nextBtn);
+      } else {
+        // Single page - add all items
+        allMainItems.forEach(item => {
+          const btn = createButton(item.text, item.icon, item.action, item.className || '');
+          
+          // Apply board color and image if available
+          if (item.boardData) {
+            if (item.boardData.color) {
+              btn.style.background = rgbaFromHex(item.boardData.color, 0.2);
+              btn.style.borderColor = item.boardData.color;
+            }
+            if (item.boardData.image) {
+              const img = document.createElement('img');
+              img.src = item.boardData.image;
+              img.alt = '';
+              btn.insertBefore(img, btn.firstChild);
+            }
+          }
+          
+          el.mainGrid.appendChild(btn);
+        });
+      }
+      
+      updateScannable();
+    }
+
+    function renderCategoryMenu() {
+      clearGrid();
+      state.currentMenu = 'categories';
+      // Don't subtract sentence row space - it's now in its own dedicated row
+      const totalSlots = state.gridSize.rows * state.gridSize.cols;
+      const availableSlots = totalSlots - 1;
+      const categoriesPerPage = availableSlots - 1;
+      const totalPages = Math.ceil(state.categories.length / categoriesPerPage);
+      const startIdx = state.page * categoriesPerPage;
+      const endIdx = Math.min(startIdx + categoriesPerPage, state.categories.length);
+      const gridPositions = [];
+      if (state.page === 0) {
+        gridPositions.push({ type: 'mainmenu', button: createButton('Main Menu', '🏠', () => { state.csvLoaded = false; navigateTo('main'); }, 'back-btn') });
+      } else {
+        gridPositions.push({ type: 'back', button: createButton('Back', '←', () => { state.page--; renderCategoryMenu(); }, 'back-btn') });
+      }
+      for (let i = startIdx; i < endIdx; i++) {
+        const cat = state.categories[i];
+        const btn = createButton(cat.name, '', () => openCategory(cat.name));
+        
+        // Add category image if available
+        if (cat.image) {
+          const img = document.createElement('img');
+          img.src = cat.image;
+          img.alt = '';
+          btn.insertBefore(img, btn.firstChild);
+        }
+        
+        btn.style.background = rgbaFromHex(cat.color, 0.2);
+        btn.style.borderColor = cat.color;
+        const itemsPerPage = state.gridSize.rows * state.gridSize.cols - 1;
+        const catTotalPages = Math.ceil(cat.items.length / itemsPerPage);
+        if (catTotalPages > 1) {
+          const indicator = document.createElement('div');
+          indicator.className = 'page-indicator';
+          indicator.textContent = `${catTotalPages} pages`;
+          btn.appendChild(indicator);
+        }
+        gridPositions.push({ type: 'category', button: btn });
+      }
+      // Add Next button if there are multiple pages (loops back to first page from last page)
+      if (totalPages > 1) {
+        gridPositions.push({ type: 'next', button: createButton('Next', '▶', () => { state.page = (state.page + 1) % totalPages; renderCategoryMenu(); }, 'next-btn') });
+      }
+      while (gridPositions.length < totalSlots) gridPositions.push({ type: 'empty', button: null });
+      gridPositions.forEach(pos => { if (pos.button) el.mainGrid.appendChild(pos.button); });
+      updateScannable();
+    }
+
+    function renderSettingsMenu() {
+      clearGrid();
+      state.currentMenu = 'settings';
+      // Don't subtract sentence row space - it's now in its own dedicated row
+      const totalSlots = state.gridSize.rows * state.gridSize.cols;
+      
+      const buttons = [
+        { text: 'Grid Size', icon: '⊞', action: () => navigateTo('gridsize') },
+        { text: 'Voice & TTS', icon: '🔊', action: () => navigateTo('tts') },
+        { text: 'Scan Settings', icon: '🎯', action: () => navigateTo('scan') },
+        { text: 'Highlight Colors', icon: '🎨', action: () => navigateTo('highlight') },
+        { text: 'Theme', icon: '🌈', action: () => navigateTo('theme') },
+        { text: 'Toggle Sentence', icon: '💬', action: toggleSentenceMode, className: state.sentenceMode ? 'active-green' : '' }
+      ];
+      
+      const availableSlots = totalSlots - 1; // Reserve one slot for back/next button
+      const itemsPerPage = availableSlots - 1; // Reserve another slot for next button if needed
+      const totalPages = Math.ceil(buttons.length / itemsPerPage);
+      
+      // Back button logic
+      if (state.page === 0) {
+        const backBtn = createButton('Main Menu', '🏠', () => navigateBack(), 'back-btn');
+        el.mainGrid.appendChild(backBtn);
+      } else {
+        const backBtn = createButton('Back', '←', () => {
+          state.page--;
+          renderSettingsMenu();
+        }, 'back-btn');
+        el.mainGrid.appendChild(backBtn);
+      }
+      
+      const startIdx = state.page * itemsPerPage;
+      const endIdx = Math.min(startIdx + itemsPerPage, buttons.length);
+      
+      for (let i = startIdx; i < endIdx; i++) {
+        const btnData = buttons[i];
+        const btn = createButton(btnData.text, btnData.icon, btnData.action, btnData.className || '');
+        el.mainGrid.appendChild(btn);
+      }
+      
+      // Always add Next button if there are multiple pages (loops back to first page)
+      if (totalPages > 1) {
+        const nextBtn = createButton('Next', '▶', () => { 
+          state.page = (state.page + 1) % totalPages; 
+          renderSettingsMenu(); 
+        }, 'next-btn');
+        el.mainGrid.appendChild(nextBtn);
+      }
+      
+      updateScannable();
+    }
+
+    function renderGridSizeMenu() {
+      clearGrid();
+      state.currentMenu = 'gridsize';
+      // Don't subtract sentence row space - it's now in its own dedicated row
+      const totalSlots = state.gridSize.rows * state.gridSize.cols;
+      
+      const gridSizes = [];
+      for (let size = 2; size <= 10; size++) gridSizes.push(size);
+      
+      const availableSlots = totalSlots - 1; // Reserve one slot for back/next button
+      const itemsPerPage = availableSlots - 1; // Reserve another slot for next button if needed
+      const totalPages = Math.ceil(gridSizes.length / itemsPerPage);
+      
+      // Back button logic
+      if (state.page === 0) {
+        const backBtn = createButton('Settings', '←', () => navigateBack(), 'back-btn');
+        el.mainGrid.appendChild(backBtn);
+      } else {
+        const backBtn = createButton('Back', '←', () => {
+          state.page--;
+          renderGridSizeMenu();
+        }, 'back-btn');
+        el.mainGrid.appendChild(backBtn);
+      }
+      
+      const startIdx = state.page * itemsPerPage;
+      const endIdx = Math.min(startIdx + itemsPerPage, gridSizes.length);
+      
+      for (let i = startIdx; i < endIdx; i++) {
+        const size = gridSizes[i];
+        const btn = createButton(`${size}×${size}`, '⊞', () => { 
+          setGridSize(size, size); 
+          speak(`Grid size ${size} by ${size} selected`);
+          navigateBack(); 
+        });
+        if (state.gridSize.rows === size && state.gridSize.cols === size) btn.classList.add('active-green');
+        el.mainGrid.appendChild(btn);
+      }
+      
+      // Always add Next button if there are multiple pages (loops back to first page)
+      if (totalPages > 1) {
+        const nextBtn = createButton('Next', '▶', () => { 
+          state.page = (state.page + 1) % totalPages; 
+          renderGridSizeMenu(); 
+        }, 'next-btn');
+        el.mainGrid.appendChild(nextBtn);
+      }
+      
+      updateScannable();
+    }
+
+    function renderTTSMenu() {
+      clearGrid();
+      state.currentMenu = 'tts';
+      // Don't subtract sentence row space - it's now in its own dedicated row
+      const totalSlots = state.gridSize.rows * state.gridSize.cols;
+      
+      const buttons = [
+        { text: 'TTS', icon: '🔊', action: () => { 
+          const newState = window.NarbeVoiceManager.toggleTTS(); 
+          speak(newState ? 'TTS enabled' : 'TTS disabled');
+          renderTTSMenu(); 
+        }, className: window.NarbeVoiceManager.getSettings().ttsEnabled ? 'active-green' : '' },
+        { text: 'TTS on Scan', icon: '👆', action: () => { 
+          state.ttsOnScan = !state.ttsOnScan; 
+          speak(state.ttsOnScan ? 'TTS on Scan enabled' : 'TTS on Scan disabled');
+          renderTTSMenu(); 
+        }, className: state.ttsOnScan ? 'active-green' : '' }
+      ];
+      
+      // Add voice toggle button if multiple voices available
+      const voices = window.NarbeVoiceManager.getEnglishVoices();
+      if (voices && voices.length > 1) {
+        const currentVoice = window.NarbeVoiceManager.getCurrentVoice();
+        let displayName = window.NarbeVoiceManager.getVoiceDisplayName(currentVoice);
+        
+        buttons.push({
+          text: `🎤 ${displayName}`,
+          icon: '',
+          action: () => {
+            window.NarbeVoiceManager.cycleVoice();
+            const newVoice = window.NarbeVoiceManager.getCurrentVoice();
+            const newVoiceName = window.NarbeVoiceManager.getVoiceDisplayName(newVoice);
+            speak(`Voice changed to ${newVoiceName}`);
+            renderTTSMenu();
+          },
+          className: 'voice-toggle'
+        });
+      }
+      
+      const availableSlots = totalSlots - 1; // Reserve one slot for back/next button  
+      const itemsPerPage = availableSlots - 1; // Reserve another slot for next button if needed
+      const totalPages = Math.ceil(buttons.length / itemsPerPage);
+      
+      // Back button logic
+      if (state.page === 0) {
+        const backBtn = createButton('Settings', '←', () => navigateBack(), 'back-btn');
+        el.mainGrid.appendChild(backBtn);
+      } else {
+        const backBtn = createButton('Back', '←', () => {
+          state.page--;
+          renderTTSMenu();
+        }, 'back-btn');
+        el.mainGrid.appendChild(backBtn);
+      }
+      
+      const startIdx = state.page * itemsPerPage;
+      const endIdx = Math.min(startIdx + itemsPerPage, buttons.length);
+      
+      for (let i = startIdx; i < endIdx; i++) {
+        const btnData = buttons[i];
+        const btn = createButton(btnData.text, btnData.icon, btnData.action, btnData.className || '');
+        el.mainGrid.appendChild(btn);
+      }
+      
+      // Always add Next button if there are multiple pages (loops back to first page)
+      if (totalPages > 1) {
+        const nextBtn = createButton('Next', '▶', () => { 
+          state.page = (state.page + 1) % totalPages; 
+          renderTTSMenu(); 
+        }, 'next-btn');
+        el.mainGrid.appendChild(nextBtn);
+      }
+      
+      updateScannable();
+    }
+
+    function renderScanMenu() {
+      clearGrid();
+      state.currentMenu = 'scan';
+      // Don't subtract sentence row space - it's now in its own dedicated row
+      const totalSlots = state.gridSize.rows * state.gridSize.cols;
+      
+      let currentSpeedIndex = 1;
+      let autoScan = state.autoScan;
+
+      if (window.NarbeScanManager) {
+        const settings = window.NarbeScanManager.getSettings();
+        currentSpeedIndex = settings.scanSpeedIndex;
+        autoScan = settings.autoScan;
+      } else {
+        // Fallback or infer
+        if (state.scanSpeed === 1000) currentSpeedIndex = 0;
+        else if (state.scanSpeed === 2000) currentSpeedIndex = 1;
+        else if (state.scanSpeed === 3000) currentSpeedIndex = 2;
+        else if (state.scanSpeed === 4000) currentSpeedIndex = 3;
+      }
+      
+      const buttons = [
+        { text: 'Auto Scan', icon: '🔄', action: () => { 
+          const newVal = !autoScan;
+          if (window.NarbeScanManager) {
+             window.NarbeScanManager.setAutoScan(newVal);
+          } else {
+             state.autoScan = newVal;
+          }
+          speak(newVal ? 'Auto Scan enabled' : 'Auto Scan disabled');
+          // Update local state immediately for responsiveness
+          state.autoScan = newVal;
+          if (state.autoScan) startAutoScan(); else stopScanning(); 
+          renderScanMenu(); 
+        }, className: autoScan ? 'active-green' : '' },
+        
+        { text: `Speed: ${(currentSpeedIndex + 1)}s`, icon: '⏱️', action: () => {
+             let nextIndex = (currentSpeedIndex + 1) % 4;
+             if (window.NarbeScanManager) {
+                 window.NarbeScanManager.updateSettings({ scanSpeedIndex: nextIndex });
+                 const newSettings = window.NarbeScanManager.getSettings();
+                 state.scanSpeed = newSettings.scanInterval;
+             } else {
+                 const speeds = [1000, 2000, 3000, 4000];
+                 state.scanSpeed = speeds[nextIndex];
+             }
+             
+             speak(`${nextIndex + 1} second speed`);
+             if (state.scanning || state.autoScan) { stopScanning(); if (state.autoScan) startAutoScan(); }
+             renderScanMenu();
+        }}
+      ];
+      
+      const availableSlots = totalSlots - 1; // Reserve one slot for back/next button
+      const itemsPerPage = availableSlots - 1; // Reserve another slot for next button if needed
+      const totalPages = Math.ceil(buttons.length / itemsPerPage);
+      
+      // Back button logic
+      if (state.page === 0) {
+        const backBtn = createButton('Settings', '←', () => navigateBack(), 'back-btn');
+        el.mainGrid.appendChild(backBtn);
+      } else {
+        const backBtn = createButton('Back', '←', () => {
+          state.page--;
+          renderScanMenu();
+        }, 'back-btn');
+        el.mainGrid.appendChild(backBtn);
+      }
+      
+      const startIdx = state.page * itemsPerPage;
+      const endIdx = Math.min(startIdx + itemsPerPage, buttons.length);
+      
+      for (let i = startIdx; i < endIdx; i++) {
+        const btnData = buttons[i];
+        const btn = createButton(btnData.text, btnData.icon, btnData.action, btnData.className || '');
+        el.mainGrid.appendChild(btn);
+      }
+      
+      // Always add Next button if there are multiple pages (loops back to first page)
+      if (totalPages > 1) {
+        const nextBtn = createButton('Next', '▶', () => { 
+          state.page = (state.page + 1) % totalPages; 
+          renderScanMenu(); 
+        }, 'next-btn');
+        el.mainGrid.appendChild(nextBtn);
+      }
+      
+      updateScannable();
+    }
+
+    function renderHighlightMenu() {
+      clearGrid();
+      state.currentMenu = 'highlight';
+      // Don't subtract sentence row space - it's now in its own dedicated row
+      const totalSlots = state.gridSize.rows * state.gridSize.cols;
+      
+      const buttons = Object.entries(HIGHLIGHT_COLORS).map(([name, color]) => ({
+        text: name.charAt(0).toUpperCase() + name.slice(1),
+        icon: '●',
+        action: () => {
+          state.highlightColor = color;
+          const colorName = name.charAt(0).toUpperCase() + name.slice(1);
+          speak(`${colorName} highlight selected`);
+          document.documentElement.style.setProperty('--rowHighlight', color);
+          document.documentElement.style.setProperty('--columnHighlight', color);
+          renderHighlightMenu();
+        },
+        className: state.highlightColor === color ? 'active-green' : '',
+        iconColor: color
+      }));
+      
+      const availableSlots = totalSlots - 1; // Reserve one slot for back/next button
+      const itemsPerPage = availableSlots - 1; // Reserve another slot for next button if needed
+      const totalPages = Math.ceil(buttons.length / itemsPerPage);
+      
+      // Back button logic
+      if (state.page === 0) {
+        const backBtn = createButton('Settings', '←', () => navigateBack(), 'back-btn');
+        el.mainGrid.appendChild(backBtn);
+      } else {
+        const backBtn = createButton('Back', '←', () => {
+          state.page--;
+          renderHighlightMenu();
+        }, 'back-btn');
+        el.mainGrid.appendChild(backBtn);
+      }
+      
+      const startIdx = state.page * itemsPerPage;
+      const endIdx = Math.min(startIdx + itemsPerPage, buttons.length);
+      
+      for (let i = startIdx; i < endIdx; i++) {
+        const btnData = buttons[i];
+        const btn = createButton(btnData.text, btnData.icon, btnData.action, btnData.className || '');
+        if (btnData.iconColor) {
+          btn.querySelector('.icon').style.color = btnData.iconColor;
+        }
+        el.mainGrid.appendChild(btn);
+      }
+      
+      // Always add Next button if there are multiple pages (loops back to first page)
+      if (totalPages > 1) {
+        const nextBtn = createButton('Next', '▶', () => { 
+          state.page = (state.page + 1) % totalPages; 
+          renderHighlightMenu(); 
+        }, 'next-btn');
+        el.mainGrid.appendChild(nextBtn);
+      }
+      
+      updateScannable();
+    }
+
+    function renderThemeMenu() {
+      clearGrid();
+      state.currentMenu = 'theme';
+      // Don't subtract sentence row space - it's now in its own dedicated row
+      const totalSlots = state.gridSize.rows * state.gridSize.cols;
+      
+      const buttons = Object.entries(THEMES).map(([themeKey, themeName]) => ({
+        text: themeName,
+        icon: '🎨',
+        action: () => { 
+          setTheme(themeKey); 
+          speak(`${themeName} theme selected`);
+          renderThemeMenu(); 
+        },
+        className: state.theme === themeKey ? 'active-green' : ''
+      }));
+      
+      const availableSlots = totalSlots - 1; // Reserve one slot for back/next button
+      const itemsPerPage = availableSlots - 1; // Reserve another slot for next button if needed
+      const totalPages = Math.ceil(buttons.length / itemsPerPage);
+      
+      // Back button logic
+      if (state.page === 0) {
+        const backBtn = createButton('Settings', '←', () => navigateBack(), 'back-btn');
+        el.mainGrid.appendChild(backBtn);
+      } else {
+        const backBtn = createButton('Back', '←', () => {
+          state.page--;
+          renderThemeMenu();
+        }, 'back-btn');
+        el.mainGrid.appendChild(backBtn);
+      }
+      
+      const startIdx = state.page * itemsPerPage;
+      const endIdx = Math.min(startIdx + itemsPerPage, buttons.length);
+      
+      for (let i = startIdx; i < endIdx; i++) {
+        const btnData = buttons[i];
+        const btn = createButton(btnData.text, btnData.icon, btnData.action, btnData.className || '');
+        el.mainGrid.appendChild(btn);
+      }
+      
+      // Always add Next button if there are multiple pages (loops back to first page)
+      if (totalPages > 1) {
+        const nextBtn = createButton('Next', '▶', () => { 
+          state.page = (state.page + 1) % totalPages; 
+          renderThemeMenu(); 
+        }, 'next-btn');
+        el.mainGrid.appendChild(nextBtn);
+      }
+      
+      updateScannable();
+    }
+
+    function renderCategory() {
+      if (!state.currentCategory) return;
+      clearGrid();
+      state.currentMenu = 'category';
+      const cat = state.byCat.get(state.currentCategory);
+      if (!cat) return;
+      // Don't subtract sentence row space - it's now in its own dedicated row
+      const totalSlots = state.gridSize.rows * state.gridSize.cols;
+      const availableSlots = totalSlots - 1;
+      const itemsPerPage = availableSlots - 1;
+      const totalPages = Math.ceil(cat.items.length / itemsPerPage);
+      const startIdx = state.page * itemsPerPage;
+      const endIdx = Math.min(startIdx + itemsPerPage, cat.items.length);
+      const gridPositions = [];
+      gridPositions.push({ type: 'back', button: createButton('Back', '←', () => { if (state.page > 0) { state.page--; renderCategory(); } else { navigateBack(); } }, 'back-btn') });
+      for (let i = startIdx; i < endIdx; i++) {
+        const item = cat.items[i];
+        const btn = createButton(item.display || item.speak || 'Speak', '', () => onTileClick(item));
+        if (item.image) {
+          const img = document.createElement('img');
+          img.src = item.image;
+          img.alt = '';
+          btn.insertBefore(img, btn.firstChild);
+        }
+        const tileColor = item.tileColor || cat.color;
+        if (tileColor) {
+          btn.style.background = rgbaFromHex(tileColor, 0.2);
+          btn.style.borderColor = '#000000';
+        }
+        gridPositions.push({ type: 'phrase', button: btn });
+      }
+      // Add Next button if there are multiple pages (loops back to first page from last page)
+      if (totalPages > 1) {
+        gridPositions.push({ type: 'next', button: createButton('Next', '▶', () => { state.page = (state.page + 1) % totalPages; renderCategory(); }, 'next-btn') });
+      }
+      gridPositions.forEach(pos => { if (pos.button) el.mainGrid.appendChild(pos.button); });
+      updateScannable();
+    }
+
+    // Scanning Logic
+    function isVisible(el) {
+      if (!el) return false;
+      const cs = getComputedStyle(el);
+      return cs.display !== 'none' && cs.visibility !== 'hidden' && el.offsetParent !== null;
+    }
+
+    function updateScannable() {
+      // If video modal is open, only scan its visible control buttons
+      if (state.videoModalActive) {
+        const controls = Array.from(document.querySelectorAll('#iframeControls .grid-button')).filter(isVisible);
+        state.scannableRows = [controls];
+        state.currentRow = -1; // Start at -1 for no highlighting
+        state.scanIndex = -1;
+        // Clear any existing highlights
+        clearScanHighlight();
+        return;
+      }
+
+      const buttons = Array.from(el.mainGrid.querySelectorAll('.grid-button:not(#deleteWordBtn):not(#clearSentenceBtn)'));
+      const rows = [];
+      const cols = state.gridSize.cols;
+      if (state.sentenceMode && el.sentenceRow.classList.contains('active')) {
+        rows.push([el.sentenceDisplay, el.deleteWordBtn, el.clearSentenceBtn]);
+      }
+      for (let i = 0; i < buttons.length; i += cols) {
+        const row = buttons.slice(i, i + cols);
+        if (row.length > 0) rows.push(row);
+      }
+      state.scannableRows = rows;
+      // Start at -1 for no highlighting until spacebar is pressed
+      state.currentRow = -1;
+      state.scanIndex = -1;
+      // Clear any existing highlights
+      clearScanHighlight();
+    }
+
+    function clearScanHighlight() {
+      document.querySelectorAll('.scan-highlight').forEach(el => el.classList.remove('scan-highlight'));
+      document.querySelectorAll('.row-highlight').forEach(el => el.classList.remove('row-highlight'));
+    }
+
+    function highlightCurrentRow() {
+      clearScanHighlight();
+      // Only highlight if currentRow is valid (not -1)
+      if (state.currentRow >= 0 && state.scannableRows[state.currentRow]) {
+        state.scannableRows[state.currentRow].forEach(element => element.classList.add('row-highlight'));
+      }
+    }
+
+    function highlightScanIndex() {
+      clearScanHighlight();
+      // Only highlight if both currentRow and scanIndex are valid (not -1)
+      if (state.currentRow >= 0 && state.scanIndex >= 0 && 
+          state.scannableRows[state.currentRow] && 
+          state.scannableRows[state.currentRow][state.scanIndex]) {
+        const element = state.scannableRows[state.currentRow][state.scanIndex];
+        element.classList.add('scan-highlight');
+        if (state.ttsOnScan) {
+          if (state.currentMenu === 'tts' && element.classList.contains('voice-btn')) {
+            const idx = parseInt(element.dataset.voiceIndex, 10);
+            const voice = state.voices[idx];
+            if (voice) { speakWithVoice(`Voice ${idx + 1}`, voice); return; }
+          }
+          let textToSpeak = '';
+          if (element === el.deleteWordBtn && state.sentenceMode) textToSpeak = 'Delete';
+          else if (element === el.clearSentenceBtn && state.sentenceMode) textToSpeak = 'Clear all';
+          else if (element !== el.sentenceDisplay && element !== el.deleteWordBtn && element !== el.clearSentenceBtn) {
+            const pageIndicator = element.querySelector('.page-indicator');
+            const cleanText = cleanTextForTTS(element.textContent);
+            if (pageIndicator) {
+              const pageText = pageIndicator.textContent;
+              const categoryName = cleanText.replace(pageText, '').trim();
+              if (categoryName) textToSpeak = `${categoryName}, ${pageText}`;
+            } else if (cleanText) textToSpeak = cleanText;
+          }
+          if (textToSpeak) speak(textToSpeak);
+        }
+      }
+    }
+
+    function scanForward() {
+      if (!state.scannableRows || state.scannableRows.length === 0) return;
+      if (state.scanMode === 'row') { 
+        // If currentRow is -1, start at 0, otherwise cycle normally
+        if (state.currentRow === -1) {
+          state.currentRow = 0;
+        } else {
+          state.currentRow = (state.currentRow + 1) % state.scannableRows.length;
+        }
+        highlightCurrentRow(); 
+      }
+      else if (state.scanMode === 'column') {
+        const currentRow = state.scannableRows[state.currentRow];
+        if (currentRow) { 
+          // If scanIndex is -1, start at 0, otherwise cycle normally
+          if (state.scanIndex === -1) {
+            state.scanIndex = 0;
+          } else {
+            state.scanIndex = (state.scanIndex + 1) % currentRow.length;
+          }
+          highlightScanIndex(); 
+        }
+      }
+    }
+
+    function scanBackward() {
+      if (!state.scannableRows || state.scannableRows.length === 0) return;
+      if (state.scanMode === 'row') { 
+        // If currentRow is -1, start at last row, otherwise cycle normally
+        if (state.currentRow === -1) {
+          state.currentRow = state.scannableRows.length - 1;
+        } else {
+          state.currentRow = state.currentRow <= 0 ? state.scannableRows.length - 1 : state.currentRow - 1;
+        }
+        highlightCurrentRow(); 
+      }
+      else if (state.scanMode === 'column') {
+        const currentRow = state.scannableRows[state.currentRow];
+        if (currentRow) { 
+          // If scanIndex is -1, start at last item, otherwise cycle normally
+          if (state.scanIndex === -1) {
+            state.scanIndex = currentRow.length - 1;
+          } else {
+            state.scanIndex = state.scanIndex <= 0 ? currentRow.length - 1 : state.scanIndex - 1;
+          }
+          highlightScanIndex(); 
+        }
+      }
+    }
+
+    // --- Integration with NarbeScanManager ---
+    function updateAutoScan() {
+      if (typeof window.NarbeScanManager === 'undefined') return;
+      const settings = window.NarbeScanManager.getSettings();
+      state.autoScan = settings.autoScan;
+      state.scanSpeed = settings.scanInterval;
+      
+      // Update timer if running
+      if (state.scanning) {
+        if (state.scanTimer) clearInterval(state.scanTimer);
+        state.scanTimer = setInterval(scanForward, state.scanSpeed);
+      }
+    }
+
+    function startAutoScan() {
+      if (state.scanTimer) clearInterval(state.scanTimer);
+      state.scanning = true;
+      state.scanTimer = setInterval(scanForward, state.scanSpeed);
+    }
+
+    function stopScanning() {
+      if (state.scanTimer) { clearInterval(state.scanTimer); state.scanTimer = null; }
+      state.scanning = false;
+      clearScanHighlight();
+    }
+
+    function selectCurrent() {
+      // If nothing is highlighted (currentRow is -1), start scanning
+      if (state.currentRow === -1) {
+        scanForward();
+        return;
+      }
+      
+      if (state.scanMode === 'row') {
+        state.scanMode = 'column';
+        state.scanIndex = -1; // Start column scanning at -1
+        scanForward(); // This will set scanIndex to 0 and highlight
+      } else if (state.scanMode === 'column') {
+        if (state.currentRow >= 0 && state.scanIndex >= 0 && 
+            state.scannableRows[state.currentRow] && 
+            state.scannableRows[state.currentRow][state.scanIndex]) {
+          const element = state.scannableRows[state.currentRow][state.scanIndex];
+          const selectedRow = state.currentRow; // Remember which row we were in
+          let selectionText = '';
+          if (!state.videoModalActive) {
+            if (element === el.sentenceDisplay && state.sentenceMode) {
+              const displayText = el.sentenceDisplay.textContent.trim();
+              if (displayText) { if (window.NarbeVoiceManager.getSettings().ttsEnabled) speak(displayText); }
+              else { if (window.NarbeVoiceManager.getSettings().ttsEnabled) speak('sentence is empty'); }
+            } else if (element === el.deleteWordBtn && state.sentenceMode) {
+              selectionText = 'Deleting';
+              deleteLastWord();
+            } else if (element === el.clearSentenceBtn && state.sentenceMode) {
+              selectionText = 'Clearing all';
+              clearSentence();
+            } else if (element !== el.sentenceDisplay && element !== el.deleteWordBtn && element !== el.clearSentenceBtn) {
+              selectionText = cleanTextForTTS(element.textContent);
+              element.click();
+            }
+          } else {
+            selectionText = cleanTextForTTS(element.textContent);
+            element.click();
+          }
+          if (selectionText && window.NarbeVoiceManager.getSettings().ttsEnabled && element !== el.sentenceDisplay) { setTimeout(() => speak(selectionText), 100); }
+          
+          // Return to row mode, highlighting the same row we were in
+          state.scanMode = 'row';
+          state.currentRow = selectedRow; // Stay on the same row
+          state.scanIndex = -1; // Reset column index
+          highlightCurrentRow(); // Highlight the row
+        }
+      }
+    }
+
+    // Link to NarbeScanManager
+    function syncScanSettings() {
+      if (window.NarbeScanManager) {
+        const settings = window.NarbeScanManager.getSettings();
+        state.autoScan = settings.autoScan;
+        const speeds = [1000, 2000, 3000, 4000];
+        // Use the speed from manager, fallback to 2000 if invalid index
+        state.scanSpeed = speeds[settings.scanSpeedIndex] !== undefined ? speeds[settings.scanSpeedIndex] : 2000;
+        
+        // Update scanning state if needed
+        if (state.autoScan) {
+           if (!state.scanning && !state.modalActive && !state.videoModalActive) {
+               startAutoScan();
+           }
+        } else {
+           if (state.scanning) {
+               stopScanning();
+           }
+        }
+      }
+    }
+
+    // Keyboard Handling with Debounce
+    let backwardScanTimer = null;
+    let backwardScanInterval = null;
+    let returnActionTimer = null;
+    
+    window.addEventListener('keydown', (e) => {
+      // Allow F12/DevTools
+      if (e.key === 'F12') return;
+
+      const now = Date.now();
+      if (now - state.lastKeyPressTime < state.debounceDelay) { e.preventDefault(); return; }
+
+      // Modal handling
+      if (state.modalActive) {
+        if (e.code === 'Space') { e.preventDefault(); scanModalForward(); return; }
+        else if (e.code === 'Enter') { e.preventDefault(); selectModalButton(); return; }
+      }
+
+      // Auto Scan Logic
+      if (state.autoScan) {
+        if ((e.code === 'Space' || e.code === 'Enter') && !state.spacePressed && !state.returnPressed) {
+            e.preventDefault();
+            // In auto scan, any switch selects
+            selectCurrent();
+            state.lastKeyPressTime = now;
+        }
+        return;
+      }
+
+      // Manual Scan Logic
+      if (e.code === 'Space' && !state.spacePressed) {
+        e.preventDefault();
+        state.spacePressed = true;
+        state.spaceStartTime = Date.now();
+        backwardScanTimer = setTimeout(() => {
+          if (state.spacePressed) {
+            scanBackward();
+            backwardScanInterval = setInterval(() => {
+              if (state.spacePressed) scanBackward();
+              else { clearInterval(backwardScanInterval); backwardScanInterval = null; }
+            }, state.scanSpeed);
+          }
+        }, 3000);
+      } else if (e.code === 'Enter' && !state.returnPressed) {
+        e.preventDefault();
+        state.returnPressed = true;
+        state.returnStartTime = Date.now();
+        state.returnActionExecuted = false;
+        returnActionTimer = setTimeout(() => {
+          if (state.returnPressed) {
+            state.returnActionExecuted = true;
+            if (state.scanMode === 'column') {
+              state.scanMode = 'row';
+              highlightCurrentRow();
+            } else if (state.scanMode === 'row') {
+              if (!state.videoModalActive) {
+                if (state.sentenceMode && el.sentenceRow.classList.contains('active')) {
+                  state.currentRow = 0;
+                  highlightCurrentRow();
+                  if (window.NarbeVoiceManager.getSettings().ttsEnabled) speak('Sentence row');
+                } else {
+                  if (state.currentMenu === 'category' || state.csvLoaded) navigateBack();
+                }
+              }
+            }
+          }
+        }, 3000);
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (state.modalActive) return;
+      if (state.autoScan) return; // Auto scan handles action on keydown
+
+      const now = Date.now();
+      if (e.code === 'Space' && state.spacePressed) {
+        e.preventDefault();
+        const duration = Date.now() - state.spaceStartTime;
+        state.spacePressed = false;
+        if (backwardScanTimer) { clearTimeout(backwardScanTimer); backwardScanTimer = null; }
+        if (backwardScanInterval) { clearInterval(backwardScanInterval); backwardScanInterval = null; }
+        if (duration < 3000 && now - state.lastKeyPressTime >= state.debounceDelay) {
+          scanForward();
+          state.lastKeyPressTime = now;
+        }
+      } else if (e.code === 'Enter' && state.returnPressed) {
+        e.preventDefault();
+        const duration = Date.now() - state.returnStartTime;
+        state.returnPressed = false;
+        if (returnActionTimer) { clearTimeout(returnActionTimer); returnActionTimer = null; }
+        if (!state.returnActionExecuted && duration < 3000 && now - state.lastKeyPressTime >= state.debounceDelay) {
+          selectCurrent();
+          state.lastKeyPressTime = now;
+        }
+        state.returnActionExecuted = false;
+      }
+    });
+
+    // Event Listeners
+    el.csvFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => { buildIndex(parseCSV(reader.result)); };
+      reader.readAsText(file);
+      e.target.value = '';
+    });
+
+    el.sentenceDisplay.addEventListener('click', () => {
+      const text = el.sentenceDisplay.textContent.trim();
+      if (text && window.NarbeVoiceManager.getSettings().ttsEnabled) speak(text);
+      else if (!text && window.NarbeVoiceManager.getSettings().ttsEnabled) speak('sentence is empty');
+    });
+
+    el.deleteWordBtn.addEventListener('click', deleteLastWord);
+    el.clearSentenceBtn.addEventListener('click', clearSentence);
+
+    // Warning modal buttons
+    el.createBoardBack.addEventListener('click', hideWarningModal);
+    el.createBoardProceed.addEventListener('click', () => {
+      hideWarningModal();
+      const newTab = window.open('phrase-builder.html', '_blank', 'noopener,noreferrer');
+      setTimeout(() => window.focus(), 0);
+    });
+    el.loadBoardBack.addEventListener('click', hideWarningModal);
+    el.loadBoardProceed.addEventListener('click', () => { hideWarningModal(); el.csvFile.click(); });
+
+    // Init
+    if (window.speechSynthesis) {
+      initVoices();
+      // Voice manager handles voices changed event
+      window.addEventListener('load', () => { setTimeout(initVoices, 500); });
+    }
+    
+    // Listen for voice settings changes from other apps
+    if (window.NarbeVoiceManager) {
+      window.NarbeVoiceManager.onSettingsChange(() => {
+        // Update child voices when main voice settings change
+        initVoices();
+      });
+    }
+
+    // Initialize Scan Manager
+    if (window.NarbeScanManager) {
+        window.NarbeScanManager.subscribe(syncScanSettings);
+        syncScanSettings();
+    }
+    
+    document.documentElement.style.setProperty('--rowHighlight', state.highlightColor);
+    document.documentElement.style.setProperty('--columnHighlight', state.highlightColor);
+    setTheme(state.theme);
+    scanForBoards().then(() => {
+      // Load saved board or default
+      const saved = getLocalSavedBoard();
+      // Load settings from ScanManager
+      if (window.NarbeScanManager) {
+        updateAutoScan();
+        // Subscribe to changes
+        window.NarbeScanManager.subscribe(updateAutoScan);
+      } else {
+         // Fallback polling or just wait? The script is loaded above.
+         // Usually available immediately unless async load issue.
+        setTimeout(() => {
+            if(window.NarbeScanManager) {
+                updateAutoScan();
+                window.NarbeScanManager.subscribe(updateAutoScan);
+            }
+        }, 500);
+      }
+
+      if (saved && saved.csv) {
+        buildIndex(parseCSV(saved.csv));
+        el.statusFooter.textContent = `Loaded your board: ${saved.name}`;
+      } else {
+        renderMainMenu();
+      }
+      
+      updateScannable();
+      state.currentRow = 0; state.scanIndex = 0;
+      setTimeout(() => { updateScannable(); }, 100);
+    });
+
+    // Theme
+    function setTheme(themeName) {
+      state.theme = themeName;
+      if (themeName === 'light') document.body.removeAttribute('data-theme');
+      else document.body.setAttribute('data-theme', themeName);
+    }
+
+    // Tile Actions
+    function onTileClick(item) {
+      const speakText = (item.speak || '').trim();
+      const display = (item.display || '').trim();
+      const text = speakText || display;
+      
+      // Check if this is a URL link
+      if (isLikelyUrl(text)) { 
+        // For HTML links, speak the display text (what user sees on button) instead of the URL
+        const ttsText = display || speakText;
+        if (ttsText && !isLikelyUrl(ttsText)) {
+          // Only speak if display text is not also a URL
+          const cleanDisplayText = cleanTextForTTS(ttsText);
+          if (cleanDisplayText) speak(cleanDisplayText);
+        } else {
+          // If display text is also a URL or empty, speak generic message
+          speak("Opening link");
+        }
+        openIframe(text); 
+        return; 
+      }
+      
+      // Handle regular phrases (non-URLs) - keep same TTS function
+      if (state.sentenceMode) { 
+        state.sentence.push(text); 
+        updateSentenceDisplay(); 
+      } else { 
+        const cleanText = cleanTextForTTS(text); 
+        if (cleanText) speak(cleanText); 
+      }
+    }
+
+    function updateSentenceDisplay() { el.sentenceDisplay.textContent = state.sentence.join(' '); }
+    function deleteLastWord() { if (state.sentence.length > 0) { state.sentence.pop(); updateSentenceDisplay(); } }
+    function clearSentence() { state.sentence = []; updateSentenceDisplay(); }
+
+    function saveNavigationState() { state.navigationHistory.push({ menu: state.currentMenu, category: state.currentCategory, page: state.page }); }
+
+    function navigateTo(menuName) {
+      saveNavigationState();
+      state.page = 0; state.scanMode = 'row'; state.currentRow = 0; state.scanIndex = 0;
+      openMenu(menuName);
+      updateHeaderForCurrentView();
+    }
+
+    function navigateBack() {
+      // Add TTS for navigation back events
+      let backMessage = '';
+      if (state.navigationHistory.length > 0) {
+        const prevState = state.navigationHistory.pop();
+        
+        // Determine what we're going back to for TTS
+        switch (prevState.menu) {
+          case 'main': backMessage = 'Main Menu'; break;
+          case 'settings': backMessage = 'Settings Menu'; break;
+          case 'categories': backMessage = state.currentBoardTitle || 'Categories'; break;
+          case 'category': backMessage = prevState.category || 'Category'; break;
+        }
+        
+        state.currentMenu = prevState.menu;
+        state.currentCategory = prevState.category;
+        state.page = prevState.page;
+        state.scanMode = 'row';
+        state.currentRow = 0;
+        state.scanIndex = 0;
+        
+        switch (prevState.menu) {
+          case 'main': renderMainMenu(); break;
+          case 'categories': renderCategoryMenu(); break;
+          case 'settings': renderSettingsMenu(); break;
+          case 'gridsize': renderGridSizeMenu(); break;
+          case 'tts': renderTTSMenu(); break;
+          case 'scan': renderScanMenu(); break;
+          case 'highlight': renderHighlightMenu(); break;
+          case 'theme': renderThemeMenu(); break;
+          case 'category': renderCategory(); break;
+        }
+        
+        updateHeaderForCurrentView();
+        setTimeout(() => { updateScannable(); }, 50);
+      } else {
+        backMessage = 'Main Menu';
+        openMenu('main');
+      }
+      
+      // Speak the back navigation message
+      if (backMessage) {
+        const cleanMessage = cleanTextForTTS(backMessage);
+        if (cleanMessage) speak(cleanMessage);
+      }
+    }
+
+    function openMenu(menuName) {
+      state.page = 0; state.scanMode = 'row'; state.currentRow = 0; state.scanIndex = 0;
+      
+      // Speak the menu name when entering
+      let menuTitle = '';
+      switch (menuName) {
+        case 'main': 
+          renderMainMenu(); 
+          menuTitle = 'Main Menu';
+          break;
+        case 'categories': 
+          renderCategoryMenu(); 
+          menuTitle = state.currentBoardTitle || 'Categories';
+          break;
+        case 'settings': 
+          renderSettingsMenu(); 
+          menuTitle = 'Settings Menu';
+          break;
+        case 'gridsize': 
+          renderGridSizeMenu(); 
+          menuTitle = 'Grid Size';
+          break;
+        case 'tts': 
+          renderTTSMenu(); 
+          menuTitle = 'Voice & TTS';
+          break;
+        case 'scan': 
+          renderScanMenu(); 
+          menuTitle = 'Scan Settings';
+          break;
+        case 'highlight': 
+          renderHighlightMenu(); 
+          menuTitle = 'Highlight Colors';
+          break;
+        case 'theme': 
+          renderThemeMenu(); 
+          menuTitle = 'Theme';
+          break;
+      }
+      
+      // Speak the menu title
+      if (menuTitle) {
+        const cleanTitle = cleanTextForTTS(menuTitle);
+        if (cleanTitle) speak(cleanTitle);
+      }
+      
+      updateHeaderForCurrentView();
+      setTimeout(() => { updateScannable(); }, 50);
+    }
+
+    function openCategory(categoryName) {
+      // Speak the category name when selected
+      const cleanCategoryName = cleanTextForTTS(categoryName);
+      if (cleanCategoryName) speak(cleanCategoryName);
+      
+      saveNavigationState();
+      state.currentCategory = categoryName;
+      state.page = 0; state.scanMode = 'row'; 
+      state.currentRow = -1; // Start at -1 for no highlighting
+      state.scanIndex = -1;
+      renderCategory();
+      updateHeaderForCurrentView();
+      setTimeout(() => { updateScannable(); }, 50);
+    }
+
+    function toggleSentenceMode() {
+      state.sentenceMode = !state.sentenceMode;
+      if (state.sentenceMode) {
+        el.sentenceRow.classList.add('active');
+        el.mainGrid.classList.add('sentence-active'); // Add class for grid sizing
+        speak('Sentence bar on');
+      } else { 
+        el.sentenceRow.classList.remove('active'); 
+        el.mainGrid.classList.remove('sentence-active'); // Remove class for uniform grid
+        state.sentence = []; 
+        updateSentenceDisplay();
+        speak('Sentence bar off');
+      }
+      renderCurrentMenu();
+    }
+
+    function renderCurrentMenu() {
+      switch (state.currentMenu) {
+        case 'main': renderMainMenu(); break;
+        case 'categories': renderCategoryMenu(); break;
+        case 'settings': renderSettingsMenu(); break;
+        case 'gridsize': renderGridSizeMenu(); break;
+        case 'tts': renderTTSMenu(); break;
+        case 'scan': renderScanMenu(); break;
+        case 'highlight': renderHighlightMenu(); break;
+        case 'theme': renderThemeMenu(); break;
+        case 'category': renderCategory(); break;
+      }
+    }
+
+    // CSV
+    function parseCSV(text) {
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if (lines.length < 2) return [];
+      const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const idx = {
+        category: header.indexOf('category'),
+        order: header.indexOf('categoryorder'),
+        display: header.indexOf('display'),
+        speak: header.indexOf('speak'),
+        image: header.indexOf('image'),
+        catColor: header.indexOf('categorycolor'),
+        tileColor: header.indexOf('tilecolor'),
+        tileOrder: header.indexOf('tileorder'),
+        catImage: header.indexOf('categoryimage'), // New field for category images
+        boardName: header.indexOf('boardname'), // New field for board name
+        boardColor: header.indexOf('boardcolor'), // New field for board color
+        boardImage: header.indexOf('boardimage'), // New field for board image
+      };
+
+      // Extract board-level data from first row (if available)
+      let boardData = { name: null, color: null, image: null };
+      if (lines.length > 1) {
+        const firstRow = parseCSVLine(lines[1]);
+        if (idx.boardName >= 0 && firstRow[idx.boardName]) {
+          boardData.name = firstRow[idx.boardName];
+        }
+        if (idx.boardColor >= 0 && firstRow[idx.boardColor]) {
+          boardData.color = firstRow[idx.boardColor];
+        }
+        if (idx.boardImage >= 0 && firstRow[idx.boardImage]) {
+          boardData.image = firstRow[idx.boardImage];
+        }
+      }
+
+      const rows = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCSVLine(lines[i]);
+        if (!cols.length) continue;
+        rows.push({
+          category: cols[idx.category] || '',
+          categoryOrder: parseInt(cols[idx.order] || '9999', 10) || 9999,
+          display: cols[idx.display] || '',
+          speak: cols[idx.speak] || '',
+          image: cols[idx.image] || '',
+          categoryColor: cols[idx.catColor] || '#5bb0ff',
+          tileColor: cols[idx.tileColor] || '',
+          tileOrder: parseInt(cols[idx.tileOrder] || '9999', 10) || 9999,
+          categoryImage: idx.catImage >= 0 ? (cols[idx.catImage] || '') : '', // Handle backwards compatibility
+          // Include board data in each row for access
+          boardName: boardData.name,
+          boardColor: boardData.color,
+          boardImage: boardData.image,
+        });
+      }
+      return rows;
+    }
+
+    function parseCSVLine(line) {
+      const result = [];
+      let curr = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+          if (ch === '"' && line[i+1] === '"') { curr += '"'; i++; }
+          else if (ch === '"') { inQuotes = false; }
+          else { curr += ch; }
+        } else {
+          if (ch === ',') { result.push(curr); curr = ''; }
+          else if (ch === '"') { inQuotes = true; }
+          else { curr += ch; }
+        }
+      }
+      result.push(curr);
+      return result;
+    }
+
+    function buildIndex(rows) {
+      state.raw = rows;
+      const map = new Map();
+      rows.forEach(r => {
+        if (!map.has(r.category)) {
+          map.set(r.category, { 
+            color: r.categoryColor, 
+            order: r.categoryOrder, 
+            image: r.categoryImage || '', // Store category image
+            items: [] 
+          });
+        }
+        map.get(r.category).items.push(r);
+      });
+      const cats = Array.from(map.entries())
+        .map(([name, data]) => ({ 
+          name, 
+          color: data.color, 
+          order: data.order, 
+          image: data.image, // Include in category object
+          items: data.items.sort((a, b) => a.tileOrder - b.tileOrder) 
+        }))
+        .sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
+      state.categories = cats;
+      state.byCat = new Map(cats.map(c => [c.name, c]));
+      state.csvLoaded = true;
+      el.statusFooter.textContent = `Loaded ${cats.length} categories with ${rows.length} phrases`;
+      state.navigationHistory = [];
+      openMenu('categories');
+    }
+
+    // Iframe Modal and YouTube
+    function isLikelyUrl(str) { return /^https?:\/\//i.test(str); }
+
+    function normalizeYouTube(url) {
+      try {
+        const u = new URL(url, location.href);
+        const host = u.hostname;
+        let id = null;
+        if (host.includes('youtu.be')) {
+          id = u.pathname.slice(1).split('/')[0];
+        } else if (host.includes('youtube.com')) {
+          if (u.pathname.startsWith('/watch')) id = u.searchParams.get('v');
+          else if (u.pathname.startsWith('/shorts/')) id = u.pathname.split('/')[2] || u.pathname.split('/')[1];
+          else if (u.pathname.startsWith('/embed/')) id = u.pathname.split('/')[2];
+        }
+        if (!id) return url;
+        const list = u.searchParams.get('list');
+        const t = u.searchParams.get('t') || u.searchParams.get('start');
+        const start = t ? parseYouTubeStart(t) : null;
+        const params = new URLSearchParams();
+        if (start !== null) params.set('start', String(start));
+        if (list) params.set('list', list);
+        params.set('autoplay', '1');
+        params.set('mute', '1');
+        params.set('enablejsapi', '1');
+        if (/^https?:/i.test(location.protocol)) params.set('origin', location.origin);
+        return `https://www.youtube.com/embed/${id}?${params.toString()}`;
+      } catch { return url; }
+    }
+
+    function parseYouTubeStart(t) {
+      if (!t) return null;
+      if (/^\d+$/.test(t)) return parseInt(t, 10) || 0;
+      let seconds = 0;
+      const re = /(\d+)(h|m|s)/gi;
+      let m;
+      while ((m = re.exec(t))) {
+        const val = parseInt(m[1], 10) || 0;
+        const unit = m[2].toLowerCase();
+        if (unit === 'h') seconds += val * 3600;
+        else if (unit === 'm') seconds += val * 60;
+        else if (unit === 's') seconds += val;
+      }
+      return seconds || 0;
+    }
+
+    function isYouTubePlaylist(url) { try { return new URL(url, location.href).searchParams.has('list'); } catch { return false; } }
+
+    let ytApiReady = null;
+    function loadYtApi() {
+      if (ytApiReady) return ytApiReady;
+      ytApiReady = new Promise(resolve => {
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        window.onYouTubeIframeAPIReady = () => resolve();
+        document.head.appendChild(tag);
+      });
+      return ytApiReady;
+    }
+
+    function ensureFreshIframe() {
+      const card = document.getElementById('iframeCard');
+      const old = document.getElementById('mediaFrame');
+      if (old) old.remove();
+      const iframe = document.createElement('iframe');
+      iframe.id = 'mediaFrame';
+      iframe.allow = 'autoplay; fullscreen';
+      iframe.setAttribute('allowfullscreen', '');
+      iframe.style.width = '100%';
+      iframe.style.height = '100%';
+      iframe.style.border = '0';
+      iframe.style.background = '#000';
+      card.insertBefore(iframe, document.getElementById('iframeControls'));
+      el.mediaFrame = iframe;
+    }
+
+    function setControlsForContext(provider, isPlaylist) {
+      const canSeek = provider === 'youtube';
+      const canMute = provider === 'youtube';
+      const showPrevNext = provider === 'youtube' && isPlaylist;
+
+      const setVis = (btn, show) => {
+        btn.style.display = show ? '' : 'none';
+        btn.setAttribute('aria-hidden', show ? 'false' : 'true');
+        if (!show) btn.setAttribute('tabindex', '-1'); else btn.removeAttribute('tabindex');
+      };
+
+      setVis(el.prevBtn, showPrevNext);
+      setVis(el.nextBtn, showPrevNext);
+      setVis(el.rewindBtn, canSeek);
+      setVis(el.forwardBtn, canSeek);
+      setVis(el.muteBtn, canMute);
+      // Play/Pause, Refresh, Close are always visible
+    }
+
+    async function openIframe(url) {
+      const embedUrl = normalizeYouTube(url);
+      const isYt = /youtube\.com\/embed\//i.test(embedUrl);
+      const playlist = isYt && isYouTubePlaylist(embedUrl);
+      if (isYt) { try { await loadYtApi(); } catch {} }
+
+      state.videoModalActive = true;
+      state.scanMode = 'row';
+      state.currentRow = 0;
+      state.scanIndex = 0;
+
+      ensureFreshIframe();
+
+      state.lastUrl = embedUrl;
+      state.playerKind = isYt ? 'youtube' : 'unknown';
+      state.isPlaylist = !!playlist;
+
+      el.mediaFrame.src = embedUrl;
+      el.iframeModal.style.display = 'flex';
+
+      setControlsForContext(state.playerKind, state.isPlaylist);
+
+      updateScannable();
+      highlightCurrentRow();
+
+      if (isYt && window.YT && YT.Player) {
+        if (state.ytPlayer && state.ytPlayer.destroy) { try { state.ytPlayer.destroy(); } catch {} }
+        state.ytPlayer = new YT.Player('mediaFrame', {
+          events: {
+            onReady: (e) => {
+              try { e.target.mute(); e.target.playVideo(); } catch {}
+              try { el.muteBtn.textContent = (e.target.isMuted && e.target.isMuted()) ? 'Unmute' : 'Mute'; } catch {}
+            }
+          }
+        });
+      } else {
+        if (state.ytPlayer && state.ytPlayer.destroy) { try { state.ytPlayer.destroy(); } catch {} }
+        state.ytPlayer = null;
+      }
+    }
+
+    function closeIframe() {
+      if (state.ytPlayer && state.ytPlayer.destroy) { try { state.ytPlayer.destroy(); } catch {} }
+      state.ytPlayer = null;
+      if (el.mediaFrame) el.mediaFrame.src = '';
+      el.iframeModal.style.display = 'none';
+      state.videoModalActive = false;
+      state.scanMode = 'row'; state.currentRow = 0; state.scanIndex = 0;
+      updateScannable();
+      highlightCurrentRow();
+    }
+
+    // Board Management
+    async function scanForBoards() {
+      try {
+        const response = await fetch('./boards/index.json');
+        if (response.ok) {
+          const data = await response.json();
+          // Process each board file to extract board-level data
+          const boardPromises = data.files.map(async filename => {
+            const name = filename.replace('.csv', '').replace(/_/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            const path = `./boards/${filename}`;
+            
+            try {
+              // Fetch the CSV to extract board-level data
+              const csvResponse = await fetch(path);
+              if (csvResponse.ok) {
+                const csvText = await csvResponse.text();
+                const parsedRows = parseCSV(csvText);
+                
+                // Extract board data from the first row
+                let boardColor = null;
+                let boardImage = null;
+                if (parsedRows.length > 0) {
+                  boardColor = parsedRows[0].boardColor;
+                  boardImage = parsedRows[0].boardImage;
+                }
+                
+                return { 
+                  name, 
+                  filename, 
+                  path,
+                  color: boardColor,
+                  image: boardImage
+                };
+              }
+            } catch (error) {
+              console.warn(`Failed to load board data for ${filename}:`, error);
+            }
+            
+            // Fallback if CSV loading fails
+            return { name, filename, path, color: null, image: null };
+          });
+          
+          state.availableBoards = await Promise.all(boardPromises);
+        } else { 
+          state.availableBoards = []; 
+        }
+      } catch { 
+        state.availableBoards = []; 
+      }
+    }
+
+    async function loadBoard(boardPath) {
+      try {
+        const response = await fetch(boardPath);
+        if (response.ok) {
+          const csvText = await response.text();
+          // Derive a nice title from filename
+          const filename = boardPath.split('/').pop() || '';
+          const nice = filename
+            .replace(/\.csv$/i, '')
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase());
+          state.currentBoardTitle = nice;
+          
+          buildIndex(parseCSV(csvText));
+          return true;
+        }
+      } catch (error) { console.error('Error loading board:', error); }
+      return false;
+    }
+
+    function getLocalSavedBoard() {
+      try {
+        const raw = localStorage.getItem('narbe_phrase_builder');
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (!data || !data.csv) return null;
+        return { name: (data.boardName && data.boardName.trim()) || 'My Personal Board', csv: data.csv };
+      } catch (e) { return null; }
+    }
+
+    // Iframe Control Buttons
+    el.playPauseBtn.addEventListener('click', () => {
+      if (state.ytPlayer && state.ytPlayer.getPlayerState) {
+        try {
+          const st = state.ytPlayer.getPlayerState();
+          if (st === YT.PlayerState.PLAYING) state.ytPlayer.pauseVideo();
+          else state.ytPlayer.playVideo();
+        } catch {}
+      }
+    });
+
+    el.rewindBtn.addEventListener('click', () => {
+      if (state.ytPlayer && state.ytPlayer.seekTo) {
+        const t = state.ytPlayer.getCurrentTime();
+        state.ytPlayer.seekTo(Math.max(0, t - 10), true);
+      }
+    });
+
+    el.forwardBtn.addEventListener('click', () => {
+      if (state.ytPlayer && state.ytPlayer.seekTo) {
+        const t = state.ytPlayer.getCurrentTime();
+        const d = state.ytPlayer.getDuration();
+        state.ytPlayer.seekTo(Math.min(d, t + 10), true);
+      }
+    });
+
+    el.muteBtn.addEventListener('click', () => {
+      if (!state.ytPlayer) return;
+      if (state.ytPlayer.isMuted && state.ytPlayer.isMuted()) { state.ytPlayer.unMute(); el.muteBtn.textContent = 'Mute'; }
+      else { state.ytPlayer.mute(); el.muteBtn.textContent = 'Unmute'; }
+    });
+
+    el.prevBtn.addEventListener('click', () => {
+      if (state.isPlaylist && state.ytPlayer && state.ytPlayer.previousVideo) state.ytPlayer.previousVideo();
+    });
+
+    el.nextBtn.addEventListener('click', () => {
+      if (state.isPlaylist && state.ytPlayer && state.ytPlayer.nextVideo) state.ytPlayer.nextVideo();
+    });
+
+    el.refreshBtn.addEventListener('click', () => {
+      if (!state.lastUrl) return;
+      ensureFreshIframe();
+      el.mediaFrame.src = state.lastUrl;
+      if (state.playerKind === 'youtube' && window.YT && YT.Player) {
+        if (state.ytPlayer && state.ytPlayer.destroy) { try { state.ytPlayer.destroy(); } catch {} }
+        state.ytPlayer = new YT.Player('mediaFrame', {
+          events: {
+            onReady: (e) => {
+              try { e.target.mute(); e.target.playVideo(); } catch {}
+              try { el.muteBtn.textContent = (e.target.isMuted && e.target.isMuted()) ? 'Unmute' : 'Mute'; } catch {}
+            }
+          }
+        });
+      }
+      state.videoModalActive = true;
+      updateScannable();
+      highlightCurrentRow();
+    });
+
+    el.closeIframeBtn.addEventListener('click', closeIframe);
+
+    // Utilities
+    function rgbaFromHex(hex, alpha) {
+      hex = (hex || '#5bb0ff').replace('#', '');
+      if (hex.length === 3) hex = hex.split('').map(ch => ch + ch).join('');
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    // Exit to hub function (matches keyboard and BENNYSPEGGLE pattern)
+    function exitToHub() {
+      console.log("Exit button pressed - returning to hub");
+      try {
+        // Message parent to focus back button and close iframe
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ action: 'focusBackButton' }, '*');
+        }
+      } catch (err) {
+        console.error('Failed to message parent:', err);
+      }
+    }
+  </script>
+
+  <style>
+    .grid-button.row-highlight {
+      border: 2px solid #000000 !important;
+      background: var(--rowHighlight) !important;
+      color: #000 !important;
+      font-weight: 800 !important;
+    }
+    
+    .sentence-display.row-highlight {
+      border: 2px solid #000000 !important;
+      background: var(--rowHighlight) !important;
+      color: #000 !important;
+    }
+    
+    .sentence-display.scan-highlight {
+      border: 2px solid #000000 !important;
+      background: var(--columnHighlight) !important;
+      color: #000 !important;
+      font-weight: 800 !important;
+    }
+    
+    .grid-button.scan-highlight {
+      border: 2px solid #000000 !important;
+      background: var(--columnHighlight) !important;
+      color: #000 !important;
+      font-weight: 800 !important;
+    }
+  </style>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NARBE YouTube Search</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <!-- Turnstile protection script -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Invisible Turnstile widget for security -->
+        <div id="turnstile-widget"
+             class="cf-turnstile"
+             data-sitekey="0x4AAAAAAB7n5nabkWl0WOPa"
+             data-callback="onTurnstileToken"
+             data-expired-callback="onTurnstileExpired"
+             data-error-callback="onTurnstileError"
+             data-refresh-expired="auto"
+             data-size="invisible"
+             style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;"></div>
+
+        <script>
+        // These are global so the widget can call them.
+        window.onTurnstileToken = (token) => {
+            console.log('🔒 Widget issued token via callback');
+            if (window.searchManager && typeof window.searchManager._setToken === 'function') {
+                window.searchManager._setToken(token);
+            }
+            // Resolve any waiters waiting for a token
+            if (window.__ts && Array.isArray(window.__ts.waiters)) {
+                const waiters = window.__ts.waiters.splice(0);
+                waiters.forEach(fn => { try { fn(token); } catch {} });
+            }
+        };
+        window.onTurnstileExpired = () => {
+            console.log('⌛ Token expired');
+            if (window.searchManager && typeof window.searchManager._clearToken === 'function') {
+                window.searchManager._clearToken();
+            }
+            // Proactively fetch a new token
+            if (window.__ts?.widgetId && window.turnstile?.execute) {
+                window.turnstile.execute(window.__ts.widgetId);
+            }
+        };
+        window.onTurnstileError = (err) => {
+            console.warn('⚠️ Turnstile error callback', err);
+            if (window.searchManager && typeof window.searchManager._clearToken === 'function') {
+                window.searchManager._clearToken();
+            }
+        };
+        </script>
+
+        <script>
+        (function initTurnstile() {
+            window.__ts = { ready: false, widgetId: null, waiters: [] };
+
+            function renderAndExecute() {
+                const mount = document.getElementById('turnstile-widget');
+                if (!mount || !window.turnstile) return;
+
+                if (!window.__ts.widgetId) {
+                    window.__ts.widgetId = window.turnstile.render(mount, {
+                        sitekey: mount.dataset.sitekey,
+                        size: 'invisible',
+                        callback: window.onTurnstileToken,
+                        'expired-callback': window.onTurnstileExpired,
+                        'error-callback': window.onTurnstileError,
+                    });
+                }
+                window.__ts.ready = true;
+                // Kick off first token fetch
+                if (window.turnstile.execute) {
+                    window.turnstile.execute(window.__ts.widgetId);
+                }
+            }
+
+            // Wait until Turnstile JS is ready
+            if (window.turnstile?.ready) {
+                window.turnstile.ready(renderAndExecute);
+            } else {
+                window.addEventListener('load', () => {
+                    if (window.turnstile?.ready) {
+                        window.turnstile.ready(renderAndExecute);
+                    }
+                });
+            }
+        })();
+        </script>
+
+        <!-- Main Keyboard Interface -->
+        <div id="keyboard-container">
+            <div class="top-bar">
+                <h1><strong>NARBE</strong> YouTube Search</h1>
+                <div id="status" class="status">Mode: Rows • Space=next • Enter=select</div>
+            </div>
+
+            <div class="pill-container">
+                <!-- Text Input Row -->
+                <div class="row-wrap" data-row-id="row_text" data-label="text">
+                    <input 
+                        type="text" 
+                        id="text-input" 
+                        class="text-input" 
+                        placeholder="Type…" 
+                        readonly
+                        autocomplete="off"
+                    >
+                </div>
+
+                <!-- Search Modes Row -->
+                <div class="row-wrap" data-row-id="row_modes" data-label="search">
+                    <button class="scan-btn primary youtube-btn" data-action="search_shorts">
+                        <span class="youtube-logo" aria-hidden="true">▶</span>
+                        <span class="button-text">YOUTUBE SEARCH</span>
+                    </button>
+                    <button class="scan-btn primary" data-action="toggle_history">SEARCH HISTORY</button>
+                    <button class="scan-btn warn" data-action="clear_history">CLEAR HISTORY</button>
+                </div>
+
+                <!-- Controls Row -->
+                <div class="row-wrap" data-row-id="row_controls" data-label="controls">
+                    <button class="scan-btn" data-action="space_char">SPACE</button>
+                    <button class="scan-btn" data-action="del_letter">DEL LETTER</button>
+                    <button class="scan-btn" data-action="del_word">DEL WORD</button>
+                    <button class="scan-btn" data-action="clear">CLEAR</button>
+                    <button class="scan-btn" data-action="settings">SETTINGS</button>
+                    <button class="scan-btn warn" data-action="exit">EXIT</button>
+                </div>
+
+                <!-- History Rows (hidden by default) -->
+                <div class="row-wrap hidden" data-row-id="row_history_1" data-label="recent searches">
+                    <button class="scan-btn" data-history="0" id="history-0"></button>
+                    <button class="scan-btn" data-history="1" id="history-1"></button>
+                    <button class="scan-btn" data-history="2" id="history-2"></button>
+                    <button class="scan-btn" data-history="3" id="history-3"></button>
+                    <button class="scan-btn" data-history="4" id="history-4"></button>
+                </div>
+
+                <div class="row-wrap hidden" data-row-id="row_history_2" data-label="more searches">
+                    <button class="scan-btn" data-history="5" id="history-5"></button>
+                    <button class="scan-btn" data-history="6" id="history-6"></button>
+                    <button class="scan-btn" data-history="7" id="history-7"></button>
+                    <button class="scan-btn" data-history="8" id="history-8"></button>
+                    <button class="scan-btn" data-history="9" id="history-9"></button>
+                </div>
+
+                <div class="row-wrap hidden" data-row-id="row_history_3" data-label="search history">
+                    <button class="scan-btn" data-history="10" id="history-10"></button>
+                    <button class="scan-btn" data-history="11" id="history-11"></button>
+                    <button class="scan-btn" data-history="12" id="history-12"></button>
+                    <button class="scan-btn" data-history="13" id="history-13"></button>
+                    <button class="scan-btn" data-history="14" id="history-14"></button>
+                </div>
+
+                <div class="row-wrap hidden" data-row-id="row_history_4" data-label="older searches">
+                    <button class="scan-btn" data-history="15" id="history-15"></button>
+                    <button class="scan-btn" data-history="16" id="history-16"></button>
+                    <button class="scan-btn" data-history="17" id="history-17"></button>
+                    <button class="scan-btn" data-history="18" id="history-18"></button>
+                    <button class="scan-btn" data-history="19" id="history-19"></button>
+                </div>
+
+                <div class="row-wrap hidden" data-row-id="row_history_5" data-label="previous searches">
+                    <button class="scan-btn" data-history="20" id="history-20"></button>
+                    <button class="scan-btn" data-history="21" id="history-21"></button>
+                    <button class="scan-btn" data-history="22" id="history-22"></button>
+                    <button class="scan-btn" data-history="23" id="history-23"></button>
+                    <button class="scan-btn" data-history="24" id="history-24"></button>
+                </div>
+
+                <div class="row-wrap hidden" data-row-id="row_history_6" data-label="history controls">
+                    <button class="scan-btn" data-history="25" id="history-25"></button>
+                    <button class="scan-btn" data-history="26" id="history-26"></button>
+                    <button class="scan-btn" data-history="27" id="history-27"></button>
+                    <button class="scan-btn" data-history="28" id="history-28"></button>
+                    <button class="scan-btn" data-history="29" id="history-29"></button>
+                </div>
+
+                <!-- Alpha Rows -->
+                <div class="row-wrap" data-row-id="row1" data-label="a to f">
+                    <button class="scan-btn" data-char="A">A</button>
+                    <button class="scan-btn" data-char="B">B</button>
+                    <button class="scan-btn" data-char="C">C</button>
+                    <button class="scan-btn" data-char="D">D</button>
+                    <button class="scan-btn" data-char="E">E</button>
+                    <button class="scan-btn" data-char="F">F</button>
+                </div>
+
+                <div class="row-wrap" data-row-id="row2" data-label="g to l">
+                    <button class="scan-btn" data-char="G">G</button>
+                    <button class="scan-btn" data-char="H">H</button>
+                    <button class="scan-btn" data-char="I">I</button>
+                    <button class="scan-btn" data-char="J">J</button>
+                    <button class="scan-btn" data-char="K">K</button>
+                    <button class="scan-btn" data-char="L">L</button>
+                </div>
+
+                <div class="row-wrap" data-row-id="row3" data-label="m to r">
+                    <button class="scan-btn" data-char="M">M</button>
+                    <button class="scan-btn" data-char="N">N</button>
+                    <button class="scan-btn" data-char="O">O</button>
+                    <button class="scan-btn" data-char="P">P</button>
+                    <button class="scan-btn" data-char="Q">Q</button>
+                    <button class="scan-btn" data-char="R">R</button>
+                </div>
+
+                <div class="row-wrap" data-row-id="row4" data-label="s to x">
+                    <button class="scan-btn" data-char="S">S</button>
+                    <button class="scan-btn" data-char="T">T</button>
+                    <button class="scan-btn" data-char="U">U</button>
+                    <button class="scan-btn" data-char="V">V</button>
+                    <button class="scan-btn" data-char="W">W</button>
+                    <button class="scan-btn" data-char="X">X</button>
+                </div>
+
+                <div class="row-wrap" data-row-id="row5" data-label="y to 3">
+                    <button class="scan-btn" data-char="Y">Y</button>
+                    <button class="scan-btn" data-char="Z">Z</button>
+                    <button class="scan-btn" data-char="0">0</button>
+                    <button class="scan-btn" data-char="1">1</button>
+                    <button class="scan-btn" data-char="2">2</button>
+                    <button class="scan-btn" data-char="3">3</button>
+                </div>
+
+                <div class="row-wrap" data-row-id="row6" data-label="4 to 9">
+                    <button class="scan-btn" data-char="4">4</button>
+                    <button class="scan-btn" data-char="5">5</button>
+                    <button class="scan-btn" data-char="6">6</button>
+                    <button class="scan-btn" data-char="7">7</button>
+                    <button class="scan-btn" data-char="8">8</button>
+                    <button class="scan-btn" data-char="9">9</button>
+                </div>
+
+                <!-- Predictions Row -->
+                <div class="row-wrap" data-row-id="predRow" data-label="predictive text">
+                    <button class="scan-btn" data-pred="true" id="pred-0"></button>
+                    <button class="scan-btn" data-pred="true" id="pred-1"></button>
+                    <button class="scan-btn" data-pred="true" id="pred-2"></button>
+                    <button class="scan-btn" data-pred="true" id="pred-3"></button>
+                    <button class="scan-btn" data-pred="true" id="pred-4"></button>
+                    <button class="scan-btn" data-pred="true" id="pred-5"></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Menu Overlay -->
+        <div id="settingsMenu" class="settings-menu hidden">
+            <div class="settings-header">
+                <h2>Settings</h2>
+                <div class="settings-instructions">
+                    <div class="instruction-row">
+                        <p><strong>Spacebar short:</strong> Advance forward</p>
+                        <p><strong>Spacebar long:</strong> Move backward</p>
+                    </div>
+                    <div class="instruction-row">
+                        <p><strong>Return short:</strong> Select</p>
+                        <p><strong>Return long:</strong> Return to keyboard</p>
+                    </div>
+                </div>
+            </div>
+            <div id="settingsGrid" class="settings-grid">
+                <button class="settings-item" data-setting="tts-toggle">
+                    <span class="setting-label">TTS</span>
+                    <span class="setting-value" id="ttsToggleValue">On</span>
+                </button>
+                <button class="settings-item" data-setting="voice">
+                    <span class="setting-label">Voice</span>
+                    <span class="setting-value" id="voiceValue">Default</span>
+                </button>
+                <button class="settings-item" data-setting="auto-scan">
+                    <span class="setting-label">Auto Scan</span>
+                    <span class="setting-value" id="autoScanValue">On</span>
+                </button>
+                <button class="settings-item" data-setting="scan-speed">
+                    <span class="setting-label">Scan Speed</span>
+                    <span class="setting-value" id="scanSpeedValue">Medium</span>
+                </button>
+                <button class="settings-item" data-setting="close">
+                    <span class="setting-label">Close Settings</span>
+                    <span class="setting-value">Exit Settings</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="loading-panel">
+                <div id="loading-label" class="loading-label">Loading…</div>
+                <div class="loading-bar">
+                    <div class="loading-progress"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- YouTube Feed Overlay -->
+        <div id="shorts-feed" class="slideshow-overlay hidden">
+            <div class="slideshow-container">
+                <div class="slideshow-content">
+                    <!-- Let YouTube API create and manage the iframe -->
+                    <div id="youtube-player-host" style="width:100%;height:100%;background:#000;"></div>
+                </div>
+                <div class="slideshow-controls">
+                    <button class="scan-btn" data-action="shorts_prev">PREVIOUS</button>
+                    <button class="scan-btn" data-action="shorts_next">NEXT</button>
+                    <button class="scan-btn" data-action="shorts_rewind">REWIND</button>
+                    <button class="scan-btn" data-action="shorts_fast_forward">FAST FORWARD</button>
+                    <button class="scan-btn" data-action="shorts_play_pause">PAUSE</button>
+                    <button class="scan-btn" data-action="shorts_mute_toggle">UNMUTE</button>
+                    <button class="scan-btn" data-action="shorts_close">CLOSE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load shared voice manager first -->
+    <script src="../../../shared/voice-manager.js"></script>
+    <script src="../../../shared/scan-manager.js"></script>
+    <script src="js/speech.js"></script>
+    <script src="js/predictions.js"></script>
+    <script src="js/search.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/scanning.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

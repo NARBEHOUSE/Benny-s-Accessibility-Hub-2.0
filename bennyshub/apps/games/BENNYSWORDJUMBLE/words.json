@@ -1,0 +1,3357 @@
+[
+    {
+        "mode": "medium",
+        "word": "absent",
+        "sentence": "He was absent from class yesterday."
+    },
+    {
+        "mode": "medium",
+        "word": "acting",
+        "sentence": "The actor's acting on stage captivated the audience."
+    },
+    {
+        "mode": "easy",
+        "word": "ad",
+        "sentence": "She saw an ad for a local sale."
+    },
+    {
+        "mode": "hard",
+        "word": "address",
+        "sentence": "Home address."
+    },
+    {
+        "mode": "hard",
+        "word": "advisory",
+        "sentence": "They issued an advisory about the severe weather."
+    },
+    {
+        "mode": "hard",
+        "word": "against",
+        "sentence": "Against the wall."
+    },
+    {
+        "mode": "medium",
+        "word": "aiming",
+        "sentence": "She was aiming carefully before taking the shot."
+    },
+    {
+        "mode": "hard",
+        "word": "airport",
+        "sentence": "Go to airport."
+    },
+    {
+        "mode": "medium",
+        "word": "alarm",
+        "sentence": "Fire alarm."
+    },
+    {
+        "mode": "medium",
+        "word": "album",
+        "sentence": "Photo album."
+    },
+    {
+        "mode": "hard",
+        "word": "alcohol",
+        "sentence": "Rubbing alcohol."
+    },
+    {
+        "mode": "easy",
+        "word": "all",
+        "sentence": "All of the cookies were eaten."
+    },
+    {
+        "mode": "hard",
+        "word": "allergy",
+        "sentence": "Peanut allergy."
+    },
+    {
+        "mode": "hard",
+        "word": "allowed",
+        "sentence": "Not allowed."
+    },
+    {
+        "mode": "hard",
+        "word": "almond",
+        "sentence": "Eat almond."
+    },
+    {
+        "mode": "medium",
+        "word": "almost",
+        "sentence": "Almost there."
+    },
+    {
+        "mode": "medium",
+        "word": "alone",
+        "sentence": "Home alone."
+    },
+    {
+        "mode": "hard",
+        "word": "already",
+        "sentence": "Already done."
+    },
+    {
+        "mode": "easy",
+        "word": "am",
+        "sentence": "I am very excited about the news."
+    },
+    {
+        "mode": "hard",
+        "word": "amazing",
+        "sentence": "Amazing job."
+    },
+    {
+        "mode": "hard",
+        "word": "amazon",
+        "sentence": "Amazon river."
+    },
+    {
+        "mode": "hard",
+        "word": "amount",
+        "sentence": "Large amount."
+    },
+    {
+        "mode": "easy",
+        "word": "an",
+        "sentence": "She needs an apple from the basket."
+    },
+    {
+        "mode": "hard",
+        "word": "anchor",
+        "sentence": "Drop anchor."
+    },
+    {
+        "mode": "hard",
+        "word": "ancient",
+        "sentence": "Ancient ruins."
+    },
+    {
+        "mode": "easy",
+        "word": "and",
+        "sentence": "Tom bought bread and milk from the store."
+    },
+    {
+        "mode": "hard",
+        "word": "android",
+        "sentence": "Robot android."
+    },
+    {
+        "mode": "medium",
+        "word": "angel",
+        "sentence": "Snow angel."
+    },
+    {
+        "mode": "hard",
+        "word": "anger",
+        "sentence": "Control anger."
+    },
+    {
+        "mode": "hard",
+        "word": "angle",
+        "sentence": "Right angle."
+    },
+    {
+        "mode": "medium",
+        "word": "angry",
+        "sentence": "Don't be angry."
+    },
+    {
+        "mode": "medium",
+        "word": "animal",
+        "sentence": "The zoo had an exotic animal exhibit."
+    },
+    {
+        "mode": "medium",
+        "word": "ankle",
+        "sentence": "Twist ankle."
+    },
+    {
+        "mode": "hard",
+        "word": "another",
+        "sentence": "Another one."
+    },
+    {
+        "mode": "hard",
+        "word": "answer",
+        "sentence": "Right answer."
+    },
+    {
+        "mode": "easy",
+        "word": "ant",
+        "sentence": "The ant is small."
+    },
+    {
+        "mode": "hard",
+        "word": "antenna",
+        "sentence": "Bug antenna."
+    },
+    {
+        "mode": "hard",
+        "word": "antique",
+        "sentence": "Old antique."
+    },
+    {
+        "mode": "hard",
+        "word": "anxiety",
+        "sentence": "Feel anxiety."
+    },
+    {
+        "mode": "easy",
+        "word": "any",
+        "sentence": "Do you have any idea what time it is?"
+    },
+    {
+        "mode": "hard",
+        "word": "anybody",
+        "sentence": "Is anybody home?"
+    },
+    {
+        "mode": "hard",
+        "word": "anymore",
+        "sentence": "Not anymore."
+    },
+    {
+        "mode": "medium",
+        "word": "anyone",
+        "sentence": "Anyone here?"
+    },
+    {
+        "mode": "medium",
+        "word": "anyway",
+        "sentence": "Go anyway."
+    },
+    {
+        "mode": "hard",
+        "word": "apology",
+        "sentence": "Say apology."
+    },
+    {
+        "mode": "hard",
+        "word": "apparel",
+        "sentence": "Wearing apparel."
+    },
+    {
+        "mode": "hard",
+        "word": "appeal",
+        "sentence": "Has appeal."
+    },
+    {
+        "mode": "hard",
+        "word": "appear",
+        "sentence": "Disappear."
+    },
+    {
+        "mode": "medium",
+        "word": "apple",
+        "sentence": "I bit into a red and juicy apple."
+    },
+    {
+        "mode": "hard",
+        "word": "apply",
+        "sentence": "Apply now."
+    },
+    {
+        "mode": "hard",
+        "word": "appoint",
+        "sentence": "Appoint him."
+    },
+    {
+        "mode": "hard",
+        "word": "approve",
+        "sentence": "Approve it."
+    },
+    {
+        "mode": "hard",
+        "word": "apricot",
+        "sentence": "Sweet apricot."
+    },
+    {
+        "mode": "medium",
+        "word": "arcade",
+        "sentence": "Game arcade."
+    },
+    {
+        "mode": "hard",
+        "word": "archer",
+        "sentence": "Bow archer."
+    },
+    {
+        "mode": "hard",
+        "word": "arctic",
+        "sentence": "Cold arctic."
+    },
+    {
+        "mode": "hard",
+        "word": "ardent",
+        "sentence": "Ardent fan."
+    },
+    {
+        "mode": "medium",
+        "word": "area",
+        "sentence": "Play area."
+    },
+    {
+        "mode": "hard",
+        "word": "argue",
+        "sentence": "Do not argue."
+    },
+    {
+        "mode": "hard",
+        "word": "arise",
+        "sentence": "Arise now."
+    },
+    {
+        "mode": "easy",
+        "word": "arm",
+        "sentence": "My arm."
+    },
+    {
+        "mode": "hard",
+        "word": "armor",
+        "sentence": "Knight armor."
+    },
+    {
+        "mode": "medium",
+        "word": "army",
+        "sentence": "Join army."
+    },
+    {
+        "mode": "medium",
+        "word": "aroma",
+        "sentence": "A sweet aroma filled the kitchen."
+    },
+    {
+        "mode": "medium",
+        "word": "around",
+        "sentence": "Look around."
+    },
+    {
+        "mode": "hard",
+        "word": "arrange",
+        "sentence": "Arrange flowers."
+    },
+    {
+        "mode": "hard",
+        "word": "artist",
+        "sentence": "Great artist."
+    },
+    {
+        "mode": "easy",
+        "word": "as",
+        "sentence": "He acted as a hero during the rescue."
+    },
+    {
+        "mode": "medium",
+        "word": "asking",
+        "sentence": "He kept asking questions during the lecture."
+    },
+    {
+        "mode": "easy",
+        "word": "at",
+        "sentence": "They met at the park entrance."
+    },
+    {
+        "mode": "medium",
+        "word": "autumn",
+        "sentence": "The autumn leaves turned shades of orange and red."
+    },
+    {
+        "mode": "medium",
+        "word": "baby",
+        "sentence": "The baby is sleeping."
+    },
+    {
+        "mode": "hard",
+        "word": "backyard",
+        "sentence": "The kids played games in the backyard all afternoon."
+    },
+    {
+        "mode": "hard",
+        "word": "bacon",
+        "sentence": "Crispy bacon."
+    },
+    {
+        "mode": "medium",
+        "word": "badge",
+        "sentence": "He wore a badge with his name on it."
+    },
+    {
+        "mode": "medium",
+        "word": "baker",
+        "sentence": "The baker bakes."
+    },
+    {
+        "mode": "medium",
+        "word": "baking",
+        "sentence": "Grandma spent the afternoon baking delicious treats."
+    },
+    {
+        "mode": "easy",
+        "word": "ball",
+        "sentence": "Kick the soccer ball."
+    },
+    {
+        "mode": "hard",
+        "word": "balloon",
+        "sentence": "She tied a balloon to each chair for the party."
+    },
+    {
+        "mode": "medium",
+        "word": "banana",
+        "sentence": "Yellow banana."
+    },
+    {
+        "mode": "hard",
+        "word": "baseball",
+        "sentence": "We watched a baseball game at the stadium."
+    },
+    {
+        "mode": "medium",
+        "word": "basket",
+        "sentence": "Picnic basket."
+    },
+    {
+        "mode": "easy",
+        "word": "bat",
+        "sentence": "I hit the ball with a bat."
+    },
+    {
+        "mode": "hard",
+        "word": "batter",
+        "sentence": "Cake batter."
+    },
+    {
+        "mode": "hard",
+        "word": "battery",
+        "sentence": "The remote needed a new battery to work properly."
+    },
+    {
+        "mode": "hard",
+        "word": "battle",
+        "sentence": "Big battle."
+    },
+    {
+        "mode": "easy",
+        "word": "be",
+        "sentence": "Try to be calm in stressful times."
+    },
+    {
+        "mode": "medium",
+        "word": "beach",
+        "sentence": "Sand on the beach."
+    },
+    {
+        "mode": "medium",
+        "word": "bear",
+        "sentence": "The bear is big."
+    },
+    {
+        "mode": "hard",
+        "word": "beard",
+        "sentence": "He has a beard."
+    },
+    {
+        "mode": "hard",
+        "word": "beaver",
+        "sentence": "Busy beaver."
+    },
+    {
+        "mode": "easy",
+        "word": "bed",
+        "sentence": "I want to go to bed."
+    },
+    {
+        "mode": "hard",
+        "word": "bedroom",
+        "sentence": "The cozy bedroom was decorated with soft colors."
+    },
+    {
+        "mode": "easy",
+        "word": "bee",
+        "sentence": "The bee makes honey."
+    },
+    {
+        "mode": "hard",
+        "word": "beetle",
+        "sentence": "Small beetle."
+    },
+    {
+        "mode": "hard",
+        "word": "beggar",
+        "sentence": "Poor beggar."
+    },
+    {
+        "mode": "medium",
+        "word": "behind",
+        "sentence": "Look behind you."
+    },
+    {
+        "mode": "medium",
+        "word": "being",
+        "sentence": "The state of being was peaceful and calm."
+    },
+    {
+        "mode": "hard",
+        "word": "belief",
+        "sentence": "Strong belief."
+    },
+    {
+        "mode": "hard",
+        "word": "believe",
+        "sentence": "I believe we can finish this project on time."
+    },
+    {
+        "mode": "easy",
+        "word": "bell",
+        "sentence": "The bell rang to signal the start of class."
+    },
+    {
+        "mode": "hard",
+        "word": "belong",
+        "sentence": "Belong here."
+    },
+    {
+        "mode": "medium",
+        "word": "belt",
+        "sentence": "Leather belt."
+    },
+    {
+        "mode": "medium",
+        "word": "bench",
+        "sentence": "Park bench."
+    },
+    {
+        "mode": "hard",
+        "word": "bender",
+        "sentence": "Fender bender."
+    },
+    {
+        "mode": "medium",
+        "word": "berry",
+        "sentence": "She topped the cake with a fresh berry."
+    },
+    {
+        "mode": "medium",
+        "word": "better",
+        "sentence": "Feel better."
+    },
+    {
+        "mode": "hard",
+        "word": "beyond",
+        "sentence": "Beyond the sea."
+    },
+    {
+        "mode": "medium",
+        "word": "bike",
+        "sentence": "Ride your bike."
+    },
+    {
+        "mode": "easy",
+        "word": "bird",
+        "sentence": "A colorful bird flew over the garden."
+    },
+    {
+        "mode": "hard",
+        "word": "birthday",
+        "sentence": "We celebrated her birthday with a surprise party."
+    },
+    {
+        "mode": "medium",
+        "word": "biting",
+        "sentence": "The dog was biting into its bone."
+    },
+    {
+        "mode": "hard",
+        "word": "bitter",
+        "sentence": "Bitter taste."
+    },
+    {
+        "mode": "hard",
+        "word": "blame",
+        "sentence": "Do not blame."
+    },
+    {
+        "mode": "medium",
+        "word": "blanket",
+        "sentence": "Warm blanket."
+    },
+    {
+        "mode": "hard",
+        "word": "blaze",
+        "sentence": "Fire blaze."
+    },
+    {
+        "mode": "hard",
+        "word": "bleeding",
+        "sentence": "The wound was bleeding heavily after the fall."
+    },
+    {
+        "mode": "hard",
+        "word": "blender",
+        "sentence": "Use a blender."
+    },
+    {
+        "mode": "medium",
+        "word": "block",
+        "sentence": "Building block."
+    },
+    {
+        "mode": "hard",
+        "word": "blouse",
+        "sentence": "Silk blouse."
+    },
+    {
+        "mode": "easy",
+        "word": "blue",
+        "sentence": "The ocean is blue."
+    },
+    {
+        "mode": "medium",
+        "word": "board",
+        "sentence": "Pin the notice on the board"
+    },
+    {
+        "mode": "medium",
+        "word": "boat",
+        "sentence": "The boat floats."
+    },
+    {
+        "mode": "hard",
+        "word": "boiling",
+        "sentence": "The water was boiling on the stove."
+    },
+    {
+        "mode": "easy",
+        "word": "book",
+        "sentence": "He read an interesting book before bed."
+    },
+    {
+        "mode": "medium",
+        "word": "boot",
+        "sentence": "Put on your boot."
+    },
+    {
+        "mode": "medium",
+        "word": "border",
+        "sentence": "We live near the border of two states."
+    },
+    {
+        "mode": "medium",
+        "word": "bottle",
+        "sentence": "Water bottle."
+    },
+    {
+        "mode": "medium",
+        "word": "bottom",
+        "sentence": "Bottom up."
+    },
+    {
+        "mode": "hard",
+        "word": "bought",
+        "sentence": "I bought it."
+    },
+    {
+        "mode": "medium",
+        "word": "bounce",
+        "sentence": "Bounce the ball."
+    },
+    {
+        "mode": "hard",
+        "word": "bowling",
+        "sentence": "Go bowling."
+    },
+    {
+        "mode": "easy",
+        "word": "box",
+        "sentence": "She packed everything in a small box."
+    },
+    {
+        "mode": "hard",
+        "word": "boxer",
+        "sentence": "Strong boxer."
+    },
+    {
+        "mode": "easy",
+        "word": "boy",
+        "sentence": "The boy ran fast."
+    },
+    {
+        "mode": "medium",
+        "word": "brace",
+        "sentence": "They used a brace to support the shelf."
+    },
+    {
+        "mode": "medium",
+        "word": "brain",
+        "sentence": "Use your brain."
+    },
+    {
+        "mode": "medium",
+        "word": "brake",
+        "sentence": "Hit the brake."
+    },
+    {
+        "mode": "medium",
+        "word": "branch",
+        "sentence": "Tree branch."
+    },
+    {
+        "mode": "medium",
+        "word": "brave",
+        "sentence": "Be brave."
+    },
+    {
+        "mode": "medium",
+        "word": "bread",
+        "sentence": "Fresh bread smells amazing in the morning."
+    },
+    {
+        "mode": "medium",
+        "word": "break",
+        "sentence": "Do not break it."
+    },
+    {
+        "mode": "hard",
+        "word": "breath",
+        "sentence": "Deep breath."
+    },
+    {
+        "mode": "hard",
+        "word": "breeze",
+        "sentence": "Cool breeze."
+    },
+    {
+        "mode": "medium",
+        "word": "brick",
+        "sentence": "A loose brick fell from the old wall."
+    },
+    {
+        "mode": "medium",
+        "word": "bridge",
+        "sentence": "Cross bridge."
+    },
+    {
+        "mode": "medium",
+        "word": "bright",
+        "sentence": "Bright light."
+    },
+    {
+        "mode": "hard",
+        "word": "bringing",
+        "sentence": "She was bringing gifts to the party."
+    },
+    {
+        "mode": "medium",
+        "word": "broken",
+        "sentence": "Broken toy."
+    },
+    {
+        "mode": "hard",
+        "word": "bronze",
+        "sentence": "Bronze medal."
+    },
+    {
+        "mode": "medium",
+        "word": "broom",
+        "sentence": "Use the broom to sweep the floor."
+    },
+    {
+        "mode": "medium",
+        "word": "brother",
+        "sentence": "Big brother."
+    },
+    {
+        "mode": "medium",
+        "word": "brown",
+        "sentence": "Color brown."
+    },
+    {
+        "mode": "hard",
+        "word": "bruise",
+        "sentence": "Ouch a bruise."
+    },
+    {
+        "mode": "medium",
+        "word": "brush",
+        "sentence": "She used a soft brush to paint her art."
+    },
+    {
+        "mode": "medium",
+        "word": "bubble",
+        "sentence": "Pop bubble."
+    },
+    {
+        "mode": "medium",
+        "word": "bucket",
+        "sentence": "Water bucket."
+    },
+    {
+        "mode": "hard",
+        "word": "buckle",
+        "sentence": "Buckle up."
+    },
+    {
+        "mode": "medium",
+        "word": "buddy",
+        "sentence": "My best buddy."
+    },
+    {
+        "mode": "hard",
+        "word": "budget",
+        "sentence": "Mom's budget."
+    },
+    {
+        "mode": "hard",
+        "word": "buffer",
+        "sentence": "Buffer zone."
+    },
+    {
+        "mode": "hard",
+        "word": "buffet",
+        "sentence": "Food buffet."
+    },
+    {
+        "mode": "easy",
+        "word": "bug",
+        "sentence": "A bug is on the leaf."
+    },
+    {
+        "mode": "hard",
+        "word": "buggy",
+        "sentence": "Baby buggy."
+    },
+    {
+        "mode": "medium",
+        "word": "build",
+        "sentence": "Build a tower."
+    },
+    {
+        "mode": "hard",
+        "word": "building",
+        "sentence": "They are building a new house in the neighborhood."
+    },
+    {
+        "mode": "hard",
+        "word": "bullet",
+        "sentence": "Fast bullet."
+    },
+    {
+        "mode": "hard",
+        "word": "bumper",
+        "sentence": "Car bumper."
+    },
+    {
+        "mode": "medium",
+        "word": "bunch",
+        "sentence": "Bunch of grapes."
+    },
+    {
+        "mode": "hard",
+        "word": "bundle",
+        "sentence": "Bundle of sticks."
+    },
+    {
+        "mode": "medium",
+        "word": "bunny",
+        "sentence": "Fluffy bunny."
+    },
+    {
+        "mode": "medium",
+        "word": "burger",
+        "sentence": "Cheeseburger."
+    },
+    {
+        "mode": "hard",
+        "word": "burrito",
+        "sentence": "Bean burrito."
+    },
+    {
+        "mode": "hard",
+        "word": "burst",
+        "sentence": "Burst balloon."
+    },
+    {
+        "mode": "medium",
+        "word": "bushes",
+        "sentence": "Hide in bushes."
+    },
+    {
+        "mode": "easy",
+        "word": "but",
+        "sentence": "She wanted to go but she didn't."
+    },
+    {
+        "mode": "medium",
+        "word": "butter",
+        "sentence": "Spread butter on the toast"
+    },
+    {
+        "mode": "medium",
+        "word": "button",
+        "sentence": "Push button."
+    },
+    {
+        "mode": "hard",
+        "word": "buyer",
+        "sentence": "Home buyer."
+    },
+    {
+        "mode": "medium",
+        "word": "buying",
+        "sentence": "He was buying groceries at the market."
+    },
+    {
+        "mode": "hard",
+        "word": "buzzer",
+        "sentence": "Loud buzzer."
+    },
+    {
+        "mode": "easy",
+        "word": "by",
+        "sentence": "The book was written by a famous author."
+    },
+    {
+        "mode": "hard",
+        "word": "cabinet",
+        "sentence": "The dishes were stored in the wooden cabinet."
+    },
+    {
+        "mode": "easy",
+        "word": "cake",
+        "sentence": "She baked a chocolate cake for dessert."
+    },
+    {
+        "mode": "hard",
+        "word": "calling",
+        "sentence": "She was calling her friend on the phone."
+    },
+    {
+        "mode": "hard",
+        "word": "camel",
+        "sentence": "Camel in desert."
+    },
+    {
+        "mode": "medium",
+        "word": "camera",
+        "sentence": "He used a camera to capture the sunset."
+    },
+    {
+        "mode": "hard",
+        "word": "campsite",
+        "sentence": "We set up our tent at the quiet campsite."
+    },
+    {
+        "mode": "easy",
+        "word": "can",
+        "sentence": "Can you help me?"
+    },
+    {
+        "mode": "medium",
+        "word": "candy",
+        "sentence": "Sweet candy."
+    },
+    {
+        "mode": "hard",
+        "word": "canoe",
+        "sentence": "Paddle the canoe."
+    },
+    {
+        "mode": "hard",
+        "word": "capital",
+        "sentence": "Paris is the capital of France."
+    },
+    {
+        "mode": "easy",
+        "word": "car",
+        "sentence": "The car is parked outside the house."
+    },
+    {
+        "mode": "medium",
+        "word": "card",
+        "sentence": "Send a greeting card."
+    },
+    {
+        "mode": "hard",
+        "word": "cardigan",
+        "sentence": "She wore a cozy cardigan on the chilly day."
+    },
+    {
+        "mode": "medium",
+        "word": "caring",
+        "sentence": "The nurse was caring for her patients with kindness."
+    },
+    {
+        "mode": "medium",
+        "word": "cart",
+        "sentence": "Push the shopping cart."
+    },
+    {
+        "mode": "easy",
+        "word": "cat",
+        "sentence": "The cat sat on the mat."
+    },
+    {
+        "mode": "medium",
+        "word": "cats",
+        "sentence": "Two cats played."
+    },
+    {
+        "mode": "hard",
+        "word": "ceremony",
+        "sentence": "They attended a graduation ceremony last weekend."
+    },
+    {
+        "mode": "medium",
+        "word": "chair",
+        "sentence": "Please take a seat on the comfortable chair."
+    },
+    {
+        "mode": "medium",
+        "word": "chalk",
+        "sentence": "Write with chalk."
+    },
+    {
+        "mode": "hard",
+        "word": "chapter",
+        "sentence": "He finished the last chapter before bed."
+    },
+    {
+        "mode": "medium",
+        "word": "check",
+        "sentence": "Check your work."
+    },
+    {
+        "mode": "hard",
+        "word": "chess",
+        "sentence": "Play chess."
+    },
+    {
+        "mode": "medium",
+        "word": "chest",
+        "sentence": "Treasure chest."
+    },
+    {
+        "mode": "medium",
+        "word": "chick",
+        "sentence": "Baby chick."
+    },
+    {
+        "mode": "medium",
+        "word": "child",
+        "sentence": "Happy child."
+    },
+    {
+        "mode": "hard",
+        "word": "children",
+        "sentence": "The children played joyfully in the park."
+    },
+    {
+        "mode": "medium",
+        "word": "choir",
+        "sentence": "The choir practiced for the upcoming concert."
+    },
+    {
+        "mode": "medium",
+        "word": "church",
+        "sentence": "They attended the Sunday service at the church."
+    },
+    {
+        "mode": "hard",
+        "word": "clam",
+        "sentence": "A clam in the sand."
+    },
+    {
+        "mode": "medium",
+        "word": "class",
+        "sentence": "Go to class."
+    },
+    {
+        "mode": "hard",
+        "word": "classroom",
+        "sentence": "The classroom was decorated with colorful posters."
+    },
+    {
+        "mode": "medium",
+        "word": "clean",
+        "sentence": "Clean up."
+    },
+    {
+        "mode": "hard",
+        "word": "cleaning",
+        "sentence": "He spent the morning cleaning the house."
+    },
+    {
+        "mode": "hard",
+        "word": "climbing",
+        "sentence": "The hikers were climbing the steep mountain trail."
+    },
+    {
+        "mode": "medium",
+        "word": "clock",
+        "sentence": "The clock on the wall ticked steadily."
+    },
+    {
+        "mode": "hard",
+        "word": "closing",
+        "sentence": "She was closing the door quietly behind her."
+    },
+    {
+        "mode": "medium",
+        "word": "cloud",
+        "sentence": "White cloud."
+    },
+    {
+        "mode": "medium",
+        "word": "clown",
+        "sentence": "Funny clown."
+    },
+    {
+        "mode": "hard",
+        "word": "coast",
+        "sentence": "The coast."
+    },
+    {
+        "mode": "medium",
+        "word": "coat",
+        "sentence": "Wear a warm coat."
+    },
+    {
+        "mode": "medium",
+        "word": "coffee",
+        "sentence": "She sipped a hot cup of coffee in the morning."
+    },
+    {
+        "mode": "medium",
+        "word": "coin",
+        "sentence": "Save every coin."
+    },
+    {
+        "mode": "easy",
+        "word": "cold",
+        "sentence": "Winter is cold."
+    },
+    {
+        "mode": "hard",
+        "word": "collect",
+        "sentence": "She likes to collect rare coins."
+    },
+    {
+        "mode": "hard",
+        "word": "college",
+        "sentence": "She enrolled in a local college to further her education."
+    },
+    {
+        "mode": "medium",
+        "word": "color",
+        "sentence": "Her drawing was full of vibrant color."
+    },
+    {
+        "mode": "medium",
+        "word": "coming",
+        "sentence": "They are coming to the event tonight."
+    },
+    {
+        "mode": "hard",
+        "word": "complete",
+        "sentence": "We must complete this task before the deadline."
+    },
+    {
+        "mode": "hard",
+        "word": "computer",
+        "sentence": "My computer crashed during the presentation."
+    },
+    {
+        "mode": "hard",
+        "word": "consist",
+        "sentence": "The dish will consist of rice and vegetables."
+    },
+    {
+        "mode": "hard",
+        "word": "context",
+        "sentence": "Read the context to understand the meaning."
+    },
+    {
+        "mode": "hard",
+        "word": "convert",
+        "sentence": "They will convert the attic into a guest room."
+    },
+    {
+        "mode": "hard",
+        "word": "cooking",
+        "sentence": "My mom is cooking a hearty dinner for us."
+    },
+    {
+        "mode": "easy",
+        "word": "cool",
+        "sentence": "The evening breeze felt cool on our skin."
+    },
+    {
+        "mode": "medium",
+        "word": "corn",
+        "sentence": "I like sweet corn."
+    },
+    {
+        "mode": "hard",
+        "word": "costume",
+        "sentence": "He wore a funny costume for Halloween."
+    },
+    {
+        "mode": "medium",
+        "word": "count",
+        "sentence": "Count to ten."
+    },
+    {
+        "mode": "hard",
+        "word": "country",
+        "sentence": "They dreamed of traveling across the country roads."
+    },
+    {
+        "mode": "hard",
+        "word": "court",
+        "sentence": "Tennis court."
+    },
+    {
+        "mode": "medium",
+        "word": "cover",
+        "sentence": "Cover your mouth."
+    },
+    {
+        "mode": "easy",
+        "word": "cow",
+        "sentence": "The cow says moo."
+    },
+    {
+        "mode": "hard",
+        "word": "crab",
+        "sentence": "The crab walks sideways."
+    },
+    {
+        "mode": "hard",
+        "word": "crane",
+        "sentence": "Tall crane."
+    },
+    {
+        "mode": "hard",
+        "word": "crate",
+        "sentence": "Wooden crate."
+    },
+    {
+        "mode": "medium",
+        "word": "cream",
+        "sentence": "She added cream to her coffee."
+    },
+    {
+        "mode": "medium",
+        "word": "cross",
+        "sentence": "Cross the street."
+    },
+    {
+        "mode": "hard",
+        "word": "crow",
+        "sentence": "The black crow flew."
+    },
+    {
+        "mode": "hard",
+        "word": "crowd",
+        "sentence": "A big crowd."
+    },
+    {
+        "mode": "medium",
+        "word": "crown",
+        "sentence": "King's crown."
+    },
+    {
+        "mode": "medium",
+        "word": "crying",
+        "sentence": "The baby was crying in the quiet room."
+    },
+    {
+        "mode": "hard",
+        "word": "cube",
+        "sentence": "An ice cube."
+    },
+    {
+        "mode": "easy",
+        "word": "cup",
+        "sentence": "She drank her tea from a blue cup."
+    },
+    {
+        "mode": "medium",
+        "word": "curry",
+        "sentence": "He ordered a spicy curry for dinner."
+    },
+    {
+        "mode": "easy",
+        "word": "dad",
+        "sentence": "My dad is strong."
+    },
+    {
+        "mode": "medium",
+        "word": "damage",
+        "sentence": "The storm caused damage to the roof."
+    },
+    {
+        "mode": "medium",
+        "word": "dance",
+        "sentence": "Dance to music."
+    },
+    {
+        "mode": "hard",
+        "word": "dancing",
+        "sentence": "Everyone was dancing at the festive party."
+    },
+    {
+        "mode": "easy",
+        "word": "day",
+        "sentence": "It was a sunny day at the beach."
+    },
+    {
+        "mode": "hard",
+        "word": "dealing",
+        "sentence": "He was dealing with a difficult situation at work."
+    },
+    {
+        "mode": "medium",
+        "word": "deer",
+        "sentence": "A deer in the woods."
+    },
+    {
+        "mode": "easy",
+        "word": "desk",
+        "sentence": "He kept his books on the wooden desk."
+    },
+    {
+        "mode": "hard",
+        "word": "desktop",
+        "sentence": "She saved the file on her desktop."
+    },
+    {
+        "mode": "hard",
+        "word": "dialing",
+        "sentence": "He was dialing the wrong phone number."
+    },
+    {
+        "mode": "medium",
+        "word": "digging",
+        "sentence": "The dog was digging a hole in the yard."
+    },
+    {
+        "mode": "hard",
+        "word": "dime",
+        "sentence": "Ten cents is a dime."
+    },
+    {
+        "mode": "hard",
+        "word": "director",
+        "sentence": "The director organized the entire production."
+    },
+    {
+        "mode": "medium",
+        "word": "dirt",
+        "sentence": "Plants grow in dirt."
+    },
+    {
+        "mode": "easy",
+        "word": "dish",
+        "sentence": "Please wash your dish after you eat."
+    },
+    {
+        "mode": "hard",
+        "word": "division",
+        "sentence": "They discussed the division of chores at home."
+    },
+    {
+        "mode": "easy",
+        "word": "do",
+        "sentence": "I do my homework every evening."
+    },
+    {
+        "mode": "easy",
+        "word": "dog",
+        "sentence": "A dog barked loudly in the yard."
+    },
+    {
+        "mode": "easy",
+        "word": "doll",
+        "sentence": "She hugged her doll."
+    },
+    {
+        "mode": "easy",
+        "word": "door",
+        "sentence": "Open the door."
+    },
+    {
+        "mode": "easy",
+        "word": "dot",
+        "sentence": "Connect the dot."
+    },
+    {
+        "mode": "medium",
+        "word": "dragon",
+        "sentence": "The story featured a friendly dragon."
+    },
+    {
+        "mode": "medium",
+        "word": "dream",
+        "sentence": "When I sleep, I dream."
+    },
+    {
+        "mode": "medium",
+        "word": "dress",
+        "sentence": "Pretty dress."
+    },
+    {
+        "mode": "easy",
+        "word": "drink",
+        "sentence": "Drink water."
+    },
+    {
+        "mode": "hard",
+        "word": "drinking",
+        "sentence": "They were drinking water after the long run."
+    },
+    {
+        "mode": "medium",
+        "word": "drive",
+        "sentence": "Drive the car."
+    },
+    {
+        "mode": "medium",
+        "word": "driver",
+        "sentence": "The taxi driver took us to the hotel."
+    },
+    {
+        "mode": "hard",
+        "word": "driving",
+        "sentence": "She was driving carefully through the busy streets."
+    },
+    {
+        "mode": "medium",
+        "word": "drum",
+        "sentence": "Beat the drum."
+    },
+    {
+        "mode": "medium",
+        "word": "drums",
+        "sentence": "Play drums."
+    },
+    {
+        "mode": "easy",
+        "word": "duck",
+        "sentence": "The duck says quack."
+    },
+    {
+        "mode": "medium",
+        "word": "ducks",
+        "sentence": "Three ducks."
+    },
+    {
+        "mode": "easy",
+        "word": "dust",
+        "sentence": "She wiped the dust off the old shelf."
+    },
+    {
+        "mode": "hard",
+        "word": "eagle",
+        "sentence": "Bald eagle."
+    },
+    {
+        "mode": "easy",
+        "word": "ear",
+        "sentence": "I hear with my ear."
+    },
+    {
+        "mode": "medium",
+        "word": "earth",
+        "sentence": "The farmer tilled the rich earth for planting."
+    },
+    {
+        "mode": "medium",
+        "word": "eating",
+        "sentence": "He was eating his lunch during the break."
+    },
+    {
+        "mode": "easy",
+        "word": "egg",
+        "sentence": "I ate an egg."
+    },
+    {
+        "mode": "medium",
+        "word": "elbow",
+        "sentence": "Bend your elbow."
+    },
+    {
+        "mode": "hard",
+        "word": "elephant",
+        "sentence": "An elephant is the largest land animal on earth."
+    },
+    {
+        "mode": "medium",
+        "word": "eleven",
+        "sentence": "She woke up at eleven in the morning."
+    },
+    {
+        "mode": "medium",
+        "word": "empty",
+        "sentence": "The box is empty."
+    },
+    {
+        "mode": "medium",
+        "word": "ending",
+        "sentence": "The movie was ending on a surprising note."
+    },
+    {
+        "mode": "medium",
+        "word": "enter",
+        "sentence": "Do not enter."
+    },
+    {
+        "mode": "hard",
+        "word": "event",
+        "sentence": "Big event."
+    },
+    {
+        "mode": "hard",
+        "word": "everyone",
+        "sentence": "Everyone joined in singing the birthday song."
+    },
+    {
+        "mode": "easy",
+        "word": "eye",
+        "sentence": "Close your eye."
+    },
+    {
+        "mode": "medium",
+        "word": "fabric",
+        "sentence": "She chose a soft fabric for the curtains."
+    },
+    {
+        "mode": "easy",
+        "word": "face",
+        "sentence": "Wash your face."
+    },
+    {
+        "mode": "medium",
+        "word": "fairy",
+        "sentence": "Tooth fairy."
+    },
+    {
+        "mode": "easy",
+        "word": "fall",
+        "sentence": "Watch your step so you don't fall."
+    },
+    {
+        "mode": "hard",
+        "word": "falling",
+        "sentence": "The leaves were falling from the trees."
+    },
+    {
+        "mode": "medium",
+        "word": "family",
+        "sentence": "We gathered as a family for the holiday dinner."
+    },
+    {
+        "mode": "easy",
+        "word": "fan",
+        "sentence": "The fan cools us."
+    },
+    {
+        "mode": "medium",
+        "word": "farm",
+        "sentence": "Animals on the farm."
+    },
+    {
+        "mode": "medium",
+        "word": "feel",
+        "sentence": "I feel fine today."
+    },
+    {
+        "mode": "hard",
+        "word": "feeling",
+        "sentence": "She was feeling a bit under the weather."
+    },
+    {
+        "mode": "medium",
+        "word": "feet",
+        "sentence": "Stomp your feet."
+    },
+    {
+        "mode": "medium",
+        "word": "fence",
+        "sentence": "White fence."
+    },
+    {
+        "mode": "medium",
+        "word": "field",
+        "sentence": "Green field."
+    },
+    {
+        "mode": "hard",
+        "word": "fighting",
+        "sentence": "The two players were fighting fiercely in the match."
+    },
+    {
+        "mode": "hard",
+        "word": "finding",
+        "sentence": "He was finding his lost keys in the room."
+    },
+    {
+        "mode": "easy",
+        "word": "fine",
+        "sentence": "She said she was feeling fine after the cold."
+    },
+    {
+        "mode": "easy",
+        "word": "fire",
+        "sentence": "The camp fire kept us warm all night."
+    },
+    {
+        "mode": "easy",
+        "word": "fish",
+        "sentence": "They caught a fish at the lake."
+    },
+    {
+        "mode": "easy",
+        "word": "five",
+        "sentence": "High five!"
+    },
+    {
+        "mode": "medium",
+        "word": "flag",
+        "sentence": "Wave the flag."
+    },
+    {
+        "mode": "medium",
+        "word": "flash",
+        "sentence": "A sudden flash lit up the sky."
+    },
+    {
+        "mode": "medium",
+        "word": "floor",
+        "sentence": "Mop the floor after the spill."
+    },
+    {
+        "mode": "medium",
+        "word": "flour",
+        "sentence": "We ran out of flour while baking."
+    },
+    {
+        "mode": "hard",
+        "word": "flute",
+        "sentence": "Play the flute."
+    },
+    {
+        "mode": "easy",
+        "word": "fly",
+        "sentence": "A bird can fly."
+    },
+    {
+        "mode": "medium",
+        "word": "flying",
+        "sentence": "The bird was flying high above the trees."
+    },
+    {
+        "mode": "easy",
+        "word": "fog",
+        "sentence": "Fog covered the road in the morning."
+    },
+    {
+        "mode": "hard",
+        "word": "folding",
+        "sentence": "She was folding the laundry after washing it."
+    },
+    {
+        "mode": "easy",
+        "word": "food",
+        "sentence": "Eat healthy food."
+    },
+    {
+        "mode": "easy",
+        "word": "foot",
+        "sentence": "I stubbed my foot."
+    },
+    {
+        "mode": "easy",
+        "word": "for",
+        "sentence": "This gift is for you."
+    },
+    {
+        "mode": "medium",
+        "word": "fork",
+        "sentence": "Eat with a fork."
+    },
+    {
+        "mode": "hard",
+        "word": "forming",
+        "sentence": "The committee was forming a new plan for the project."
+    },
+    {
+        "mode": "hard",
+        "word": "forward",
+        "sentence": "They moved forward despite the difficulties."
+    },
+    {
+        "mode": "easy",
+        "word": "fox",
+        "sentence": "The fox is sly."
+    },
+    {
+        "mode": "hard",
+        "word": "frame",
+        "sentence": "Picture frame."
+    },
+    {
+        "mode": "medium",
+        "word": "friend",
+        "sentence": "My friend always supports me during tough times."
+    },
+    {
+        "mode": "hard",
+        "word": "fries",
+        "sentence": "French fries."
+    },
+    {
+        "mode": "medium",
+        "word": "frog",
+        "sentence": "The frog jumps."
+    },
+    {
+        "mode": "medium",
+        "word": "frost",
+        "sentence": "Frost covered the windows overnight."
+    },
+    {
+        "mode": "medium",
+        "word": "frown",
+        "sentence": "Do not frown."
+    },
+    {
+        "mode": "medium",
+        "word": "fruit",
+        "sentence": "Eat fresh fruit."
+    },
+    {
+        "mode": "easy",
+        "word": "fun",
+        "sentence": "This game is fun."
+    },
+    {
+        "mode": "hard",
+        "word": "gaining",
+        "sentence": "He was gaining confidence with each success."
+    },
+    {
+        "mode": "easy",
+        "word": "game",
+        "sentence": "Let's play a game."
+    },
+    {
+        "mode": "medium",
+        "word": "garage",
+        "sentence": "He parked the car inside the garage."
+    },
+    {
+        "mode": "medium",
+        "word": "garden",
+        "sentence": "The blooming garden was full of colorful flowers."
+    },
+    {
+        "mode": "easy",
+        "word": "gas",
+        "sentence": "The car was low on gas"
+    },
+    {
+        "mode": "medium",
+        "word": "gate",
+        "sentence": "Close the gate."
+    },
+    {
+        "mode": "medium",
+        "word": "gentle",
+        "sentence": "Use a gentle touch with the newborn kitten."
+    },
+    {
+        "mode": "medium",
+        "word": "ghost",
+        "sentence": "Spooky ghost."
+    },
+    {
+        "mode": "medium",
+        "word": "giant",
+        "sentence": "Friendly giant."
+    },
+    {
+        "mode": "easy",
+        "word": "gift",
+        "sentence": "She wrapped the gift in bright paper."
+    },
+    {
+        "mode": "easy",
+        "word": "girl",
+        "sentence": "The girl smiled."
+    },
+    {
+        "mode": "medium",
+        "word": "giving",
+        "sentence": "They were giving out free samples at the event."
+    },
+    {
+        "mode": "medium",
+        "word": "glass",
+        "sentence": "Glass of milk."
+    },
+    {
+        "mode": "medium",
+        "word": "globe",
+        "sentence": "A spinning globe sat on the desk."
+    },
+    {
+        "mode": "medium",
+        "word": "glove",
+        "sentence": "Baseball glove."
+    },
+    {
+        "mode": "easy",
+        "word": "glue",
+        "sentence": "Use some glue to fix that broken piece."
+    },
+    {
+        "mode": "easy",
+        "word": "go",
+        "sentence": "Let's go to the store after lunch."
+    },
+    {
+        "mode": "medium",
+        "word": "goat",
+        "sentence": "The goat climbed."
+    },
+    {
+        "mode": "medium",
+        "word": "going",
+        "sentence": "She is going to the store for some supplies."
+    },
+    {
+        "mode": "medium",
+        "word": "gold",
+        "sentence": "Gold is shiny."
+    },
+    {
+        "mode": "medium",
+        "word": "golf",
+        "sentence": "Play golf."
+    },
+    {
+        "mode": "easy",
+        "word": "good",
+        "sentence": "This meal tastes good."
+    },
+    {
+        "mode": "medium",
+        "word": "goose",
+        "sentence": "Silly goose."
+    },
+    {
+        "mode": "medium",
+        "word": "grade",
+        "sentence": "First grade."
+    },
+    {
+        "mode": "hard",
+        "word": "grain",
+        "sentence": "Grain of sand."
+    },
+    {
+        "mode": "medium",
+        "word": "grape",
+        "sentence": "He ate a juicy grape from the bunch."
+    },
+    {
+        "mode": "medium",
+        "word": "grass",
+        "sentence": "Green grass."
+    },
+    {
+        "mode": "medium",
+        "word": "green",
+        "sentence": "Color green."
+    },
+    {
+        "mode": "medium",
+        "word": "group",
+        "sentence": "Group of friends."
+    },
+    {
+        "mode": "hard",
+        "word": "growing",
+        "sentence": "The plants were growing quickly in the warm sun."
+    },
+    {
+        "mode": "hard",
+        "word": "guard",
+        "sentence": "Security guard."
+    },
+    {
+        "mode": "medium",
+        "word": "guess",
+        "sentence": "Take a guess."
+    },
+    {
+        "mode": "medium",
+        "word": "guest",
+        "sentence": "Be our guest."
+    },
+    {
+        "mode": "hard",
+        "word": "guide",
+        "sentence": "Tour guide."
+    },
+    {
+        "mode": "hard",
+        "word": "guitar",
+        "sentence": "Play guitar."
+    },
+    {
+        "mode": "easy",
+        "word": "gun",
+        "sentence": "He used a toy gun in the play."
+    },
+    {
+        "mode": "hard",
+        "word": "habit",
+        "sentence": "Good habit."
+    },
+    {
+        "mode": "medium",
+        "word": "hair",
+        "sentence": "Brush your hair."
+    },
+    {
+        "mode": "easy",
+        "word": "hall",
+        "sentence": "Walk down the hall to find the restroom."
+    },
+    {
+        "mode": "medium",
+        "word": "hammer",
+        "sentence": "Grab a hammer to fix that loose nail."
+    },
+    {
+        "mode": "easy",
+        "word": "hand",
+        "sentence": "Clap your hand."
+    },
+    {
+        "mode": "medium",
+        "word": "happy",
+        "sentence": "She felt happy after receiving good news."
+    },
+    {
+        "mode": "easy",
+        "word": "hat",
+        "sentence": "He wore a stylish hat to the party."
+    },
+    {
+        "mode": "hard",
+        "word": "haze",
+        "sentence": "Morning haze."
+    },
+    {
+        "mode": "easy",
+        "word": "he",
+        "sentence": "He walked slowly down the path."
+    },
+    {
+        "mode": "easy",
+        "word": "head",
+        "sentence": "Nod your head."
+    },
+    {
+        "mode": "hard",
+        "word": "hearing",
+        "sentence": "He was hearing strange noises in the night."
+    },
+    {
+        "mode": "medium",
+        "word": "heart",
+        "sentence": "He followed his heart and pursued his dreams."
+    },
+    {
+        "mode": "easy",
+        "word": "heat",
+        "sentence": "The heat was intense in the summer sun."
+    },
+    {
+        "mode": "hard",
+        "word": "helping",
+        "sentence": "She was helping her neighbor with the heavy boxes."
+    },
+    {
+        "mode": "easy",
+        "word": "hen",
+        "sentence": "The hen laid an egg."
+    },
+    {
+        "mode": "easy",
+        "word": "her",
+        "sentence": "I saw her at the cafe earlier."
+    },
+    {
+        "mode": "medium",
+        "word": "hidden",
+        "sentence": "There's a hidden key under the welcome mat."
+    },
+    {
+        "mode": "easy",
+        "word": "hill",
+        "sentence": "We climbed a small hill near the farm."
+    },
+    {
+        "mode": "easy",
+        "word": "him",
+        "sentence": "They called him to help with the move."
+    },
+    {
+        "mode": "hard",
+        "word": "holding",
+        "sentence": "He was holding the fragile vase with care."
+    },
+    {
+        "mode": "hard",
+        "word": "holiday",
+        "sentence": "They planned a relaxing holiday by the seaside."
+    },
+    {
+        "mode": "easy",
+        "word": "home",
+        "sentence": "I just want to go home."
+    },
+    {
+        "mode": "hard",
+        "word": "homework",
+        "sentence": "He stayed up late to finish his homework."
+    },
+    {
+        "mode": "medium",
+        "word": "honey",
+        "sentence": "She drizzled honey on her toast."
+    },
+    {
+        "mode": "hard",
+        "word": "hook",
+        "sentence": "Hang it on the hook."
+    },
+    {
+        "mode": "easy",
+        "word": "hope",
+        "sentence": "There is always hope for a brighter future."
+    },
+    {
+        "mode": "medium",
+        "word": "hoping",
+        "sentence": "They were hoping for a better outcome."
+    },
+    {
+        "mode": "hard",
+        "word": "horn",
+        "sentence": "Honk the horn."
+    },
+    {
+        "mode": "easy",
+        "word": "hot",
+        "sentence": "The sun is hot."
+    },
+    {
+        "mode": "medium",
+        "word": "house",
+        "sentence": "The house was big and welcoming."
+    },
+    {
+        "mode": "easy",
+        "word": "how",
+        "sentence": "How are you?"
+    },
+    {
+        "mode": "easy",
+        "word": "ice",
+        "sentence": "The ice is cold."
+    },
+    {
+        "mode": "medium",
+        "word": "idea",
+        "sentence": "I have an idea."
+    },
+    {
+        "mode": "easy",
+        "word": "if",
+        "sentence": "Call me if you need any help."
+    },
+    {
+        "mode": "easy",
+        "word": "in",
+        "sentence": "The keys are in the drawer."
+    },
+    {
+        "mode": "hard",
+        "word": "inch",
+        "sentence": "Move an inch."
+    },
+    {
+        "mode": "easy",
+        "word": "ink",
+        "sentence": "The pen has red ink."
+    },
+    {
+        "mode": "hard",
+        "word": "iron",
+        "sentence": "Iron the shirt."
+    },
+    {
+        "mode": "easy",
+        "word": "is",
+        "sentence": "This game is really fun to play."
+    },
+    {
+        "mode": "easy",
+        "word": "it",
+        "sentence": "I found it on the table."
+    },
+    {
+        "mode": "medium",
+        "word": "jail",
+        "sentence": "Go to jail."
+    },
+    {
+        "mode": "easy",
+        "word": "jar",
+        "sentence": "Cookies are in the jar."
+    },
+    {
+        "mode": "easy",
+        "word": "jaw",
+        "sentence": "Her jaw dropped when she heard the news."
+    },
+    {
+        "mode": "medium",
+        "word": "jeep",
+        "sentence": "Drive the jeep."
+    },
+    {
+        "mode": "easy",
+        "word": "jet",
+        "sentence": "The jet flies fast."
+    },
+    {
+        "mode": "easy",
+        "word": "jump",
+        "sentence": "Jump rope."
+    },
+    {
+        "mode": "hard",
+        "word": "jumping",
+        "sentence": "The cat was jumping over the small fence."
+    },
+    {
+        "mode": "hard",
+        "word": "keeping",
+        "sentence": "She was keeping her promises to her friends."
+    },
+    {
+        "mode": "easy",
+        "word": "key",
+        "sentence": "I misplaced the spare key last night."
+    },
+    {
+        "mode": "hard",
+        "word": "keyboard",
+        "sentence": "He spilled water on the keyboard by accident."
+    },
+    {
+        "mode": "easy",
+        "word": "kind",
+        "sentence": "It is always nice to be kind to others."
+    },
+    {
+        "mode": "hard",
+        "word": "kitchen",
+        "sentence": "The kitchen was filled with the aroma of fresh food."
+    },
+    {
+        "mode": "medium",
+        "word": "kite",
+        "sentence": "Fly a kite."
+    },
+    {
+        "mode": "hard",
+        "word": "kiwi",
+        "sentence": "Eat a kiwi."
+    },
+    {
+        "mode": "hard",
+        "word": "knowing",
+        "sentence": "He was knowing the answer to the riddle."
+    },
+    {
+        "mode": "medium",
+        "word": "ladder",
+        "sentence": "Use a ladder to reach the top shelf."
+    },
+    {
+        "mode": "medium",
+        "word": "lake",
+        "sentence": "Swim in the lake."
+    },
+    {
+        "mode": "medium",
+        "word": "lamb",
+        "sentence": "Mary had a little lamb."
+    },
+    {
+        "mode": "medium",
+        "word": "lamp",
+        "sentence": "Turn on the lamp."
+    },
+    {
+        "mode": "medium",
+        "word": "land",
+        "sentence": "The plane will land."
+    },
+    {
+        "mode": "hard",
+        "word": "language",
+        "sentence": "She studied a new language in college."
+    },
+    {
+        "mode": "hard",
+        "word": "laughing",
+        "sentence": "They were laughing at the comedian's jokes."
+    },
+    {
+        "mode": "hard",
+        "word": "leading",
+        "sentence": "She was leading the team to victory."
+    },
+    {
+        "mode": "medium",
+        "word": "leaf",
+        "sentence": "A green leaf."
+    },
+    {
+        "mode": "hard",
+        "word": "leaving",
+        "sentence": "He was leaving the party earlier than expected."
+    },
+    {
+        "mode": "easy",
+        "word": "leg",
+        "sentence": "The table has one broken leg."
+    },
+    {
+        "mode": "hard",
+        "word": "letting",
+        "sentence": "They were letting him join the group."
+    },
+    {
+        "mode": "easy",
+        "word": "lid",
+        "sentence": "Put the lid on."
+    },
+    {
+        "mode": "easy",
+        "word": "life",
+        "sentence": "Her life changed after the unexpected event."
+    },
+    {
+        "mode": "medium",
+        "word": "light",
+        "sentence": "Turn on the light to brighten the room."
+    },
+    {
+        "mode": "medium",
+        "word": "lion",
+        "sentence": "The lion roared."
+    },
+    {
+        "mode": "easy",
+        "word": "lip",
+        "sentence": "She put balm on her dry lip."
+    },
+    {
+        "mode": "medium",
+        "word": "living",
+        "sentence": "She is living in a small cottage by the sea."
+    },
+    {
+        "mode": "medium",
+        "word": "lock",
+        "sentence": "Lock the door."
+    },
+    {
+        "mode": "easy",
+        "word": "log",
+        "sentence": "The frog sat on a log."
+    },
+    {
+        "mode": "hard",
+        "word": "looking",
+        "sentence": "He was looking for his missing book all over town."
+    },
+    {
+        "mode": "easy",
+        "word": "love",
+        "sentence": "They shared a deep love for each other."
+    },
+    {
+        "mode": "medium",
+        "word": "loving",
+        "sentence": "They are loving each other very much."
+    },
+    {
+        "mode": "medium",
+        "word": "luck",
+        "sentence": "Good luck."
+    },
+    {
+        "mode": "hard",
+        "word": "lump",
+        "sentence": "A lump of coal."
+    },
+    {
+        "mode": "hard",
+        "word": "lung",
+        "sentence": "Breathe with lung."
+    },
+    {
+        "mode": "easy",
+        "word": "ma",
+        "sentence": "Ma asked me to clean my room."
+    },
+    {
+        "mode": "medium",
+        "word": "magic",
+        "sentence": "The magician performed a magic trick."
+    },
+    {
+        "mode": "hard",
+        "word": "maid",
+        "sentence": "The maid cleaned."
+    },
+    {
+        "mode": "medium",
+        "word": "mail",
+        "sentence": "Check the mail."
+    },
+    {
+        "mode": "medium",
+        "word": "making",
+        "sentence": "She was making a beautiful painting in her studio."
+    },
+    {
+        "mode": "easy",
+        "word": "man",
+        "sentence": "The man helped the elderly cross the street."
+    },
+    {
+        "mode": "medium",
+        "word": "mango",
+        "sentence": "Slice the ripe mango before serving."
+    },
+    {
+        "mode": "medium",
+        "word": "manner",
+        "sentence": "He spoke in a polite manner to his boss."
+    },
+    {
+        "mode": "easy",
+        "word": "map",
+        "sentence": "We used a map to find the trail."
+    },
+    {
+        "mode": "hard",
+        "word": "marathon",
+        "sentence": "She trained hard for the city marathon next month."
+    },
+    {
+        "mode": "medium",
+        "word": "market",
+        "sentence": "She visited the local market for fresh produce."
+    },
+    {
+        "mode": "hard",
+        "word": "married",
+        "sentence": "They have been happily married for years."
+    },
+    {
+        "mode": "medium",
+        "word": "mask",
+        "sentence": "Wear a mask."
+    },
+    {
+        "mode": "medium",
+        "word": "match",
+        "sentence": "He used a match to light the candle."
+    },
+    {
+        "mode": "hard",
+        "word": "meaning",
+        "sentence": "He was searching for the true meaning behind the words."
+    },
+    {
+        "mode": "hard",
+        "word": "meeting",
+        "sentence": "They were meeting at the coffee shop for a chat."
+    },
+    {
+        "mode": "hard",
+        "word": "mice",
+        "sentence": "Three blind mice."
+    },
+    {
+        "mode": "hard",
+        "word": "midnight",
+        "sentence": "They stayed awake until midnight on New Year's Eve."
+    },
+    {
+        "mode": "easy",
+        "word": "milk",
+        "sentence": "She poured milk into her coffee cup."
+    },
+    {
+        "mode": "easy",
+        "word": "mine",
+        "sentence": "That toy is mine."
+    },
+    {
+        "mode": "medium",
+        "word": "mint",
+        "sentence": "Fresh mint."
+    },
+    {
+        "mode": "hard",
+        "word": "missing",
+        "sentence": "She was missing her friend at the crowded event."
+    },
+    {
+        "mode": "easy",
+        "word": "mist",
+        "sentence": "A light mist rose over the lake at dawn."
+    },
+    {
+        "mode": "easy",
+        "word": "mom",
+        "sentence": "My mom makes the best cookies."
+    },
+    {
+        "mode": "easy",
+        "word": "moon",
+        "sentence": "The moon shone brightly over the lake."
+    },
+    {
+        "mode": "easy",
+        "word": "mop",
+        "sentence": "Mop the floor."
+    },
+    {
+        "mode": "medium",
+        "word": "mother",
+        "sentence": "His mother prepared a special birthday meal."
+    },
+    {
+        "mode": "medium",
+        "word": "mouth",
+        "sentence": "Keep your mouth closed when chewing."
+    },
+    {
+        "mode": "medium",
+        "word": "movie",
+        "sentence": "We watched a funny movie last night."
+    },
+    {
+        "mode": "medium",
+        "word": "moving",
+        "sentence": "They are moving to a new house next month."
+    },
+    {
+        "mode": "easy",
+        "word": "mug",
+        "sentence": "Hot cocoa in a mug."
+    },
+    {
+        "mode": "medium",
+        "word": "music",
+        "sentence": "The music filled the room with cheerful tunes."
+    },
+    {
+        "mode": "easy",
+        "word": "my",
+        "sentence": "I left my coat by the door."
+    },
+    {
+        "mode": "hard",
+        "word": "mystery",
+        "sentence": "The book's mystery kept me reading late."
+    },
+    {
+        "mode": "easy",
+        "word": "name",
+        "sentence": "What is your name?"
+    },
+    {
+        "mode": "medium",
+        "word": "naming",
+        "sentence": "The family was naming their newborn baby."
+    },
+    {
+        "mode": "easy",
+        "word": "nap",
+        "sentence": "I took a quick nap after lunch."
+    },
+    {
+        "mode": "medium",
+        "word": "nature",
+        "sentence": "We enjoyed the beauty of nature on our hike."
+    },
+    {
+        "mode": "easy",
+        "word": "nest",
+        "sentence": "A bird built its nest in our tree."
+    },
+    {
+        "mode": "easy",
+        "word": "net",
+        "sentence": "Catch fish in a net."
+    },
+    {
+        "mode": "medium",
+        "word": "news",
+        "sentence": "Read the news."
+    },
+    {
+        "mode": "easy",
+        "word": "nine",
+        "sentence": "Number nine."
+    },
+    {
+        "mode": "hard",
+        "word": "nonsense",
+        "sentence": "His argument was dismissed as complete nonsense."
+    },
+    {
+        "mode": "easy",
+        "word": "nose",
+        "sentence": "Touch your nose."
+    },
+    {
+        "mode": "easy",
+        "word": "not",
+        "sentence": "He is not going to the party tonight."
+    },
+    {
+        "mode": "medium",
+        "word": "note",
+        "sentence": "Write a note."
+    },
+    {
+        "mode": "hard",
+        "word": "noticing",
+        "sentence": "He was noticing every detail of the painting."
+    },
+    {
+        "mode": "medium",
+        "word": "number",
+        "sentence": "Please write down your phone number."
+    },
+    {
+        "mode": "medium",
+        "word": "nut",
+        "sentence": "The squirrel hid a nut."
+    },
+    {
+        "mode": "easy",
+        "word": "of",
+        "sentence": "A cup of tea."
+    },
+    {
+        "mode": "medium",
+        "word": "office",
+        "sentence": "He arrived early at the office to start his day."
+    },
+    {
+        "mode": "hard",
+        "word": "opening",
+        "sentence": "She was opening the gift with excitement."
+    },
+    {
+        "mode": "medium",
+        "word": "orange",
+        "sentence": "She peeled an orange for breakfast."
+    },
+    {
+        "mode": "hard",
+        "word": "ordering",
+        "sentence": "He was ordering food online for dinner."
+    },
+    {
+        "mode": "hard",
+        "word": "organic",
+        "sentence": "She prefers organic fruits and vegetables."
+    },
+    {
+        "mode": "hard",
+        "word": "overload",
+        "sentence": "The circuit might overload if we use too many devices."
+    },
+    {
+        "mode": "hard",
+        "word": "overseas",
+        "sentence": "He plans to study overseas next semester."
+    },
+    {
+        "mode": "medium",
+        "word": "owl",
+        "sentence": "The owl hoots at night."
+    },
+    {
+        "mode": "easy",
+        "word": "pa",
+        "sentence": "Pa drove us to the old farm."
+    },
+    {
+        "mode": "hard",
+        "word": "painting",
+        "sentence": "She spent the afternoon painting a portrait."
+    },
+    {
+        "mode": "easy",
+        "word": "pan",
+        "sentence": "Cook in a pan."
+    },
+    {
+        "mode": "medium",
+        "word": "paper",
+        "sentence": "Write your ideas on a blank paper."
+    },
+    {
+        "mode": "medium",
+        "word": "park",
+        "sentence": "Play in the park."
+    },
+    {
+        "mode": "hard",
+        "word": "passing",
+        "sentence": "The runner was passing the finish line in record time."
+    },
+    {
+        "mode": "medium",
+        "word": "paying",
+        "sentence": "He was paying the bill at the restaurant."
+    },
+    {
+        "mode": "medium",
+        "word": "pear",
+        "sentence": "Juicy pear."
+    },
+    {
+        "mode": "medium",
+        "word": "peas",
+        "sentence": "Green peas."
+    },
+    {
+        "mode": "hard",
+        "word": "peeking",
+        "sentence": "The child was peeking through the slightly open door."
+    },
+    {
+        "mode": "easy",
+        "word": "pen",
+        "sentence": "He signed the paper with a black pen."
+    },
+    {
+        "mode": "hard",
+        "word": "perfume",
+        "sentence": "The perfume smelled like fresh flowers."
+    },
+    {
+        "mode": "easy",
+        "word": "pet",
+        "sentence": "I have a pet dog."
+    },
+    {
+        "mode": "medium",
+        "word": "phone",
+        "sentence": "I forgot my phone at home this morning."
+    },
+    {
+        "mode": "hard",
+        "word": "picking",
+        "sentence": "She was picking fresh flowers from the garden."
+    },
+    {
+        "mode": "hard",
+        "word": "picture",
+        "sentence": "She took a picture of the beautiful sunset."
+    },
+    {
+        "mode": "easy",
+        "word": "pie",
+        "sentence": "Apple pie is yummy."
+    },
+    {
+        "mode": "easy",
+        "word": "pig",
+        "sentence": "The pig likes mud."
+    },
+    {
+        "mode": "medium",
+        "word": "pilot",
+        "sentence": "The pilot announced a slight delay in landing."
+    },
+    {
+        "mode": "easy",
+        "word": "pin",
+        "sentence": "A sharp pin."
+    },
+    {
+        "mode": "medium",
+        "word": "pine",
+        "sentence": "Pine tree."
+    },
+    {
+        "mode": "easy",
+        "word": "pink",
+        "sentence": "Pink flower."
+    },
+    {
+        "mode": "hard",
+        "word": "pipe",
+        "sentence": "Water pipe."
+    },
+    {
+        "mode": "medium",
+        "word": "plan",
+        "sentence": "Make a plan."
+    },
+    {
+        "mode": "hard",
+        "word": "planning",
+        "sentence": "They were planning a surprise party for their friend."
+    },
+    {
+        "mode": "medium",
+        "word": "plant",
+        "sentence": "The green plant brightened up the room."
+    },
+    {
+        "mode": "hard",
+        "word": "planting",
+        "sentence": "He was planting new trees along the avenue."
+    },
+    {
+        "mode": "easy",
+        "word": "play",
+        "sentence": "We like to play."
+    },
+    {
+        "mode": "hard",
+        "word": "playing",
+        "sentence": "The kids were playing happily in the park."
+    },
+    {
+        "mode": "medium",
+        "word": "plum",
+        "sentence": "Purple plum."
+    },
+    {
+        "mode": "hard",
+        "word": "pointing",
+        "sentence": "She was pointing at the map to show the route."
+    },
+    {
+        "mode": "medium",
+        "word": "pool",
+        "sentence": "Swim in the pool."
+    },
+    {
+        "mode": "easy",
+        "word": "pop",
+        "sentence": "Watch the balloon pop if you poke it."
+    },
+    {
+        "mode": "hard",
+        "word": "pork",
+        "sentence": "Pork chop."
+    },
+    {
+        "mode": "easy",
+        "word": "pot",
+        "sentence": "Boil water in a pot."
+    },
+    {
+        "mode": "medium",
+        "word": "pride",
+        "sentence": "He felt pride in his team's accomplishment."
+    },
+    {
+        "mode": "hard",
+        "word": "princess",
+        "sentence": "The fairy tale featured a brave princess."
+    },
+    {
+        "mode": "hard",
+        "word": "printer",
+        "sentence": "The printer jammed while printing the report."
+    },
+    {
+        "mode": "hard",
+        "word": "private",
+        "sentence": "He kept the documents in a private folder."
+    },
+    {
+        "mode": "hard",
+        "word": "pulling",
+        "sentence": "He was pulling the heavy door open."
+    },
+    {
+        "mode": "hard",
+        "word": "pushing",
+        "sentence": "They were pushing the stalled car to get it moving."
+    },
+    {
+        "mode": "medium",
+        "word": "puzzle",
+        "sentence": "They solved a jigsaw puzzle together."
+    },
+    {
+        "mode": "easy",
+        "word": "rain",
+        "sentence": "We listened to the gentle rain on the roof."
+    },
+    {
+        "mode": "easy",
+        "word": "rat",
+        "sentence": "The rat ate cheese."
+    },
+    {
+        "mode": "hard",
+        "word": "reading",
+        "sentence": "She was reading a fascinating book by the window."
+    },
+    {
+        "mode": "easy",
+        "word": "real",
+        "sentence": "The magic show felt real to the audience."
+    },
+    {
+        "mode": "hard",
+        "word": "recover",
+        "sentence": "It took time to recover from the flu."
+    },
+    {
+        "mode": "easy",
+        "word": "red",
+        "sentence": "The rose is red."
+    },
+    {
+        "mode": "medium",
+        "word": "region",
+        "sentence": "That region is known for its rainy climate."
+    },
+    {
+        "mode": "medium",
+        "word": "repeat",
+        "sentence": "Could you repeat that"
+    },
+    {
+        "mode": "hard",
+        "word": "replace",
+        "sentence": "We plan to replace the old sofa soon."
+    },
+    {
+        "mode": "easy",
+        "word": "rice",
+        "sentence": "He served rice with chicken for dinner."
+    },
+    {
+        "mode": "hard",
+        "word": "ringing",
+        "sentence": "The phone was ringing loudly in the office."
+    },
+    {
+        "mode": "easy",
+        "word": "road",
+        "sentence": "The road was quiet early in the morning."
+    },
+    {
+        "mode": "easy",
+        "word": "rock",
+        "sentence": "He skipped a flat rock across the pond."
+    },
+    {
+        "mode": "easy",
+        "word": "roll",
+        "sentence": "She likes to roll the dough on the table."
+    },
+    {
+        "mode": "easy",
+        "word": "rope",
+        "sentence": "Tie the boxes with a strong rope."
+    },
+    {
+        "mode": "easy",
+        "word": "row",
+        "sentence": "They sat in the front row at the concert."
+    },
+    {
+        "mode": "easy",
+        "word": "rug",
+        "sentence": "The rug felt soft under my feet."
+    },
+    {
+        "mode": "easy",
+        "word": "run",
+        "sentence": "The athlete decided to run a marathon."
+    },
+    {
+        "mode": "hard",
+        "word": "running",
+        "sentence": "He was running quickly to catch the bus."
+    },
+    {
+        "mode": "easy",
+        "word": "sad",
+        "sentence": "Do not be sad."
+    },
+    {
+        "mode": "medium",
+        "word": "saying",
+        "sentence": "She was saying something important during the meeting."
+    },
+    {
+        "mode": "medium",
+        "word": "school",
+        "sentence": "The children went to school every weekday."
+    },
+    {
+        "mode": "medium",
+        "word": "sea",
+        "sentence": "Ships sail on the sea."
+    },
+    {
+        "mode": "easy",
+        "word": "seed",
+        "sentence": "Plant a seed and watch it grow."
+    },
+    {
+        "mode": "medium",
+        "word": "seeing",
+        "sentence": "He was seeing a beautiful sunset at the beach."
+    },
+    {
+        "mode": "medium",
+        "word": "seldom",
+        "sentence": "He seldom goes out on weekdays."
+    },
+    {
+        "mode": "hard",
+        "word": "selling",
+        "sentence": "The vendor was selling fresh fruits at the market."
+    },
+    {
+        "mode": "hard",
+        "word": "sending",
+        "sentence": "She was sending a postcard to her friend overseas."
+    },
+    {
+        "mode": "hard",
+        "word": "shaking",
+        "sentence": "He was shaking the bottle before opening it."
+    },
+    {
+        "mode": "hard",
+        "word": "sharing",
+        "sentence": "They were sharing their snacks during recess."
+    },
+    {
+        "mode": "easy",
+        "word": "shop",
+        "sentence": "Let's shop for groceries this afternoon."
+    },
+    {
+        "mode": "hard",
+        "word": "showing",
+        "sentence": "The teacher was showing the solution on the board."
+    },
+    {
+        "mode": "easy",
+        "word": "sign",
+        "sentence": "Look at the sign to find your way."
+    },
+    {
+        "mode": "hard",
+        "word": "singing",
+        "sentence": "She was singing a lovely tune at the concert."
+    },
+    {
+        "mode": "easy",
+        "word": "sit",
+        "sentence": "Sit on the chair."
+    },
+    {
+        "mode": "hard",
+        "word": "sitting",
+        "sentence": "He was sitting quietly in the waiting room."
+    },
+    {
+        "mode": "easy",
+        "word": "sky",
+        "sentence": "The sky is blue."
+    },
+    {
+        "mode": "hard",
+        "word": "sleeping",
+        "sentence": "The baby was sleeping peacefully in the crib."
+    },
+    {
+        "mode": "hard",
+        "word": "smelling",
+        "sentence": "She was smelling the aroma of fresh bread."
+    },
+    {
+        "mode": "medium",
+        "word": "smile",
+        "sentence": "Her smile brightened up the gloomy day."
+    },
+    {
+        "mode": "easy",
+        "word": "snow",
+        "sentence": "The snow covered the ground in a white blanket."
+    },
+    {
+        "mode": "easy",
+        "word": "song",
+        "sentence": "I love that song on the radio."
+    },
+    {
+        "mode": "medium",
+        "word": "sound",
+        "sentence": "The sound of laughter echoed in the hall."
+    },
+    {
+        "mode": "medium",
+        "word": "space",
+        "sentence": "The astronaut explored outer space."
+    },
+    {
+        "mode": "hard",
+        "word": "speaking",
+        "sentence": "He was speaking confidently during his presentation."
+    },
+    {
+        "mode": "medium",
+        "word": "spring",
+        "sentence": "The season of spring brought new life to nature."
+    },
+    {
+        "mode": "hard",
+        "word": "standing",
+        "sentence": "They were standing in line for tickets."
+    },
+    {
+        "mode": "easy",
+        "word": "star",
+        "sentence": "The star was so bright in the sky."
+    },
+    {
+        "mode": "hard",
+        "word": "starting",
+        "sentence": "She was starting her new project with enthusiasm."
+    },
+    {
+        "mode": "hard",
+        "word": "station",
+        "sentence": "He waited at the bus station for his ride."
+    },
+    {
+        "mode": "hard",
+        "word": "staying",
+        "sentence": "They were staying at a cozy hotel for the weekend."
+    },
+    {
+        "mode": "medium",
+        "word": "street",
+        "sentence": "The busy street was filled with people and cars."
+    },
+    {
+        "mode": "hard",
+        "word": "studying",
+        "sentence": "He was studying for his upcoming exams late into the night."
+    },
+    {
+        "mode": "medium",
+        "word": "summer",
+        "sentence": "We enjoyed a warm summer at the beach."
+    },
+    {
+        "mode": "easy",
+        "word": "sun",
+        "sentence": "The sun shines brightly in the sky."
+    },
+    {
+        "mode": "hard",
+        "word": "swimming",
+        "sentence": "They were swimming in the clear blue lake on a hot day."
+    },
+    {
+        "mode": "hard",
+        "word": "swinging",
+        "sentence": "The children were swinging on the playground swings."
+    },
+    {
+        "mode": "medium",
+        "word": "table",
+        "sentence": "They gathered around the wooden table."
+    },
+    {
+        "mode": "medium",
+        "word": "taking",
+        "sentence": "She was taking a picture of the scenic view."
+    },
+    {
+        "mode": "hard",
+        "word": "talking",
+        "sentence": "They were talking animatedly about their plans."
+    },
+    {
+        "mode": "easy",
+        "word": "tap",
+        "sentence": "Tap on the door."
+    },
+    {
+        "mode": "hard",
+        "word": "teaching",
+        "sentence": "The professor was teaching the class with great passion."
+    },
+    {
+        "mode": "easy",
+        "word": "ten",
+        "sentence": "I have ten fingers."
+    },
+    {
+        "mode": "medium",
+        "word": "that",
+        "sentence": "That is very big."
+    },
+    {
+        "mode": "medium",
+        "word": "their",
+        "sentence": "Their house was huge."
+    },
+    {
+        "mode": "medium",
+        "word": "then",
+        "sentence": "He was cool back then."
+    },
+    {
+        "mode": "medium",
+        "word": "there",
+        "sentence": "There you go."
+    },
+    {
+        "mode": "medium",
+        "word": "these",
+        "sentence": "These are big apples"
+    },
+    {
+        "mode": "hard",
+        "word": "thinking",
+        "sentence": "He was thinking deeply about the problem."
+    },
+    {
+        "mode": "easy",
+        "word": "tie",
+        "sentence": "He learned how to tie his shoelaces."
+    },
+    {
+        "mode": "medium",
+        "word": "timber",
+        "sentence": "The cabin was built with solid timber."
+    },
+    {
+        "mode": "easy",
+        "word": "time",
+        "sentence": "There is no time like the present moment."
+    },
+    {
+        "mode": "easy",
+        "word": "tire",
+        "sentence": "The car had a flat tire this morning."
+    },
+    {
+        "mode": "easy",
+        "word": "to",
+        "sentence": "Go to bed."
+    },
+    {
+        "mode": "easy",
+        "word": "top",
+        "sentence": "Climb to the top."
+    },
+    {
+        "mode": "easy",
+        "word": "toy",
+        "sentence": "Play with the toy."
+    },
+    {
+        "mode": "easy",
+        "word": "tree",
+        "sentence": "A tall tree stood at the edge of the field."
+    },
+    {
+        "mode": "hard",
+        "word": "triangle",
+        "sentence": "She drew a perfect triangle on the board."
+    },
+    {
+        "mode": "hard",
+        "word": "trouble",
+        "sentence": "They ran into trouble on their road trip."
+    },
+    {
+        "mode": "easy",
+        "word": "tub",
+        "sentence": "Wash in the tub."
+    },
+    {
+        "mode": "hard",
+        "word": "umbrella",
+        "sentence": "She opened her umbrella as it started to rain."
+    },
+    {
+        "mode": "easy",
+        "word": "up",
+        "sentence": "Look up there."
+    },
+    {
+        "mode": "hard",
+        "word": "vacation",
+        "sentence": "They saved money for a tropical vacation."
+    },
+    {
+        "mode": "easy",
+        "word": "van",
+        "sentence": "Drive the big van."
+    },
+    {
+        "mode": "medium",
+        "word": "vet",
+        "sentence": "Take the cat to the vet."
+    },
+    {
+        "mode": "hard",
+        "word": "waiting",
+        "sentence": "She was waiting patiently for the bus."
+    },
+    {
+        "mode": "hard",
+        "word": "walking",
+        "sentence": "They were walking through the park on a sunny day."
+    },
+    {
+        "mode": "hard",
+        "word": "watching",
+        "sentence": "He was watching the game with great interest."
+    },
+    {
+        "mode": "medium",
+        "word": "water",
+        "sentence": "Please drink a glass of water every morning."
+    },
+    {
+        "mode": "easy",
+        "word": "wave",
+        "sentence": "Give a quick wave to say hello."
+    },
+    {
+        "mode": "easy",
+        "word": "we",
+        "sentence": "We are happy."
+    },
+    {
+        "mode": "medium",
+        "word": "web",
+        "sentence": "The spider made a web."
+    },
+    {
+        "mode": "easy",
+        "word": "wet",
+        "sentence": "The rain made me wet."
+    },
+    {
+        "mode": "hard",
+        "word": "whatever",
+        "sentence": "Do whatever you think is best."
+    },
+    {
+        "mode": "medium",
+        "word": "when",
+        "sentence": "When are you coming home?"
+    },
+    {
+        "mode": "medium",
+        "word": "where",
+        "sentence": "Where are you?"
+    },
+    {
+        "mode": "hard",
+        "word": "wherever",
+        "sentence": "I'll follow you wherever you decide to go."
+    },
+    {
+        "mode": "medium",
+        "word": "wig",
+        "sentence": "He wore a funny wig."
+    },
+    {
+        "mode": "easy",
+        "word": "win",
+        "sentence": "I want to win."
+    },
+    {
+        "mode": "easy",
+        "word": "wind",
+        "sentence": "The wind rustled the leaves in the forest."
+    },
+    {
+        "mode": "medium",
+        "word": "window",
+        "sentence": "He looked through the open window to see outside."
+    },
+    {
+        "mode": "medium",
+        "word": "winter",
+        "sentence": "The winter brought a blanket of snow."
+    },
+    {
+        "mode": "medium",
+        "word": "wonder",
+        "sentence": "I wonder what time the show starts."
+    },
+    {
+        "mode": "hard",
+        "word": "writing",
+        "sentence": "She was writing a letter to her old friend."
+    },
+    {
+        "mode": "easy",
+        "word": "you",
+        "sentence": "You are invited to join us."
+    },
+    {
+        "mode": "medium",
+        "word": "your",
+        "sentence": "Your mom is very nice."
+    },
+    {
+        "mode": "medium",
+        "word": "zip",
+        "sentence": "Zip up your coat."
+    }
+]

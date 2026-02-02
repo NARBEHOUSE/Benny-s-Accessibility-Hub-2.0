@@ -1,0 +1,1696 @@
+<!-- phrase_board_builder.html (robust v1) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NARBE Phrase Board Builder</title>
+  <style>
+    :root {
+      --brand: #5bb0ff;
+      --ok: #28a745;
+      --danger: #e55353;
+      --muted: #6c757d;
+      --bg: #f5f7fb;
+      --card: #ffffff;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; background: var(--bg); color: #111827; }
+    header { background: var(--brand); color: white; padding: 14px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    header h1 { margin: 0; font-size: 20px; }
+    main { padding: 16px; max-width: 1200px; margin: 0 auto; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .btn { border: 0; padding: 10px 12px; border-radius: 10px; background: var(--brand); color: #fff; cursor: pointer; font-weight: 600; }
+    .btn.secondary { background: #111827; color: #fff; }
+    .btn.ok { background: var(--ok); }
+    .btn.muted { background: var(--muted); }
+    .btn.danger { background: var(--danger); }
+    .btn.yellow { background: #eab308; color: #fff; }
+    .btn.orange { background: #ff5c00; color: #fff; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; box-shadow: 0 2px 8px rgba(17,24,39,0.05); }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .grow { flex: 1 1 0; }
+    input[type="text"], input[type="number"], input[type="search"], select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+    input[type="color"] { width: 40px; height: 36px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+    label { font-size: 12px; color: #374151; display: block; margin-bottom: 6px; }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 10px; }
+    .cat { grid-column: span 12; }
+    .cat header { display: grid; grid-template-columns: 80px 1fr 140px 120px auto 40px 40px 40px; gap: 10px; align-items: end; margin-bottom: 12px; }
+    .cat header .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+    .swatch { width: 24px; height: 24px; border-radius: 6px; border: 1px solid #0001; cursor: pointer; }
+    .collapse-btn {
+      cursor: pointer;
+      padding: 8px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 16px;
+      user-select: none;
+      border-radius: 6px;
+      transition: transform 0.2s ease;
+    }
+    .collapse-btn:hover { background: var(--bg); }
+    .collapse-btn.collapsed { transform: rotate(-90deg); }
+    .cat-content {
+      overflow: hidden;
+      transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+      max-height: 2000px;
+      opacity: 1;
+    }
+    .cat-content.collapsed {
+      max-height: 0;
+      opacity: 0;
+      margin-bottom: 0;
+    }
+    .drag-handle { 
+      cursor: grab; 
+      padding: 8px; 
+      text-align: center; 
+      color: var(--muted); 
+      font-size: 16px; 
+      user-select: none;
+      border-radius: 6px;
+    }
+    .drag-handle:hover { background: var(--bg); }
+    .drag-handle:active { cursor: grabbing; }
+    .row-drag-handle { 
+      cursor: grab; 
+      padding: 4px; 
+      text-align: center; 
+      color: var(--muted); 
+      font-size: 12px; 
+      user-select: none;
+      border-radius: 4px;
+      width: 20px;
+    }
+    .row-drag-handle:hover { background: var(--bg); }
+    .row-drag-handle:active { cursor: grabbing; }
+    .row-dragging { opacity: 0.5; }
+    .category-dragging { opacity: 0.5; transform: rotate(2deg); }
+    .drag-ghost { 
+      position: fixed; 
+      pointer-events: none; 
+      z-index: 1001; 
+      opacity: 0.8; 
+      transform: rotate(2deg) scale(0.95); 
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+    .drop-indicator { 
+      height: 4px; 
+      background: var(--brand); 
+      border-radius: 2px; 
+      margin: 8px 0; 
+      opacity: 0; 
+      transition: opacity 0.2s ease;
+    }
+    .drop-indicator.show { opacity: 1; }
+    .drop-zone { border-top: 3px solid var(--brand); margin-top: -3px; }
+    .color-popup { 
+      position: absolute; 
+      background: white; 
+      border: 1px solid var(--border); 
+      border-radius: 8px; 
+      padding: 12px; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+      z-index: 1000; 
+      display: none;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 4px;
+      width: 280px;
+    }
+    .color-popup.show { display: grid; }
+    .color-btn { 
+      background: var(--muted); 
+      border: 1px solid var(--border); 
+      border-radius: 6px; 
+      padding: 4px 8px; 
+      cursor: pointer; 
+      font-size: 11px; 
+      position: relative;
+    }
+    .color-btn:hover { background: var(--bg); }
+    .image-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .image-modal.show { display: flex; }
+    .image-modal-content {
+      background: white;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 700px;
+      max-height: 85vh;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+    .image-modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-size: 20px;
+      cursor: pointer;
+      color: var(--muted);
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+    }
+    .image-modal-close:hover { 
+      background: var(--danger); 
+      color: white;
+      border-color: var(--danger);
+    }
+    .image-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+    .image-modal-header h3 {
+      margin: 0;
+      color: #111827;
+      font-size: 18px;
+    }
+    .image-preview-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: white;
+    }
+    .image-preview {
+      width: 100%;
+      height: 200px;
+      border: 2px dashed var(--border);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .image-preview img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .image-url-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .image-url-controls {
+      display: flex;
+      gap: 12px;
+      align-items: end;
+    }
+    .image-search-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      background: white;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+      margin-top: 4px;
+    }
+    .search-controls {
+      display: flex;
+      gap: 12px;
+      align-items: end;
+    }
+    .search-results {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .search-results::-webkit-scrollbar {
+      width: 8px;
+    }
+    .search-results::-webkit-scrollbar-track {
+      background: var(--bg);
+      border-radius: 4px;
+    }
+    .search-results::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    .search-results::-webkit-scrollbar-thumb:hover {
+      background: var(--muted);
+    }
+    .search-results img {
+      width: 100%;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: all 0.2s ease;
+      background: white;
+    }
+    .search-results img:hover {
+      border-color: var(--brand);
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(91, 176, 255, 0.2);
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-top: 1px solid var(--border); padding: 8px; vertical-align: middle; }
+    thead th { font-size: 12px; color: #6b7280; text-align: left; }
+    tbody tr:hover { background: rgba(249, 250, 251, 0.8) !important; }
+    .row-actions { display: flex; gap: 8px; }
+    .checkbox { width: 18px; height: 18px; }
+    .pill { padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: #fff; }
+    .img-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); cursor: pointer; }
+    .section { margin-top: 18px; }
+    details { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+    summary { font-weight: 700; cursor: pointer; padding: 6px 0; }
+    .picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-top: 10px; max-height: 260px; overflow: auto; }
+    .picker img { width: 100%; height: 88px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border); cursor: pointer; }
+    footer { text-align: center; color: #6b7280; padding: 16px; }
+    .hidden { display: none !important; }
+    .nowrap { white-space: nowrap; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🧡 NARBE Phrase Board Builder</h1>
+    <button class="btn yellow" id="newBtn">New</button>
+    <input type="file" id="importFile" accept=".csv" class="hidden" />
+    <button class="btn secondary" id="importBtn">Import CSV</button>
+    <button class="btn orange" id="copyBtn">Copy CSV to Clipboard</button>
+    <button class="btn ok" id="downloadBtn">Download CSV</button>
+    <button class="btn muted" id="saveLocal">Save to this browser</button>
+    <button class="btn danger" id="clearLocal">Clear browser save</button>
+  </header>
+
+  <main>
+    <div class="card section">
+      <div class="row" style="align-items: end; gap: 16px;">
+        <div class="grow">
+          <label for="boardName">Board name</label>
+          <input id="boardName" type="text" placeholder="e.g., NARBE House Default" />
+        </div>
+        <div>
+          <label>Board color</label>
+          <div class="row">
+            <input id="boardColor" type="color" value="#5bb0ff" />
+            <button class="btn color-btn" id="boardColorBtn">Color</button>
+          </div>
+        </div>
+        <div>
+          <label>Board image</label>
+          <div class="row">
+            <img id="boardImgThumb" class="img-thumb" src="" alt="" style="width: 36px; height: 36px;" />
+            <button class="btn" id="boardImageBtn" style="padding: 6px 10px; font-size: 12px;">Image</button>
+          </div>
+          <input id="boardImage" type="hidden" />
+        </div>
+      </div>
+    </div>
+
+    <div id="categories"></div>
+
+    <div class="section">
+      <button class="btn" id="addCategory">+ Add Category</button>
+    </div>
+
+    <div class="card section">
+      <details>
+        <summary>ℹ️ CSV format this builder exports</summary>
+        <p class="nowrap">Header: <strong>Category,CategoryOrder,Display,Speak,Image,CategoryColor,TileColor,TileOrder,CategoryImage,BoardName,BoardColor,BoardImage</strong></p>
+        <p>Runner can ignore unknown columns and still work. Colors are hex values. Board-level data (name, color, image) is duplicated in each row for compatibility.</p>
+      </details>
+    </div>
+  </main>
+
+  <footer>Built for families by NARBE House</footer>
+
+  <template id="categoryTemplate">
+    <section class="card cat" data-cat-id="">
+      <header>
+        <div>
+          <label>Order</label>
+          <input class="cat-order" type="number" min="1" step="1" value="1" />
+        </div>
+        <div>
+          <label>Category name</label>
+          <input class="cat-name" type="text" placeholder="e.g., Basic" />
+        </div>
+        <div>
+          <label>Category image</label>
+          <div class="row">
+            <img class="cat-img-thumb img-thumb" src="" alt="" style="width: 36px; height: 36px;" />
+            <button class="btn cat-image-btn" style="padding: 6px 10px; font-size: 12px;">Image</button>
+          </div>
+          <input class="cat-image" type="hidden" />
+        </div>
+        <div>
+          <label>Category color</label>
+          <div class="row">
+            <input class="cat-color" type="color" value="#5bb0ff" />
+            <button class="btn color-btn cat-color-btn">Color</button>
+          </div>
+        </div>
+        <div style="flex: 1;"></div>
+        <div>
+          <label>&nbsp;</label>
+          <div class="collapse-btn" title="Collapse/Expand">▼</div>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
+        </div>
+        <div>
+          <label>&nbsp;</label>
+          <button class="btn danger remove-cat" style="padding: 8px 12px; font-size: 20px;" title="Remove category">✕</button>
+        </div>
+      </header>
+
+      <div class="cat-content">
+        <table>
+          <thead>
+            <tr>
+              <th><input type="checkbox" class="select-all" /></th>
+              <th>Tile color (override)</th>
+              <th>Tile order</th>
+              <th>Display</th>
+              <th>Speak / Text / Link</th>
+              <th>Image</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody class="rows"></tbody>
+        </table>
+        <div style="text-align: center; margin-top: 15px;">
+          <button class="btn add-phrase" style="padding: 12px 24px;">+ Add Phrase</button>
+        </div>
+      </div>
+    </section>
+  </template>
+
+  <template id="rowTemplate">
+    <tr>
+      <td><input type="checkbox" class="sel checkbox" /></td>
+      <td>
+        <div class="row">
+          <label><input type="checkbox" class="use-override" /> Custom color</label>
+        </div>
+      </td>
+      <td>
+        <div class="row">
+          <span class="tile-order-display">1</span>
+          <div class="row-drag-handle" title="Drag to reorder">⋮</div>
+        </div>
+      </td>
+      <td><input class="display" type="text" placeholder="Button label" /></td>
+      <td><input class="speak" type="text" placeholder="What to speak, insert, or link to" /></td>
+      <td>
+        <div class="row" style="gap: 8px;">
+          <img class="img-thumb" src="" alt="" style="flex-shrink: 0;" />
+          <input class="image" type="text" placeholder="Image URL (optional)" style="flex: 1;" />
+        </div>
+      </td>
+      <td class="row-actions">
+        <button class="btn danger remove-row">Delete</button>
+      </td>
+    </tr>
+  </template>
+
+  <div id="colorPopup" class="color-popup"></div>
+  
+  <div id="imageModal" class="image-modal">
+    <div class="image-modal-content">
+      <button class="image-modal-close">&times;</button>
+      
+      <div class="image-modal-header">
+        <h3>Image Selection</h3>
+      </div>
+      
+      <div class="image-preview-section">
+        <div class="image-preview">
+          <img id="modalImagePreview" src="" alt="No image selected" style="display: none;" />
+          <span id="modalImagePlaceholder">No image selected</span>
+        </div>
+      </div>
+      
+      <div class="image-url-section">
+        <label>Image URL</label>
+        <div class="image-url-controls">
+          <input id="modalImageUrl" type="text" placeholder="Enter image URL" class="grow" />
+          <button class="btn ok" id="modalApplyBtn">Apply Image</button>
+        </div>
+      </div>
+      
+      <div class="image-search-section">
+        <div class="image-modal-header">
+          <h3>Search Images</h3>
+        </div>
+        <div class="search-controls">
+          <input id="modalImageQuery" type="search" placeholder="Search for images (e.g., water, food, help)" class="grow" />
+          <button class="btn" id="modalSearchBtn">Search</button>
+        </div>
+        <div id="modalSearchResults" class="search-results">
+          <p style="text-align: center; grid-column: 1 / -1; color: var(--muted);">Enter a search term to find images</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const palette = [
+      '#5bb0ff', '#ff5c00', '#16a34a', '#ef4444', '#eab308', '#a855f7', '#0ea5e9', '#f472b6', '#94a3b8', '#111827',
+      '#22c55e', '#f59e0b', '#14b8a6', '#dc2626', '#6366f1', '#1d4ed8', '#f43f5e', '#84cc16', '#06b6d4', '#f97316'
+    ];
+
+    const categories = document.getElementById('categories');
+    const catTpl = document.getElementById('categoryTemplate');
+    const rowTpl = document.getElementById('rowTemplate');
+
+    let focusedRow = null; // for image apply
+    let currentColorInput = null; // for color popup
+    let currentColorRows = []; // for bulk color application
+    let draggedCategory = null; // for drag and drop
+    let dragGhost = null; // visual drag ghost
+    let draggedRow = null; // for row drag and drop
+    let currentImageRow = null; // for image modal
+    let currentImageCategory = null; // for category image modal
+    let currentImageBoard = false; // for board image modal
+    let autoScrollInterval = null; // for auto-scrolling during drag
+
+    function createColorPopup() {
+      const popup = document.getElementById('colorPopup');
+      palette.forEach(color => {
+        const swatch = document.createElement('div');
+        swatch.className = 'swatch';
+        swatch.style.background = color;
+        swatch.title = color;
+        swatch.addEventListener('click', () => {
+          if (currentColorInput) {
+            currentColorInput.value = toColorInput(color);
+            currentColorInput.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+          
+          if (currentColorRows.length > 0) {
+            currentColorRows.forEach(tr => {
+              if (!tr.querySelector('.tile-color')) {
+                // Add hidden color input if it doesn't exist
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'color';
+                hiddenInput.className = 'tile-color';
+                hiddenInput.style.display = 'none';
+                hiddenInput.value = toColorInput(color);
+                tr.appendChild(hiddenInput);
+              } else {
+                tr.querySelector('.tile-color').value = toColorInput(color);
+              }
+              tr.querySelector('.use-override').checked = true;
+              const catNode = tr.closest('.cat');
+              updateRowBackground(catNode, tr);
+            });
+          }
+          
+          hideColorPopup();
+        });
+        popup.appendChild(swatch);
+      });
+    }
+
+    function showColorPopup(button, colorInput) {
+      const popup = document.getElementById('colorPopup');
+      currentColorInput = colorInput;
+      
+      const rect = button.getBoundingClientRect();
+      popup.style.left = rect.left + 'px';
+      popup.style.top = (rect.bottom + 4) + 'px';
+      popup.classList.add('show');
+    }
+
+    function showColorPopupForRows(button, rows) {
+      const popup = document.getElementById('colorPopup');
+      currentColorInput = null;
+      currentColorRows = rows;
+      
+      const rect = button.getBoundingClientRect();
+      popup.style.left = rect.left + 'px';
+      popup.style.top = (rect.bottom + 4) + 'px';
+      popup.classList.add('show');
+    }
+
+    function hideColorPopup() {
+      document.getElementById('colorPopup').classList.remove('show');
+      currentColorInput = null;
+      currentColorRows = [];
+    }
+
+    function newCategory(order = null, values = null) {
+      const node = catTpl.content.firstElementChild.cloneNode(true);
+      node.dataset.catId = crypto.randomUUID();
+
+      // color button handlers
+      const catColorBtn = node.querySelector('.cat-color-btn');
+      const catColorInput = node.querySelector('.cat-color');
+      catColorBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        showColorPopup(catColorBtn, catColorInput);
+      });
+
+      // Category image button handler
+      const catImageBtn = node.querySelector('.cat-image-btn');
+      const catImgThumb = node.querySelector('.cat-img-thumb');
+      catImageBtn.addEventListener('click', () => {
+        currentImageCategory = node;
+        currentImageRow = null; // Clear row reference
+        showCategoryImageModal(node);
+      });
+      
+      catImgThumb.addEventListener('click', () => {
+        currentImageCategory = node;
+        currentImageRow = null;
+        showCategoryImageModal(node);
+      });
+
+      // Update colors when category color changes
+      catColorInput.addEventListener('input', () => {
+        updateCategoryColors(node);
+      });
+
+      // collapse/expand handler
+      const collapseBtn = node.querySelector('.collapse-btn');
+      const catContent = node.querySelector('.cat-content');
+      collapseBtn.addEventListener('click', () => {
+        toggleCategoryCollapse(node, collapseBtn, catContent);
+      });
+
+      // defaults
+      const orderInput = node.querySelector('.cat-order');
+      orderInput.value = order ?? (categories.children.length + 1);
+
+      // Apply values if provided (for import)
+      if (values) {
+        node.querySelector('.cat-name').value = values.name || '';
+        node.querySelector('.cat-color').value = toColorInput(values.color || '#5bb0ff');
+        if (values.image) {
+          node.querySelector('.cat-image').value = values.image;
+          node.querySelector('.cat-img-thumb').src = values.image;
+        }
+      }
+
+      // Auto-load image for category if name exists but no image
+      const catNameInput = node.querySelector('.cat-name');
+      catNameInput.addEventListener('input', () => {
+        const currentImage = node.querySelector('.cat-image').value.trim();
+        if (!currentImage) {
+          setTimeout(() => {
+            autoLoadCategoryImage(node);
+          }, 500);
+        }
+      });
+
+      // drag and drop handlers
+      const dragHandle = node.querySelector('.drag-handle');
+      dragHandle.addEventListener('mousedown', (e) => startDrag(e, node));
+      
+      // handlers
+      node.querySelector('.add-phrase').addEventListener('click', () => addRow(node));
+      node.querySelector('.remove-cat').addEventListener('click', () => {
+        const catName = node.querySelector('.cat-name').value || 'this category';
+        if (confirm(`Are you sure you want to remove "${catName}"? This action cannot be undone.`)) {
+          node.remove();
+          saveCollapsedStates();
+        }
+      });
+      node.querySelector('.select-all').addEventListener('change', (e) => selectAllRows(node, e.target.checked));
+
+      categories.appendChild(node);
+      addRow(node); // start with one row
+      updateCategoryColors(node); // Apply initial colors
+      
+      // Restore collapsed state if it exists
+      restoreCategoryCollapsedState(node);
+      
+      return node;
+    }
+
+    function updateCategoryColors(catNode) {
+      const catColor = catNode.querySelector('.cat-color').value;
+      const headerRow = catNode.querySelector('header');
+      
+      // Apply full category color to the header background
+      headerRow.style.backgroundColor = catColor;
+      
+      // Apply muted category color to all table rows
+      const tableRows = catNode.querySelectorAll('tbody tr');
+      tableRows.forEach(tr => {
+        const useOverride = tr.querySelector('.use-override').checked;
+        if (!useOverride) {
+          tr.style.backgroundColor = hexWithAlpha(catColor, 0.2);
+        }
+        updatePreview(catNode, tr);
+      });
+    }
+
+    function startDrag(e, categoryNode) {
+      e.preventDefault();
+      draggedCategory = categoryNode;
+      
+      // Create visual ghost
+      dragGhost = categoryNode.cloneNode(true);
+      dragGhost.classList.add('drag-ghost');
+      dragGhost.style.width = categoryNode.offsetWidth + 'px';
+      document.body.appendChild(dragGhost);
+      
+      // Add drop indicators
+      addDropIndicators();
+      
+      categoryNode.classList.add('category-dragging');
+      
+      const updateGhostPosition = (e) => {
+        if (dragGhost) {
+          dragGhost.style.left = (e.clientX - categoryNode.offsetWidth / 2) + 'px';
+          dragGhost.style.top = (e.clientY - 50) + 'px';
+        }
+      };
+      
+      // Auto-scroll function
+      const checkAutoScroll = (mouseY) => {
+        const scrollThreshold = 100;
+        const scrollSpeed = 10;
+        
+        if (autoScrollInterval) {
+          clearInterval(autoScrollInterval);
+          autoScrollInterval = null;
+        }
+        
+        // Check if near top or bottom of viewport
+        if (mouseY < scrollThreshold) {
+          // Scroll up
+          autoScrollInterval = setInterval(() => {
+            window.scrollBy(0, -scrollSpeed);
+          }, 20);
+        } else if (mouseY > window.innerHeight - scrollThreshold) {
+          // Scroll down
+          autoScrollInterval = setInterval(() => {
+            window.scrollBy(0, scrollSpeed);
+          }, 20);
+        }
+      };
+      
+      const mouseMoveHandler = (e) => {
+        updateGhostPosition(e);
+        updateDropIndicators(e.clientY);
+        checkAutoScroll(e.clientY);
+        
+        const afterElement = getDragAfterElement(categories, e.clientY);
+        if (afterElement == null) {
+          categories.appendChild(draggedCategory);
+        } else {
+          categories.insertBefore(draggedCategory, afterElement);
+        }
+      };
+
+      const mouseUpHandler = () => {
+        categoryNode.classList.remove('category-dragging');
+        
+        // Clear auto-scroll
+        if (autoScrollInterval) {
+          clearInterval(autoScrollInterval);
+          autoScrollInterval = null;
+        }
+        
+        // Remove ghost and indicators
+        if (dragGhost) {
+          dragGhost.remove();
+          dragGhost = null;
+        }
+        removeDropIndicators();
+        
+        draggedCategory = null;
+        document.removeEventListener('mousemove', mouseMoveHandler);
+        document.removeEventListener('mouseup', mouseUpHandler);
+        updateCategoryOrders();
+      };
+
+      // Initial ghost position
+      updateGhostPosition(e);
+
+      document.addEventListener('mousemove', mouseMoveHandler);
+      document.addEventListener('mouseup', mouseUpHandler);
+    }
+
+    function addDropIndicators() {
+      const cats = Array.from(categories.children);
+      
+      // Add indicator before first category
+      const firstIndicator = document.createElement('div');
+      firstIndicator.className = 'drop-indicator';
+      firstIndicator.dataset.position = '0';
+      categories.insertBefore(firstIndicator, categories.firstChild);
+      
+      // Add indicators after each category
+      cats.forEach((cat, index) => {
+        const indicator = document.createElement('div');
+        indicator.className = 'drop-indicator';
+        indicator.dataset.position = (index + 1).toString();
+        categories.insertBefore(indicator, cat.nextSibling);
+      });
+    }
+
+    function removeDropIndicators() {
+      categories.querySelectorAll('.drop-indicator').forEach(indicator => {
+        indicator.remove();
+      });
+    }
+
+    function updateDropIndicators(mouseY) {
+      const indicators = categories.querySelectorAll('.drop-indicator');
+      let closestIndicator = null;
+      let closestDistance = Infinity;
+      
+      indicators.forEach(indicator => {
+        const rect = indicator.getBoundingClientRect();
+        const distance = Math.abs(mouseY - rect.top);
+        
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestIndicator = indicator;
+        }
+      });
+      
+      // Hide all indicators
+      indicators.forEach(indicator => indicator.classList.remove('show'));
+      
+      // Show closest indicator if within reasonable distance
+      if (closestIndicator && closestDistance < 100) {
+        closestIndicator.classList.add('show');
+      }
+    }
+
+    function getDragAfterElement(container, y) {
+      const draggableElements = [...container.querySelectorAll('.cat:not(.category-dragging)')];
+      
+      return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+          return { offset: offset, element: child };
+        } else {
+          return closest;
+        }
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function updateCategoryOrders() {
+      Array.from(categories.children).forEach((c, i) => {
+        c.querySelector('.cat-order').value = i + 1;
+      });
+    }
+
+    function addRow(catNode, values = null) {
+      const tr = rowTpl.content.firstElementChild.cloneNode(true);
+      const tbody = catNode.querySelector('.rows');
+      tbody.appendChild(tr);
+
+      // Add hidden color input for storing tile color
+      const hiddenColorInput = document.createElement('input');
+      hiddenColorInput.type = 'color';
+      hiddenColorInput.className = 'tile-color';
+      hiddenColorInput.style.display = 'none';
+      hiddenColorInput.value = '#5bb0ff';
+      tr.appendChild(hiddenColorInput);
+
+      // row drag handler
+      const rowDragHandle = tr.querySelector('.row-drag-handle');
+      rowDragHandle.addEventListener('mousedown', (e) => startRowDrag(e, tr, catNode));
+
+      // custom color checkbox handler
+      const useOverrideCheckbox = tr.querySelector('.use-override');
+      useOverrideCheckbox.addEventListener('change', (e) => {
+        if (e.target.checked) {
+          // Get all selected rows (including this one)
+          const selectedRows = getSelectedRows(catNode);
+          if (selectedRows.length > 1) {
+            // Show color popup for multiple rows
+            showColorPopupForRows(e.target, selectedRows);
+          } else {
+            // Show color popup for single row
+            showColorPopupForRows(e.target, [tr]);
+          }
+        } else {
+          updateRowBackground(catNode, tr);
+        }
+      });
+
+      // image click handler
+      const imgThumb = tr.querySelector('.img-thumb');
+      imgThumb.addEventListener('click', () => {
+        currentImageRow = tr;
+        showImageModal(tr);
+      });
+
+      if (values) {
+        tr.querySelector('.tile-order-display').textContent = values.tileOrder ?? tbody.children.length;
+        tr.querySelector('.display').value = values.display ?? '';
+        tr.querySelector('.speak').value = values.speak ?? '';
+        tr.querySelector('.image').value = values.image ?? '';
+        const img = tr.querySelector('.img-thumb');
+        img.src = values.image || '';
+        if (values.tileColor) {
+          hiddenColorInput.value = toColorInput(values.tileColor);
+          tr.querySelector('.use-override').checked = true;
+        }
+        
+        // Auto-load image if text exists but no image URL
+        if ((values.display || values.speak) && !values.image) {
+          setTimeout(() => {
+            autoLoadImageForRow(tr);
+          }, 200);
+        }
+      } else {
+        tr.querySelector('.tile-order-display').textContent = tbody.children.length;
+      }
+
+      tr.querySelector('.image').addEventListener('input', () => {
+        tr.querySelector('.img-thumb').src = tr.querySelector('.image').value;
+      });
+      
+      // Auto-load image when display or speak text is entered
+      tr.querySelector('.display').addEventListener('input', () => {
+        const currentImage = tr.querySelector('.image').value.trim();
+        if (!currentImage) {
+          setTimeout(() => {
+            autoLoadImageForRow(tr);
+          }, 500); // Small delay to avoid too many API calls while typing
+        }
+      });
+      
+      tr.querySelector('.speak').addEventListener('input', () => {
+        const currentImage = tr.querySelector('.image').value.trim();
+        if (!currentImage) {
+          setTimeout(() => {
+            autoLoadImageForRow(tr);
+          }, 500); // Small delay to avoid too many API calls while typing
+        }
+      });
+      
+      updateRowBackground(catNode, tr);
+
+      tr.querySelector('.remove-row').addEventListener('click', () => {
+        tr.remove();
+        updateRowOrders(catNode);
+      });
+    }
+
+    async function autoLoadImageForRow(tr) {
+      const currentImage = tr.querySelector('.image').value.trim();
+      if (currentImage) return; // Don't auto-load if image already exists
+      
+      const speakText = tr.querySelector('.speak').value.trim();
+      const displayText = tr.querySelector('.display').value.trim();
+      const searchTerm = speakText || displayText;
+      
+      if (!searchTerm) return; // Don't search if no text
+      
+      try {
+        const urls = await searchImages(searchTerm);
+        if (urls.length > 0) {
+          const firstImageUrl = urls[0];
+          tr.querySelector('.image').value = firstImageUrl;
+          tr.querySelector('.img-thumb').src = firstImageUrl;
+        }
+      } catch (error) {
+        console.error('Auto image load failed:', error);
+      }
+    }
+
+    async function autoLoadCategoryImage(catNode) {
+      const currentImage = catNode.querySelector('.cat-image').value.trim();
+      if (currentImage) return;
+      
+      const catName = catNode.querySelector('.cat-name').value.trim();
+      if (!catName) return;
+      
+      try {
+        const urls = await searchImages(catName);
+        if (urls.length > 0) {
+          const firstImageUrl = urls[0];
+          catNode.querySelector('.cat-image').value = firstImageUrl;
+          catNode.querySelector('.cat-img-thumb').src = firstImageUrl;
+        }
+      } catch (error) {
+        console.error('Auto category image load failed:', error);
+      }
+    }
+
+    async function autoLoadBoardImage() {
+      const currentImage = document.getElementById('boardImage').value.trim();
+      if (currentImage) return;
+      
+      const boardName = document.getElementById('boardName').value.trim();
+      if (!boardName) return;
+      
+      try {
+        const urls = await searchImages(boardName);
+        if (urls.length > 0) {
+          const firstImageUrl = urls[0];
+          document.getElementById('boardImage').value = firstImageUrl;
+          document.getElementById('boardImgThumb').src = firstImageUrl;
+        }
+      } catch (error) {
+        console.error('Auto board image load failed:', error);
+      }
+    }
+
+    function getSelectedRows(catNode) {
+      const selectedRows = [];
+      catNode.querySelectorAll('tbody tr').forEach(tr => {
+        if (tr.querySelector('.sel').checked) {
+          selectedRows.push(tr);
+        }
+      });
+      return selectedRows;
+    }
+
+    function startRowDrag(e, row, catNode) {
+      e.preventDefault();
+      draggedRow = row;
+      row.classList.add('row-dragging');
+      
+      const tbody = catNode.querySelector('.rows');
+      
+      // Auto-scroll function for rows
+      const checkAutoScroll = (mouseY) => {
+        const scrollThreshold = 100;
+        const scrollSpeed = 10;
+        
+        if (autoScrollInterval) {
+          clearInterval(autoScrollInterval);
+          autoScrollInterval = null;
+        }
+        
+        // Check if near top or bottom of viewport
+        if (mouseY < scrollThreshold) {
+          // Scroll up
+          autoScrollInterval = setInterval(() => {
+            window.scrollBy(0, -scrollSpeed);
+          }, 20);
+        } else if (mouseY > window.innerHeight - scrollThreshold) {
+          // Scroll down
+          autoScrollInterval = setInterval(() => {
+            window.scrollBy(0, scrollSpeed);
+          }, 20);
+        }
+      };
+      
+      const mouseMoveHandler = (e) => {
+        checkAutoScroll(e.clientY);
+        const afterElement = getRowAfterElement(tbody, e.clientY);
+        if (afterElement == null) {
+          tbody.appendChild(draggedRow);
+        } else {
+          tbody.insertBefore(draggedRow, afterElement);
+        }
+      };
+
+      const mouseUpHandler = () => {
+        row.classList.remove('row-dragging');
+        
+        // Clear auto-scroll
+        if (autoScrollInterval) {
+          clearInterval(autoScrollInterval);
+          autoScrollInterval = null;
+        }
+        
+        draggedRow = null;
+        document.removeEventListener('mousemove', mouseMoveHandler);
+        document.removeEventListener('mouseup', mouseUpHandler);
+        updateRowOrders(catNode);
+      };
+
+      document.addEventListener('mousemove', mouseMoveHandler);
+      document.addEventListener('mouseup', mouseUpHandler);
+    }
+
+    function getRowAfterElement(container, y) {
+      const draggableElements = [...container.querySelectorAll('tr:not(.row-dragging)')];
+      
+      return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+          return { offset: offset, element: child };
+        } else {
+          return closest;
+        }
+      }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function updateRowOrders(catNode) {
+      const rows = catNode.querySelectorAll('tbody tr');
+      rows.forEach((tr, index) => {
+        tr.querySelector('.tile-order-display').textContent = index + 1;
+      });
+    }
+
+    function updateRowBackground(catNode, tr) {
+      const useOverride = tr.querySelector('.use-override').checked;
+      const catColor = catNode.querySelector('.cat-color').value;
+      
+      if (useOverride) {
+        const tileColor = tr.querySelector('.tile-color').value;
+        tr.style.backgroundColor = hexWithAlpha(tileColor, 0.2);
+      } else {
+        tr.style.backgroundColor = hexWithAlpha(catColor, 0.2);
+      }
+    }
+
+    function updatePreview(catNode, tr) {
+      // Preview functionality removed - function kept for compatibility
+    }
+
+    function bulkApplyTileColor(catNode) {
+      const color = catNode.querySelector('.bulk-tile-color').value;
+      catNode.querySelectorAll('tbody tr').forEach(tr => {
+        if (tr.querySelector('.sel').checked) {
+          tr.querySelector('.tile-color').value = color;
+          tr.querySelector('.use-override').checked = true;
+          updatePreview(catNode, tr);
+        }
+      });
+    }
+
+    function toColorInput(hex) {
+      // ensure 7-char #RRGGBB
+      if (!hex) return '#000000';
+      if (hex.length === 9) return hex.slice(0,7);
+      if (hex.length === 4) {
+        const r = hex[1]+hex[1], g = hex[2]+hex[2], b = hex[3]+hex[3];
+        return '#'+r+g+b;
+      }
+      return hex;
+    }
+
+    function hexWithAlpha(hex, a) {
+      hex = toColorInput(hex).replace('#','');
+      const r = parseInt(hex.slice(0,2),16);
+      const g = parseInt(hex.slice(2,4),16);
+      const b = parseInt(hex.slice(4,6),16);
+      return `rgba(${r}, ${g}, ${b}, ${a})`;
+    }
+
+    function exportCSVString() {
+      const boardName = document.getElementById('boardName').value.trim();
+      const boardColor = document.getElementById('boardColor').value;
+      const boardImage = document.getElementById('boardImage').value.trim();
+      
+      const rows = [];
+      rows.push(['Category','CategoryOrder','Display','Speak','Image','CategoryColor','TileColor','TileOrder','CategoryImage','BoardName','BoardColor','BoardImage']);
+      
+      Array.from(categories.children).forEach(cat => {
+        const catName = cat.querySelector('.cat-name').value.trim();
+        const catOrder = parseInt(cat.querySelector('.cat-order').value || '1', 10);
+        const catColor = cat.querySelector('.cat-color').value;
+        const catImage = cat.querySelector('.cat-image').value.trim();
+        const trs = cat.querySelectorAll('tbody tr');
+        trs.forEach((tr, index) => {
+          const display = tr.querySelector('.display').value.trim();
+          const speak = tr.querySelector('.speak').value.trim();
+          const image = tr.querySelector('.image').value.trim();
+          const useOverride = tr.querySelector('.use-override').checked;
+          const tileColor = useOverride ? tr.querySelector('.tile-color').value : '';
+          const tileOrder = index + 1; // Use actual row position
+          // CSV escape - include board data in each row
+          rows.push([
+            catName, catOrder, display, speak, image, catColor, tileColor, tileOrder, catImage, boardName, boardColor, boardImage
+          ].map(csvEscape));
+        });
+      });
+      return rows.map(r => r.join(',')).join('\n');
+    }
+
+    function csvEscape(v) {
+      const s = String(v ?? '');
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        return '"' + s.replaceAll('"', '""') + '"';
+      }
+      return s;
+    }
+
+    async function downloadCSV() {
+      const name = (document.getElementById('boardName').value.trim() || 'phrase_board') + '.csv';
+      const csvContent = exportCSVString();
+      
+      try {
+        if (window.showSaveFilePicker) {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: name,
+            types: [{
+              description: 'CSV File',
+              accept: {'text/csv': ['.csv']},
+            }],
+          });
+          const writable = await handle.createWritable();
+          await writable.write(csvContent);
+          await writable.close();
+        } else {
+          // Fallback
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = name; a.click();
+          URL.revokeObjectURL(url);
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error(err);
+          alert('Error saving file: ' + err.message);
+        }
+      }
+    }
+
+    function copyCSV() {
+      const text = exportCSVString();
+      navigator.clipboard.writeText(text);
+      alert('CSV copied to clipboard');
+    }
+
+    function clearBuilder() {
+      categories.innerHTML = '';
+      localStorage.removeItem('narbe_category_collapsed_states');
+      newCategory(1);
+    }
+
+    function saveLocal() {
+      const data = {
+        boardName: document.getElementById('boardName').value,
+        csv: exportCSVString(),
+        ts: Date.now(),
+      };
+      localStorage.setItem('narbe_phrase_builder', JSON.stringify(data));
+      alert('Saved to this browser');
+    }
+
+    function loadLocal() {
+      const raw = localStorage.getItem('narbe_phrase_builder');
+      if (!raw) return false;
+      const data = JSON.parse(raw);
+      if (!data || !data.csv) return false;
+      document.getElementById('boardName').value = data.boardName || '';
+      importCSVString(data.csv);
+      return true;
+    }
+
+    function importCSVString(text) {
+      categories.innerHTML = '';
+      // parse CSV rows
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if (lines.length <= 1) { newCategory(1); return; }
+      const header = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const idx = {
+        category: header.indexOf('category'),
+        catOrder: header.indexOf('categoryorder'),
+        display: header.indexOf('display'),
+        speak: header.indexOf('speak'),
+        image: header.indexOf('image'),
+        catColor: header.indexOf('categorycolor'),
+        tileColor: header.indexOf('tilecolor'),
+        tileOrder: header.indexOf('tileorder'),
+        catImage: header.indexOf('categoryimage'), // New field
+        boardName: header.indexOf('boardname'), // New field
+        boardColor: header.indexOf('boardcolor'), // New field
+        boardImage: header.indexOf('boardimage'), // New field
+      };
+
+      // Extract board-level data from first row (if available)
+      if (lines.length > 1) {
+        const firstRow = parseCSVLine(lines[1]);
+        if (idx.boardName >= 0 && firstRow[idx.boardName]) {
+          document.getElementById('boardName').value = firstRow[idx.boardName];
+        }
+        if (idx.boardColor >= 0 && firstRow[idx.boardColor]) {
+          document.getElementById('boardColor').value = toColorInput(firstRow[idx.boardColor]);
+        }
+        if (idx.boardImage >= 0 && firstRow[idx.boardImage]) {
+          document.getElementById('boardImage').value = firstRow[idx.boardImage];
+          document.getElementById('boardImgThumb').src = firstRow[idx.boardImage];
+        }
+      }
+
+      // group by category name + order/color
+      const map = new Map();
+      for (let i = 1; i < lines.length; i++) {
+        const row = parseCSVLine(lines[i]);
+        const catName = row[idx.category] ?? '';
+        const catOrder = parseInt(row[idx.catOrder] ?? '9999', 10) || 9999;
+        const catColor = row[idx.catColor] ?? '#5bb0ff';
+        const catImage = idx.catImage >= 0 ? (row[idx.catImage] ?? '') : ''; // Handle backwards compatibility
+        const key = `${catOrder.toString().padStart(4, '0')}_${catName}`;
+        if (!map.has(key)) map.set(key, { name: catName, order: catOrder, color: catColor, image: catImage, tiles: [] });
+        map.get(key).tiles.push({
+          display: row[idx.display] ?? '',
+          speak: row[idx.speak] ?? '',
+          image: row[idx.image] ?? '',
+          tileColor: row[idx.tileColor] ?? '',
+          tileOrder: parseInt(row[idx.tileOrder] ?? '9999', 10) || 9999,
+        });
+      }
+
+      // render in order
+      Array.from(map.keys()).sort().forEach(key => {
+        const c = map.get(key);
+        const node = newCategory(c.order, { name: c.name, color: c.color, image: c.image });
+        // clear default row
+        node.querySelector('.rows').innerHTML = '';
+        c.tiles.sort((x,y) => x.tileOrder - y.tileOrder).forEach(t => addRow(node, t));
+        // Apply colors after all rows are added
+        updateCategoryColors(node);
+      });
+    }
+
+    function parseCSVLine(line) {
+      const result = [];
+      let curr = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+          if (ch === '"' && line[i+1] === '"') { curr += '"'; i++; }
+          else if (ch === '"') { inQuotes = false; }
+          else { curr += ch; }
+        } else {
+          if (ch === ',') { result.push(curr); curr = ''; }
+          else if (ch === '"') { inQuotes = true; }
+          else { curr += ch; }
+        }
+      }
+      result.push(curr);
+      return result;
+    }
+
+    // OpenSymbols search (open symbols library)
+    async function searchImages(q) {
+      const url = new URL('https://www.opensymbols.org/api/v1/symbols/search');
+      url.searchParams.set('q', q);
+      url.searchParams.set('format', 'json');
+      url.searchParams.set('limit', '30');
+      
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        
+        if (data && data.length > 0) {
+          // Extract image URLs from OpenSymbols response
+          return data.map(symbol => symbol.image_url).filter(Boolean);
+        } else {
+          return [];
+        }
+      } catch (error) {
+        console.error('OpenSymbols API error:', error);
+        throw error;
+      }
+    }
+
+    function showImageModal(tr) {
+      const modal = document.getElementById('imageModal');
+      const preview = document.getElementById('modalImagePreview');
+      const placeholder = document.getElementById('modalImagePlaceholder');
+      const urlInput = document.getElementById('modalImageUrl');
+      const queryInput = document.getElementById('modalImageQuery');
+      
+      const currentUrl = tr.querySelector('.image').value;
+      urlInput.value = currentUrl;
+      
+      if (currentUrl) {
+        preview.src = currentUrl;
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+        queryInput.value = ''; // Clear search if image already exists
+      } else {
+        preview.style.display = 'none';
+        placeholder.style.display = 'block';
+        
+        // Auto-populate search term and perform search
+        const speakText = tr.querySelector('.speak').value.trim();
+        const displayText = tr.querySelector('.display').value.trim();
+        const searchTerm = speakText || displayText;
+        
+        if (searchTerm) {
+          queryInput.value = searchTerm;
+          // Automatically search when modal opens with no existing image
+          setTimeout(() => {
+            searchModalImages(true); // Pass true to indicate auto-load
+          }, 100); // Small delay to ensure modal is fully rendered
+        } else {
+          queryInput.value = '';
+        }
+      }
+      
+      modal.classList.add('show');
+    }
+
+    function showCategoryImageModal(catNode) {
+      const modal = document.getElementById('imageModal');
+      const preview = document.getElementById('modalImagePreview');
+      const placeholder = document.getElementById('modalImagePlaceholder');
+      const urlInput = document.getElementById('modalImageUrl');
+      const queryInput = document.getElementById('modalImageQuery');
+      
+      const currentUrl = catNode.querySelector('.cat-image').value;
+      urlInput.value = currentUrl;
+      
+      if (currentUrl) {
+        preview.src = currentUrl;
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+        queryInput.value = '';
+      } else {
+        preview.style.display = 'none';
+        placeholder.style.display = 'block';
+        
+        // Auto-populate search term from category name
+        const catName = catNode.querySelector('.cat-name').value.trim();
+        
+        if (catName) {
+          queryInput.value = catName;
+          // Automatically search when modal opens with no existing image
+          setTimeout(() => {
+            searchModalImages(true);
+          }, 100);
+        } else {
+          queryInput.value = '';
+        }
+      }
+      
+      modal.classList.add('show');
+    }
+
+    function showBoardImageModal() {
+      const modal = document.getElementById('imageModal');
+      const preview = document.getElementById('modalImagePreview');
+      const placeholder = document.getElementById('modalImagePlaceholder');
+      const urlInput = document.getElementById('modalImageUrl');
+      const queryInput = document.getElementById('modalImageQuery');
+      
+      const currentUrl = document.getElementById('boardImage').value;
+      urlInput.value = currentUrl;
+      
+      if (currentUrl) {
+        preview.src = currentUrl;
+        preview.style.display = 'block';
+        placeholder.style.display = 'none';
+        queryInput.value = '';
+      } else {
+        preview.style.display = 'none';
+        placeholder.style.display = 'block';
+        
+        // Auto-populate search term from board name
+        const boardName = document.getElementById('boardName').value.trim();
+        
+        if (boardName) {
+          queryInput.value = boardName;
+          // Automatically search when modal opens with no existing image
+          setTimeout(() => {
+            searchModalImages(true);
+          }, 100);
+        } else {
+          queryInput.value = '';
+        }
+      }
+      
+      modal.classList.add('show');
+    }
+
+    function hideImageModal() {
+      document.getElementById('imageModal').classList.remove('show');
+      currentImageRow = null;
+      currentImageCategory = null;
+      currentImageBoard = false;
+    }
+
+    function applyModalImage() {
+      const url = document.getElementById('modalImageUrl').value.trim();
+      
+      if (currentImageRow) {
+        // Apply to phrase row
+        currentImageRow.querySelector('.image').value = url;
+        currentImageRow.querySelector('.img-thumb').src = url;
+      } else if (currentImageCategory) {
+        // Apply to category
+        currentImageCategory.querySelector('.cat-image').value = url;
+        currentImageCategory.querySelector('.cat-img-thumb').src = url;
+      } else if (currentImageBoard) {
+        // Apply to board
+        document.getElementById('boardImage').value = url;
+        document.getElementById('boardImgThumb').src = url;
+      }
+      
+      hideImageModal();
+    }
+
+    async function searchModalImages(autoLoad = false) {
+      const query = document.getElementById('modalImageQuery').value.trim();
+      if (!query) return;
+      
+      const resultsContainer = document.getElementById('modalSearchResults');
+      resultsContainer.innerHTML = 'Searching...';
+      
+      try {
+        const urls = await searchImages(query);
+        resultsContainer.innerHTML = '';
+        
+        if (urls.length === 0) {
+          resultsContainer.innerHTML = '<p style="text-align: center; grid-column: 1 / -1; color: var(--muted);">No results found</p>';
+          return;
+        }
+        
+        // If autoLoad is true and we have results, automatically apply the first image
+        if (autoLoad && urls.length > 0) {
+          const firstImageUrl = urls[0];
+          document.getElementById('modalImageUrl').value = firstImageUrl;
+          const preview = document.getElementById('modalImagePreview');
+          const placeholder = document.getElementById('modalImagePlaceholder');
+          preview.src = firstImageUrl;
+          preview.style.display = 'block';
+          placeholder.style.display = 'none';
+          
+          // Auto-apply the first image to the row
+          if (currentImageRow) {
+            currentImageRow.querySelector('.image').value = firstImageUrl;
+            currentImageRow.querySelector('.img-thumb').src = firstImageUrl;
+          } else if (currentImageCategory) {
+            currentImageCategory.querySelector('.cat-image').value = firstImageUrl;
+            currentImageCategory.querySelector('.cat-img-thumb').src = firstImageUrl;
+          } else if (currentImageBoard) {
+            document.getElementById('boardImage').value = firstImageUrl;
+            document.getElementById('boardImgThumb').src = firstImageUrl;
+          }
+        }
+        
+        urls.forEach(url => {
+          const img = document.createElement('img');
+          img.src = url;
+          img.alt = query;
+          img.addEventListener('click', () => {
+            document.getElementById('modalImageUrl').value = url;
+            const preview = document.getElementById('modalImagePreview');
+            const placeholder = document.getElementById('modalImagePlaceholder');
+            preview.src = url;
+            preview.style.display = 'block';
+            placeholder.style.display = 'none';
+          });
+          resultsContainer.appendChild(img);
+        });
+      } catch (e) {
+        console.error('Image search failed:', e);
+        resultsContainer.innerHTML = '<p style="text-align: center; grid-column: 1 / -1; color: var(--danger);">Search failed</p>';
+      }
+    }
+
+    function selectAllRows(catNode, checked) {
+      catNode.querySelectorAll('.sel').forEach(cb => cb.checked = checked);
+    }
+
+    function toggleCategoryCollapse(catNode, collapseBtn, catContent) {
+      const isCollapsed = catContent.classList.contains('collapsed');
+      
+      if (isCollapsed) {
+        // Expand
+        catContent.classList.remove('collapsed');
+        collapseBtn.classList.remove('collapsed');
+        collapseBtn.textContent = '▼';
+        collapseBtn.title = 'Collapse';
+      } else {
+        // Collapse
+        catContent.classList.add('collapsed');
+        collapseBtn.classList.add('collapsed');
+        collapseBtn.textContent = '▶';
+        collapseBtn.title = 'Expand';
+      }
+      
+      saveCollapsedStates();
+    }
+
+    function saveCollapsedStates() {
+      const collapsedStates = {};
+      Array.from(categories.children).forEach(cat => {
+        const catId = cat.dataset.catId;
+        const isCollapsed = cat.querySelector('.cat-content').classList.contains('collapsed');
+        if (isCollapsed) {
+          collapsedStates[catId] = true;
+        }
+      });
+      localStorage.setItem('narbe_category_collapsed_states', JSON.stringify(collapsedStates));
+    }
+
+    function restoreCategoryCollapsedState(catNode) {
+      const savedStates = localStorage.getItem('narbe_category_collapsed_states');
+      if (!savedStates) return;
+      
+      try {
+        const collapsedStates = JSON.parse(savedStates);
+        const catId = catNode.dataset.catId;
+        
+        if (collapsedStates[catId]) {
+          const collapseBtn = catNode.querySelector('.collapse-btn');
+          const catContent = catNode.querySelector('.cat-content');
+          
+          catContent.classList.add('collapsed');
+          collapseBtn.classList.add('collapsed');
+          collapseBtn.textContent = '▶';
+          collapseBtn.title = 'Expand';
+        }
+      } catch (e) {
+        console.error('Error restoring collapsed states:', e);
+      }
+    }
+
+    // Close color popup when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.color-popup') && !e.target.closest('.color-btn')) {
+        hideColorPopup();
+      }
+      
+      // Close image modal when clicking outside
+      if (e.target.id === 'imageModal') {
+        hideImageModal();
+      }
+    });
+
+    // Image modal event listeners
+    document.getElementById('imageModal').querySelector('.image-modal-close').addEventListener('click', hideImageModal);
+    document.getElementById('modalApplyBtn').addEventListener('click', applyModalImage);
+    document.getElementById('modalSearchBtn').addEventListener('click', () => searchModalImages(false));
+    
+    // Add Enter key support for search
+    document.getElementById('modalImageQuery').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        searchModalImages(false);
+      }
+    });
+
+    // Add Enter key support for URL input
+    document.getElementById('modalImageUrl').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyModalImage();
+      }
+    });
+
+    // wire up top actions
+    document.getElementById('addCategory').addEventListener('click', () => newCategory());
+    document.getElementById('downloadBtn').addEventListener('click', downloadCSV);
+    document.getElementById('copyBtn').addEventListener('click', copyCSV);
+    document.getElementById('saveLocal').addEventListener('click', saveLocal);
+    document.getElementById('clearLocal').addEventListener('click', () => { localStorage.removeItem('narbe_phrase_builder'); alert('Cleared saved builder data'); });
+    document.getElementById('newBtn').addEventListener('click', clearBuilder);
+
+    document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+    document.getElementById('importFile').addEventListener('change', (e) => {
+      const f = e.target.files?.[0]; if (!f) return;
+      const r = new FileReader();
+      r.onload = () => importCSVString(String(r.result));
+      r.readAsText(f);
+      e.target.value = '';
+    });
+
+    // Board color and image event handlers
+    document.getElementById('boardColorBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      showColorPopup(document.getElementById('boardColorBtn'), document.getElementById('boardColor'));
+    });
+
+    document.getElementById('boardImageBtn').addEventListener('click', () => {
+      currentImageBoard = true;
+      currentImageRow = null;
+      currentImageCategory = null;
+      showBoardImageModal();
+    });
+
+    document.getElementById('boardImgThumb').addEventListener('click', () => {
+      currentImageBoard = true;
+      currentImageRow = null;
+      currentImageCategory = null;
+      showBoardImageModal();
+    });
+
+    // Auto-load board image when board name changes
+    document.getElementById('boardName').addEventListener('input', () => {
+      const currentImage = document.getElementById('boardImage').value.trim();
+      if (!currentImage) {
+        setTimeout(() => {
+          autoLoadBoardImage();
+        }, 500);
+      }
+    });
+
+    // bootstrap
+    (function init(){
+      createColorPopup();
+      if (!loadLocal()) {
+        document.getElementById('boardName').value = 'NARBE House Default';
+        clearBuilder();
+        // add a couple of starter categories
+        const c1 = categories.firstElementChild;
+        c1.querySelector('.cat-name').value = 'Basic';
+        c1.querySelector('.cat-color').value = '#5bb0ff';
+        const rows1 = c1.querySelector('.rows');
+        rows1.querySelector('tr').remove();
+        addRow(c1, { display: 'Hello', speak: 'Hello!', image: '', tileOrder: 1 });
+        addRow(c1, { display: 'Thank you', speak: 'Thank you', image: '', tileOrder: 2 });
+
+        const c2 = newCategory(2);
+        c2.querySelector('.cat-name').value = 'Needs';
+        c2.querySelector('.cat-color').value = '#ef4444';
+        c2.querySelector('.rows').querySelector('tr').remove();
+        addRow(c2, { display: 'I need help', speak: 'I need help, please.', image: '', tileOrder: 1 });
+        addRow(c2, { display: 'Bathroom', speak: 'I need the bathroom', image: '', tileOrder: 2 });
+      }
+    })();
+  </script>
+</body>
+</html>

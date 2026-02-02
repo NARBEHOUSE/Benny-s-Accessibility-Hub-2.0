@@ -1,0 +1,383 @@
+
+:root {
+    --highlight-color: #ffff00;
+    --highlight-bg-mode: #ffffff;
+    --highlight-text-mode: #333333;
+    --highlight-box-shadow: 0 0 1.5vh var(--highlight-color), inset 0 0 1vh rgba(255, 255, 255, 0.5);
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #ff4b1f, #ff9068); /* Default Theme */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    user-select: none;
+    color: white;
+    transition: background 0.5s;
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#header {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 15px;
+    background-color: rgba(0,0,0,0.3);
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    backdrop-filter: blur(5px);
+    position: absolute;
+    top: 0;
+    z-index: 10;
+}
+
+#main-content {
+    flex-grow: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 20px;
+}
+
+/* Menu Styles */
+.menu-title {
+    font-family: 'Arial Black', sans-serif;
+    font-size: 8vmin; /* Fluid font size */
+    color: white;
+    margin-bottom: 4vh;
+    text-align: center;
+    text-shadow: 4px 4px 8px rgba(0,0,0,0.4);
+    letter-spacing: 2px;
+}
+
+.menu-button {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-size: 4vmin; /* Fluid font size */
+    padding: 2vh 6vw; /* Fluid padding */
+    border: 0.5vmin solid transparent;
+    border-radius: 50px;
+    margin: 1.5vh;
+    cursor: pointer;
+    box-shadow: 0 0.6vh 1vh rgba(0,0,0,0.2);
+    transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+    font-weight: bold;
+    width: 80vw; /* Wider for safety */
+    max-width: 800px; /* Increased from 500px */
+    text-align: center;
+    white-space: normal !important; /* Force wrap */
+    overflow: visible !important;
+    text-overflow: clip !important; /* Never ellipsis */
+    height: auto;
+    min-height: 2em;
+    display: block; /* Ensure block model */
+}
+
+.menu-button:hover {
+    transform: translateY(-0.3vh);
+    box-shadow: 0 0.8vh 1.5vh rgba(0,0,0,0.3);
+    background: white;
+}
+
+.menu-button:active {
+    transform: translateY(0.1vh);
+    box-shadow: 0 0.4vh 0.6vh rgba(0,0,0,0.2);
+}
+
+/* Scanning Highlight Class */
+.highlight {
+    border-color: var(--highlight-color) !important;
+    background-color: var(--highlight-bg-mode) !important;
+    transform: scale(1.05);
+    box-shadow: var(--highlight-box-shadow) !important;
+    z-index: 5;
+    color: var(--highlight-text-mode) !important;
+}
+
+/* Color Swatch in Settings */
+.color-swatch {
+    display: inline-block;
+    width: 3vmin;
+    height: 3vmin;
+    border: 0.3vmin solid #666;
+    vertical-align: middle;
+    margin-left: 1vw;
+    box-shadow: 0 0.2vh 0.5vh rgba(0,0,0,0.3);
+}
+
+/* Full Cell Highlight Variant (Optional - handled via JS var now, but keeping for reference or explicit usage) */
+.highlight-full {
+    background-color: var(--highlight-color) !important;
+    color: black !important;
+    box-shadow: 0 0 2vh var(--highlight-color);
+}
+
+/* Game Styles */
+.word-container {
+    display: flex;
+    gap: 1.5vmin;
+    margin-bottom: 2vh;
+    min-height: 8vh;
+    justify-content: center;
+}
+
+.sentence-display {
+    font-size: 6vmin;
+    margin-bottom: 3vh;
+    text-align: center;
+    max-width: 90%;
+    line-height: 1.4;
+    text-shadow: 0.2vh 0.2vh 0.4vh rgba(0,0,0,0.4);
+    min-height: 5vh;
+    padding: 0 10px;
+}
+
+.letter-slot {
+    width: 10vmin;
+    height: 12vmin;
+    border-bottom: 0.5vmin solid white;
+    border: 0.5vmin solid transparent; /* Prepare for border highlight */
+    border-bottom-color: white; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8vmin;
+    font-weight: bold;
+    text-shadow: 0.2vh 0.2vh 0.4vh rgba(0,0,0,0.3);
+    transition: all 0.2s;
+}
+
+.letter-slot.highlight {
+    border: 0.5vmin solid var(--highlight-color);
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 5px;
+}
+
+.letters-pool {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2vmin;
+    justify-content: center;
+    max-width: 90vw;
+    margin-bottom: 2vh;
+}
+
+.letter-tile {
+    width: 10vmin;
+    height: 10vmin;
+    background: white;
+    color: #333;
+    border: 0.5vmin solid transparent;
+    border-radius: 1vmin;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7vmin;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 0.4vh 0.8vh rgba(0,0,0,0.2);
+    transition: transform 0.2s, background-color 0.2s;
+}
+
+.letter-tile:hover {
+    transform: scale(1.1);
+}
+
+.letter-tile.highlight {
+    border-color: var(--highlight-color);
+    transform: scale(1.15);
+}
+
+.letter-tile.used {
+    background: rgba(255, 255, 255, 0.3);
+    color: rgba(0, 0, 0, 0.3);
+    cursor: default;
+    transform: none;
+    border-color: transparent;
+}
+
+.letter-tile.used.highlight {
+    border-color: rgba(255, 255, 0, 0.5);
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.result-message {
+    font-size: 4vmin;
+    margin-top: 1vh;
+    font-weight: bold;
+    min-height: 5vh;
+    text-shadow: 0.2vh 0.2vh 0.4vh rgba(0,0,0,0.4);
+    text-align: center;
+}
+
+.game-controls {
+    margin-top: 3vh;
+    display: flex;
+    gap: 2vmin;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.control-btn {
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    border: 0.5vmin solid white;
+    padding: 1.5vmin 4vmin;
+    border-radius: 4vmin;
+    font-size: 3vmin;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.control-btn:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.control-btn.highlight {
+    background: rgba(0, 0, 0, 0.6);
+    border-color: var(--highlight-color);
+}
+
+/* Pause Overlay */
+.pause-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.pause-title {
+    font-family: 'Arial Black', sans-serif;
+    font-size: 8vmin;
+    color: white;
+    margin-bottom: 3vh;
+    text-shadow: 0 0 10px rgba(255,255,255,0.5);
+}
+
+/* HP Bar Styles (Matchy Match Style) */
+.hp-container {
+    width: 60vw;
+    max-width: 600px;
+    height: 3vh;
+    min-height: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 2vh;
+    margin: 1vh 0 2vh 0;
+    overflow: hidden;
+    border: 0.3vmin solid rgba(255, 255, 255, 0.3);
+    position: relative;
+    box-shadow: 0 0.4vh 1vh rgba(0,0,0,0.3);
+}
+
+.hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff3333, #ffcc00, #33ff33);
+    width: 100%;
+    transition: width 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+    box-shadow: 0 0 1vmin rgba(255, 255, 255, 0.5);
+}
+
+.hp-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2vmin;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px black;
+    color: white;
+}
+
+/* Ensure game fits in view without scrolling if possible */
+#main-content {
+    max-height: 100vh;
+    overflow-y: auto;
+    scrollbar-width: none; /* Firefox */
+}
+#main-content::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+/* Pause Button (Matchy Match Style) */
+#pause-button {
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    cursor: pointer;
+    z-index: 1000;
+    user-select: none;
+    border: 2px solid rgba(255,255,255,0.5);
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+#pause-button.highlight {
+    background: var(--highlight-color);
+    color: black;
+    border-color: white;
+    transform: scale(1.1);
+    box-shadow: 0 0 20px var(--highlight-color);
+}
+
+/* Word Image Style */
+.word-image {
+    background-color: transparent;
+    max-width: 60vw;
+    max-height: 30vh;
+    display: block;
+    margin: 0 auto 2vh auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    object-fit: contain;
+}
+
+/* Sentence Highlight */
+.sentence-display.highlight {
+    background-color: rgba(255,255,255,0.2);
+    border-radius: 10px;
+    box-shadow: 0 0 15px var(--highlight-color);
+    border: 2px solid var(--highlight-color);
+    cursor: pointer;
+}
+. w o r d - i m a g e 
+ 
+   m a x - w i d t h :   4 0 v w ;   m a x - h e i g h t :   2 5 v h ;   m a r g i n - b o t t o m :   2 v h ;   b o r d e r - r a d i u s :   1 0 p x ;   
+ 
+ b o x - s h a d o w :   0   4 p x   8 p x   r g b a ( 0 , 0 , 0 , 0 . 3 ) ;   o b j e c t - f i t :   c o n t a i n ;   
+ 
+ 

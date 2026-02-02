@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ben’s Keyboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <main>
+      <div class="textbar-container">
+        <div id="textBar" class="textbar" aria-live="polite"></div>
+      </div>
+
+      <div id="predictBar" class="predictbar"></div>
+
+      <div id="keyboard" class="keyboard"></div>
+    </main>
+  </div>
+
+  <!-- Settings menu overlay -->
+  <div id="settingsMenu" class="settings-menu hidden">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <div class="settings-instructions">
+        <div class="instruction-row">
+          <p><strong>Spacebar short:</strong> Advance forward</p>
+          <p><strong>Spacebar long:</strong> Move backward</p>
+        </div>
+        <div class="instruction-row">
+          <p><strong>Return short:</strong> Select</p>
+          <p><strong>Return long (button):</strong> Row mode</p>
+          <p><strong>Return long (row):</strong> Predictive text</p>
+        </div>
+      </div>
+    </div>
+    <div id="settingsGrid" class="settings-grid">
+      <button class="settings-item" data-setting="theme">
+        <span class="setting-label">Theme</span>
+        <span class="setting-value" id="themeValue">Default</span>
+      </button>
+      <button class="settings-item" data-setting="highlight">
+        <span class="setting-label">Highlight</span>
+        <span class="setting-value" id="highlightValue">Yellow</span>
+      </button>
+      <button class="settings-item" data-setting="voice">
+        <span class="setting-label">Voice</span>
+        <span class="setting-value" id="voiceValue">Default</span>
+      </button>
+      <button class="settings-item" data-setting="tts-toggle">
+        <span class="setting-label">TTS</span>
+        <span class="setting-value" id="ttsToggleValue">On</span>
+      </button>
+      <button class="settings-item" data-setting="scan-speed">
+        <span class="setting-label">Scan Speed</span>
+        <span class="setting-value" id="scanSpeedValue">Medium</span>
+      </button>
+      <button class="settings-item" data-setting="auto-scan">
+        <span class="setting-label">Auto Scan</span>
+        <span class="setting-value" id="autoScanValue">On</span>
+      </button>
+      <button class="settings-item" data-setting="read-instructions">
+        <span class="setting-label">Help</span>
+        <span class="setting-value">Read Instructions</span>
+      </button>
+      <button class="settings-item" data-setting="clear-cache">
+        <span class="setting-label">Clear Cache</span>
+        <span class="setting-value">Reset Predictions</span>
+      </button>
+      <button class="settings-item" data-setting="close">
+        <span class="setting-label">Close Settings</span>
+        <span class="setting-value">Exit Settings<br><small style="font-size: 0.6em; opacity: 0.9; margin-top: 0.5em; display: block;">Tip: Say text 3 times to save to predictions</small></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Include shared voice manager -->
+  <script src="../../../shared/voice-manager.js"></script>
+  <script src="../../../shared/scan-manager.js"></script>
+  <script src="predictions.js"></script>
+  <script src="app.js"></script>
+  <script>
+    // Exit/Close button handler
+    const closeBtn = document.querySelector('[data-setting="close"]');
+    closeBtn.addEventListener('click', () => {
+      // Simply close the settings menu
+      const settingsMenu = document.getElementById('settingsMenu');
+      if (settingsMenu) {
+        settingsMenu.classList.add('hidden');
+        // Return focus to the keyboard or main interface
+        const keyboard = document.getElementById('keyboard');
+        if (keyboard) {
+          keyboard.focus();
+        }
+      }
+    });
+  </script>
+</body>
+</html>

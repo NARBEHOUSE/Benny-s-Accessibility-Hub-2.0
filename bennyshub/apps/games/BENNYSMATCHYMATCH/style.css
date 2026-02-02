@@ -1,0 +1,378 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #ff4b1f, #ff9068);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+    user-select: none;
+    color: white;
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#header {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 15px;
+    background-color: rgba(0,0,0,0.3);
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    backdrop-filter: blur(5px);
+}
+
+#main-content {
+    flex-grow: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center; /* keep center for small boards */
+    overflow: hidden; /* Prevent scrollbars as requested, rely on scaling */
+    padding-bottom: 10px;
+}
+
+/* Menu Styles */
+.menu-title {
+    font-family: 'Arial Black', sans-serif;
+    font-size: 72px;
+    color: white;
+    margin-bottom: 40px;
+    text-align: center;
+    text-shadow: 4px 4px 8px rgba(0,0,0,0.4);
+    letter-spacing: 2px;
+}
+
+/* Responsive adjustments for mobile/smaller screens */
+@media (max-width: 768px) {
+    .menu-title {
+        font-size: 32px; /* Smaller title on mobile */
+        margin-bottom: 15px;
+        margin-top: 10px;
+    }
+
+    .menu-button {
+        font-size: 18px !important;
+        padding: 10px 15px !important;
+        width: 100% !important;
+        margin: 5px !important;
+        min-height: 50px; /* Reduced height */
+    }
+
+    .menu-grid {
+        grid-template-columns: 1fr !important;
+        width: 95% !important; /* Slightly reduced to leave room for the scrollbar on the right */
+        gap: 8px !important;
+        max-height: 75vh; 
+        padding: 5px;
+        
+        /* Mobile Scrollbar Visibility */
+        overflow-y: scroll; /* Force track to appear */
+        -webkit-overflow-scrolling: touch; /* Enable smooth scrolling on iOS */
+        touch-action: pan-y; /* Enable vertical scrolling */
+        pointer-events: auto; /* Ensure events are captured */
+        
+        scrollbar-width: auto;
+        scrollbar-color: #ffffff rgba(0,0,0,0.5); /* High contrast */
+    }
+
+    /* Webkit Scrollbar Styling for Mobile */
+    .menu-grid::-webkit-scrollbar {
+        width: 12px;
+        display: block;
+    }
+    .menu-grid::-webkit-scrollbar-track {
+        background: rgba(0,0,0,0.4);
+        border-radius: 6px;
+    }
+    .menu-grid::-webkit-scrollbar-thumb {
+        background: #fff;
+        border-radius: 6px;
+        border: 3px solid rgba(0,0,0,0); /* Fake padding using border/clip */
+        background-clip: content-box;
+    }
+    
+    .menu-grid .menu-button.span-two-cols {
+        grid-column: 1 / -1;
+        width: 100% !important;
+    }
+
+    #header {
+        font-size: 16px;
+        padding: 8px;
+    }
+    
+    /* Ensure game grid pushes to edges on mobile */
+    #grid-container {
+        padding: 5px !important;
+        gap: 5px !important;
+    }
+    
+    #main-content {
+        padding-bottom: 5px;
+    }
+}
+
+.menu-button {
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-size: 32px;
+    padding: 15px 40px;
+    margin: 12px;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    width: 80%;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+    font-weight: bold;
+}
+
+.menu-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+.menu-button.active {
+    background: #ffcc00;
+    color: #000;
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 204, 0, 0.6);
+    border: 4px solid white;
+}
+
+/* Grid Styles */
+#grid-container {
+    display: grid;
+    gap: 15px;
+    padding: 20px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    box-sizing: border-box;
+}
+
+.grid-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+    border-radius: 15px;
+    min-width: 0;
+    min-height: 0;
+    /* overflow: hidden; Removed to allow highlight/shadow to show */
+}
+
+.grid-cell.highlight {
+    /* Handled by JS for border/bg toggle */
+    z-index: 10;
+}
+
+.card-button {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box; /* Maintain size with borders */
+    background-color: #444;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    transition: transform 0.3s ease, background-color 0.3s;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.2);
+}
+
+.card-button:hover {
+    transform: scale(1.02);
+}
+
+.card-button.matched {
+    border: 4px solid white !important;
+}
+
+.card-button img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.3));
+}
+
+/* Pause Overlay */
+#pause-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    backdrop-filter: blur(5px);
+}
+
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    width: 95%;
+    max-width: 1200px;
+    justify-items: center;
+    max-height: 70vh; /* Prevent going off screen */
+    overflow-y: auto; /* Allow scrolling */
+    padding: 10px;
+    
+    /* Scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.5) rgba(0,0,0,0.2);
+}
+
+.menu-grid::-webkit-scrollbar {
+    width: 8px;
+}
+.menu-grid::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.1);
+    border-radius: 4px;
+}
+.menu-grid::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.5);
+    border-radius: 4px;
+}
+
+.menu-grid .menu-button {
+    width: 100%;
+    margin: 0; /* Reset margin since we use gap */
+    font-size: 22px !important;
+    padding: 12px 20px !important;
+    min-height: 60px;
+}
+
+.menu-grid .menu-button.span-two-cols {
+    grid-column: 1 / -1;
+    width: 60%;
+}
+
+.pause-title {
+    font-size: 60px;
+    color: white;
+    margin-bottom: 40px;
+    font-weight: bold;
+}
+
+#pause-button {
+    position: fixed;
+    bottom: 30px;
+    left: 30px;
+    width: 70px;
+    height: 70px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    cursor: pointer;
+    z-index: 1000;
+    user-select: none;
+    border: 2px solid rgba(255,255,255,0.5);
+    backdrop-filter: blur(4px);
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+#pause-button:hover {
+    background: rgba(255, 255, 255, 0.4);
+    transform: scale(1.1);
+}
+
+/* HP Bar Styles */
+.hp-container {
+    width: 60%;
+    max-width: 600px;
+    height: 30px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 15px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    position: relative;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+}
+
+.hp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff3333, #ffcc00, #33ff33);
+    width: 100%;
+    transition: width 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.hp-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px black;
+    font-size: 18px;
+    z-index: 1;
+}
+
+.game-stats {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    font-family: 'Arial Black', sans-serif;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.4);
+    padding: 10px 30px;
+    border-radius: 30px;
+}
+
+.win-message {
+    font-size: 60px;
+    font-weight: bold;
+    color: #ffcc00;
+    text-align: center;
+    text-shadow: 
+        2px 2px 0px #000,
+        -1px -1px 0 #000,  
+        1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px 1px 0 #000;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 30px;
+    border-radius: 20px;
+    border: 4px solid white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 1001; /* Ensure on top */
+}
+
+@keyframes popIn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}

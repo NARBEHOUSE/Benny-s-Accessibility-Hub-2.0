@@ -1,0 +1,431 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ben’s Keyboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="app">
+    <main>
+      <div class="textbar-container">
+        <div id="textBar" class="textbar" aria-live="polite"></div>
+      </div>
+
+      <div id="keyboard" class="keyboard"></div>
+
+      <div id="predictBar" class="predictbar"></div>
+    </main>
+  </div>
+
+  <!-- Settings menu overlay -->
+  <div id="settingsMenu" class="settings-menu hidden">
+    <div class="settings-header">
+      <h2>Settings</h2>
+      <div class="settings-instructions">
+        <div class="instruction-row">
+          <p><strong>Spacebar short:</strong> Advance forward</p>
+          <p><strong>Spacebar long:</strong> Move backward</p>
+        </div>
+        <div class="instruction-row">
+          <p><strong>Return short:</strong> Select</p>
+          <p><strong>Return long (button):</strong> Row mode</p>
+          <p><strong>Return long (row):</strong> Predictive text</p>
+        </div>
+      </div>
+    </div>
+    <div id="settingsGrid" class="settings-grid">
+      <button class="settings-item" data-setting="theme">
+        <span class="setting-label">Theme</span>
+        <span class="setting-value" id="themeValue">Default</span>
+      </button>
+      <button class="settings-item" data-setting="highlight">
+        <span class="setting-label">Highlight</span>
+        <span class="setting-value" id="highlightValue">Yellow</span>
+      </button>
+      <button class="settings-item" data-setting="voice">
+        <span class="setting-label">Voice</span>
+        <span class="setting-value" id="voiceValue">Default</span>
+      </button>
+      <button class="settings-item" data-setting="tts-toggle">
+        <span class="setting-label">TTS</span>
+        <span class="setting-value" id="ttsToggleValue">On</span>
+      </button>
+      <button class="settings-item" data-setting="scan-speed">
+        <span class="setting-label">Scan Speed</span>
+        <span class="setting-value" id="scanSpeedValue">Medium</span>
+      </button>
+      <button class="settings-item" data-setting="auto-scan">
+        <span class="setting-label">Auto Scan</span>
+        <span class="setting-value" id="autoScanValue">On</span>
+      </button>
+      <button class="settings-item" data-setting="volume-up">
+        <span class="setting-label">Volume Up</span>
+        <span class="setting-value">Increase Volume</span>
+      </button>
+      <button class="settings-item" data-setting="volume-down">
+        <span class="setting-label">Volume Down</span>
+        <span class="setting-value">Decrease Volume</span>
+      </button>
+      <button class="settings-item" data-setting="close">
+        <span class="setting-label">Close Settings</span>
+        <span class="setting-value">Exit Settings<br><small style="font-size: 0.6em; opacity: 0.9; margin-top: 0.5em; display: block;">Tip: Say text 3 times to save to predictions</small></span>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Create a fallback voice manager with multiple voice support including Microsoft voices
+    window.NarbeVoiceManager = window.NarbeVoiceManager || {
+      currentVoiceIndex: 0,
+      ttsEnabled: true,
+      voices: [],
+      selectedVoiceName: null, // Track the selected voice name for persistence
+      
+      // Dictionary of words that should be pronounced as words, not spelled out
+      wordPronunciationMap: {
+        'IS': 'is',
+        'IT': 'it',
+        'IN': 'in',
+        'IF': 'if',
+        'OF': 'of',
+        'OR': 'or',
+        'ON': 'on',
+        'TO': 'to',
+        'GO': 'go',
+        'NO': 'no',
+        'SO': 'so',
+        'DO': 'do',
+        'UP': 'up',
+        'AT': 'at',
+        'AS': 'as',
+        'AN': 'an',
+        'AM': 'am',
+        'BE': 'be',
+        'BY': 'by',
+        'MY': 'my',
+        'WE': 'we',
+        'HE': 'he',
+        'ME': 'me',
+        'US': 'us',
+        'HI': 'hi',
+        'OK': 'okay',
+        'OH': 'oh',
+        'AH': 'ah'
+      },
+      
+      // Process text for better pronunciation
+      processTextForSpeech: function(text) {
+        if (!text || typeof text !== 'string') return text;
+        
+        // Split into words and process each one
+        const words = text.split(/(\s+)/); // Keep whitespace in the split
+        
+        const processedWords = words.map(word => {
+          const trimmedWord = word.trim().toUpperCase();
+          
+          // Check if it's a word that should be pronounced specially
+          if (this.wordPronunciationMap[trimmedWord]) {
+            return this.wordPronunciationMap[trimmedWord];
+          }
+          
+          // For single letters that aren't in our map, keep them as is
+          // The TTS engine will handle them appropriately
+          return word;
+        });
+        
+        return processedWords.join('');
+      },
+      
+      init: function() {
+        // Get available voices with broader criteria
+        const allVoices = speechSynthesis.getVoices();
+        
+        // Filter for English voices and Microsoft voices
+        this.voices = allVoices.filter(voice => {
+          const isEnglish = voice.lang.startsWith('en-') || voice.lang === 'en';
+          const isMicrosoft = voice.name.toLowerCase().includes('microsoft') || 
+                             voice.name.toLowerCase().includes('david') ||
+                             voice.name.toLowerCase().includes('zira') ||
+                             voice.name.toLowerCase().includes('mark') ||
+                             voice.name.toLowerCase().includes('cortana');
+          return isEnglish || isMicrosoft;
+        });
+        
+        // Sort to prioritize Microsoft voices first, then other English voices
+        this.voices.sort((a, b) => {
+          const aMicrosoft = a.name.toLowerCase().includes('microsoft') || 
+                            a.name.toLowerCase().includes('david') ||
+                            a.name.toLowerCase().includes('zira') ||
+                            a.name.toLowerCase().includes('mark');
+          const bMicrosoft = b.name.toLowerCase().includes('microsoft') || 
+                            b.name.toLowerCase().includes('david') ||
+                            b.name.toLowerCase().includes('zira') ||
+                            b.name.toLowerCase().includes('mark');
+          
+          if (aMicrosoft && !bMicrosoft) return -1;
+          if (!aMicrosoft && bMicrosoft) return 1;
+          return a.name.localeCompare(b.name);
+        });
+        
+        if (this.voices.length === 0) {
+          // Fallback voices if none found
+          this.voices = [
+            { name: 'Default', lang: 'en-US' },
+            { name: 'Microsoft David Desktop', lang: 'en-US' },
+            { name: 'Microsoft Zira Desktop', lang: 'en-US' },
+            { name: 'System Voice 1', lang: 'en-US' },
+            { name: 'System Voice 2', lang: 'en-GB' }
+          ];
+        }
+        
+        // Limit to 5 voices maximum
+        this.voices = this.voices.slice(0, 5);
+        
+        // Restore previously selected voice if available
+        this.restoreSelectedVoice();
+        
+        console.log('Available voices:', this.voices.map(v => v.name));
+        console.log('Current voice index:', this.currentVoiceIndex, 'Voice:', this.getCurrentVoice()?.name);
+      },
+      
+      restoreSelectedVoice: function() {
+        // Try to restore the previously selected voice
+        if (this.selectedVoiceName) {
+          const voiceIndex = this.voices.findIndex(v => v.name === this.selectedVoiceName);
+          if (voiceIndex !== -1) {
+            this.currentVoiceIndex = voiceIndex;
+            console.log('Restored voice:', this.selectedVoiceName);
+            return;
+          }
+        }
+        
+        // Try to load from localStorage
+        try {
+          const saved = localStorage.getItem('preferredVoiceName');
+          if (saved) {
+            const voiceIndex = this.voices.findIndex(v => v.name === saved);
+            if (voiceIndex !== -1) {
+              this.currentVoiceIndex = voiceIndex;
+              this.selectedVoiceName = saved;
+              console.log('Restored voice from localStorage:', saved);
+              return;
+            }
+          }
+        } catch (e) {
+          console.log('Could not restore voice from localStorage:', e);
+        }
+        
+        // Default to first Microsoft voice if available
+        const microsoftIndex = this.voices.findIndex(v => 
+          v.name.toLowerCase().includes('microsoft') || 
+          v.name.toLowerCase().includes('david') ||
+          v.name.toLowerCase().includes('zira')
+        );
+        
+        if (microsoftIndex !== -1) {
+          this.currentVoiceIndex = microsoftIndex;
+          this.selectedVoiceName = this.voices[microsoftIndex].name;
+        }
+      },
+      
+      saveSelectedVoice: function() {
+        const currentVoice = this.getCurrentVoice();
+        if (currentVoice) {
+          this.selectedVoiceName = currentVoice.name;
+          try {
+            localStorage.setItem('preferredVoiceName', currentVoice.name);
+          } catch (e) {
+            console.log('Could not save voice preference:', e);
+          }
+        }
+      },
+      
+      speak: function(text, options = {}) {
+        if (!this.ttsEnabled) return;
+        
+        try {
+          // Cancel any currently speaking utterance
+          speechSynthesis.cancel();
+          
+          // Process the text for better pronunciation - ALWAYS process text
+          const processedText = this.processTextForSpeech(text);
+          
+          const utterance = new SpeechSynthesisUtterance(processedText);
+          utterance.rate = options.rate || 1;
+          
+          // Set the current voice if available
+          const currentVoice = this.getCurrentVoice();
+          if (currentVoice && currentVoice.name !== 'Default') {
+            utterance.voice = currentVoice;
+            console.log('Using voice:', currentVoice.name, 'Original:', text, 'Processed:', processedText);
+          } else {
+            console.log('Using default voice - Original:', text, 'Processed:', processedText);
+          }
+          
+          speechSynthesis.speak(utterance);
+        } catch (e) {
+          console.log('TTS not available:', e);
+        }
+      },
+      
+      speakProcessed: function(text) {
+        // This method ensures text is always processed
+        this.speak(text);
+      },
+      
+      cancel: function() {
+        try {
+          speechSynthesis.cancel();
+        } catch (e) {
+          console.log('TTS cancel not available:', e);
+        }
+      },
+      
+      cycleVoice: function() {
+        if (this.voices.length <= 1) return false;
+        
+        this.currentVoiceIndex = (this.currentVoiceIndex + 1) % this.voices.length;
+        this.saveSelectedVoice(); // Save the new selection
+        console.log('Switched to voice:', this.voices[this.currentVoiceIndex].name);
+        return true;
+      },
+      
+      getCurrentVoice: function() {
+        return this.voices[this.currentVoiceIndex] || null;
+      },
+      
+      getVoiceDisplayName: function(voice) {
+        if (!voice) return 'Default';
+        
+        // Clean up Microsoft voice names for display
+        let name = voice.name || voice.lang || 'Default';
+        
+        // Simplify Microsoft voice names
+        if (name.includes('Microsoft')) {
+          name = name.replace('Microsoft ', '').replace(' Desktop', '').replace(' - English (United States)', '');
+          // Common Microsoft voice names
+          if (name.includes('David')) name = 'David (Male)';
+          else if (name.includes('Zira')) name = 'Zira (Female)';
+          else if (name.includes('Mark')) name = 'Mark (Male)';
+        }
+        
+        return name;
+      },
+      
+      toggleTTS: function() {
+        this.ttsEnabled = !this.ttsEnabled;
+        if (!this.ttsEnabled) {
+          this.cancel();
+        }
+        return this.ttsEnabled;
+      },
+      
+      getSettings: function() {
+        return { ttsEnabled: this.ttsEnabled };
+      },
+      
+      handleVoicesChanged: function() {
+        console.log('Voices changed, re-initializing...');
+        const oldVoiceName = this.selectedVoiceName;
+        this.init();
+        
+        // Notify if the voice selection changed
+        if (this.settingsChangeCallback && oldVoiceName !== this.selectedVoiceName) {
+          this.settingsChangeCallback();
+        }
+      },
+      
+      waitForVoices: function() {
+        return new Promise((resolve) => {
+          const checkVoices = () => {
+            const voices = speechSynthesis.getVoices();
+            if (voices.length > 0) {
+              this.init();
+              resolve();
+            } else {
+              // Keep checking for voices
+              setTimeout(checkVoices, 100);
+            }
+          };
+          
+          if (speechSynthesis.getVoices().length > 0) {
+            this.init();
+            resolve();
+          } else {
+            // Set up event listener for voice changes
+            speechSynthesis.addEventListener('voiceschanged', () => {
+              this.handleVoicesChanged();
+              resolve();
+            });
+            
+            // Also poll for voices as a fallback
+            checkVoices();
+            
+            // Final fallback timeout
+            setTimeout(() => {
+              this.init();
+              resolve();
+            }, 2000);
+          }
+        });
+      },
+      
+      onSettingsChange: function(callback) {
+        // Store callback for future use
+        this.settingsChangeCallback = callback;
+      },
+      
+      // Initialize when created
+      initialized: false
+    };
+    
+    // Initialize voices when the page loads
+    const initVoices = () => {
+      const voices = speechSynthesis.getVoices();
+      if (voices.length > 0 && !window.NarbeVoiceManager.initialized) {
+        window.NarbeVoiceManager.init();
+        window.NarbeVoiceManager.initialized = true;
+      }
+    };
+    
+    // Try multiple initialization methods
+    initVoices();
+    
+    // Set up persistent voice change listener
+    speechSynthesis.addEventListener('voiceschanged', () => {
+      console.log('Browser voices changed event fired');
+      window.NarbeVoiceManager.handleVoicesChanged();
+    });
+    
+    document.addEventListener('DOMContentLoaded', initVoices);
+    
+    // Delayed initialization as final fallback
+    setTimeout(initVoices, 1000);
+    
+    // Periodic voice check to handle browser voice changes
+    setInterval(() => {
+      const currentVoices = speechSynthesis.getVoices();
+      if (currentVoices.length !== window.NarbeVoiceManager.voices.length) {
+        console.log('Voice count changed, re-initializing voices');
+        window.NarbeVoiceManager.handleVoicesChanged();
+      }
+    }, 5000); // Check every 5 seconds
+  </script>
+  
+  <!-- Try to load shared voice manager, but don't break if it fails -->
+  <script>
+    // Try to load voice manager from relative path
+    const voiceScript = document.createElement('script');
+    voiceScript.src = '../../../shared/voice-manager.js';
+    voiceScript.onerror = function() {
+      console.log('Voice manager not found, using fallback');
+    };
+    document.head.appendChild(voiceScript);
+  </script>
+  
+  <script src="predictions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

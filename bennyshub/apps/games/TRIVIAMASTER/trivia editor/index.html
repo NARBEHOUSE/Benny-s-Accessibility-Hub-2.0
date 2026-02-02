@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trivia Master Editor</title>
+    <link rel="stylesheet" href="editor.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <header class="editor-header">
+        <h1><i class="fas fa-edit"></i> Trivia Master Editor</h1>
+        <div class="header-controls">
+            <button id="btn-add-question-global" class="btn primary"><i class="fas fa-plus"></i> Add Question</button>
+            <button id="btn-add-category-top" class="btn secondary"><i class="fas fa-plus-circle"></i> Add Category</button>
+            <select id="game-dropdown" class="form-control" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd; margin-right: 5px;">
+                <option value="" disabled selected>Select a Game to Edit</option>
+            </select>
+            <button id="btn-new" class="btn secondary"><i class="fas fa-file"></i> New</button>
+            <label for="file-upload" class="btn secondary"><i class="fas fa-folder-open"></i> Load JSON</label>
+            <input type="file" id="file-upload" accept=".json,.js" hidden>
+            <button id="btn-save" class="btn primary"><i class="fas fa-save"></i> Save JSON</button>
+            <button id="btn-update-manifest" class="btn secondary" style="background-color: #9b59b6; color: white;"><i class="fas fa-list"></i> Save to Game List</button>
+            <input type="file" id="manifest-files-upload" accept=".json" multiple hidden>
+        </div>
+    </header>
+
+    <main id="editor-main">
+        <!-- Game Settings Section -->
+        <div class="game-settings-section" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            <h2 style="margin-bottom: 15px; color: #2c3e50;"><i class="fas fa-cog"></i> Game Settings</h2>
+            <div class="form-group">
+                <label>Game Title (Filename will be based on this)</label>
+                <input type="text" id="game-title" class="form-control" placeholder="e.g. My Custom Trivia" onchange="updateGameMeta('title', this.value)">
+            </div>
+            <div class="form-group">
+                <label>Game Image URL (Displays on Main Menu)</label>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="game-image" class="form-control" placeholder="https://example.com/cover.jpg" onchange="updateGameMeta('image', this.value)">
+                </div>
+                <div id="game-image-preview" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+
+        <div id="categories-container">
+            <!-- Categories will be injected here -->
+        </div>
+        
+        <div class="add-category-wrapper">
+            <button id="btn-add-category" class="btn large"><i class="fas fa-plus-circle"></i> Add New Category</button>
+        </div>
+    </main>
+
+    <!-- Media Preview Modal -->
+    <div id="media-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3>Media Preview</h3>
+            <div id="media-preview-container"></div>
+        </div>
+    </div>
+
+    <!-- Question Preview Modal (Game Simulation) -->
+    <div id="question-preview-modal" class="modal hidden">
+        <div class="modal-content full-screen-preview">
+            <span class="close-modal" id="close-preview-modal">&times;</span>
+            
+            <!-- Navigation Arrows -->
+            <button id="preview-prev-btn" class="preview-nav-btn left"><i class="fas fa-chevron-left"></i></button>
+            <button id="preview-next-btn" class="preview-nav-btn right"><i class="fas fa-chevron-right"></i></button>
+
+            <!-- Popup Overlay for Enlarged Media -->
+            <div id="preview-popup-overlay" class="hidden">
+                <div id="preview-popup-content"></div>
+            </div>
+
+            <div id="game-preview-container" class="game-theme-default">
+                <!-- Content injected by JS to mimic game -->
+                <div id="preview-question-area">
+                    <div id="preview-media"></div>
+                    <h2 id="preview-question-text"></h2>
+                </div>
+                <div id="preview-answers-area" class="preview-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Question Modal -->
+    <div id="add-question-modal" class="modal hidden">
+        <div class="modal-content" style="min-width: 600px; max-height: 90vh; overflow-y: auto;">
+            <span class="close-modal" id="close-question-modal">&times;</span>
+            <h3>Add New Question</h3>
+            
+            <div class="form-group">
+                <label>Category</label>
+                <select id="new-question-category" class="form-control"></select>
+            </div>
+
+            <div class="form-group">
+                <label>Question Text</label>
+                <input type="text" id="new-question-text" class="form-control" placeholder="Enter question here">
+            </div>
+
+            <div class="answers-section">
+                <h4 style="margin: 10px 0;">Answers</h4>
+                
+                <!-- Correct Answer -->
+                <div class="answer-input-group" style="margin-bottom: 10px; padding: 10px; background: #e8f5e9; border-radius: 4px;">
+                    <label style="font-weight: bold; color: #27ae60;">Correct Answer</label>
+                    <input type="text" id="new-q-correct-text" class="form-control" placeholder="Answer Text" style="margin-bottom: 5px;">
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="new-q-correct-img" class="form-control" placeholder="Image URL (optional)" style="font-size: 0.9em;">
+                    </div>
+                </div>
+                
+                <!-- Wrong Answers -->
+                <div class="answer-input-group" style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                    <label>Wrong Answer 1</label>
+                    <input type="text" id="new-q-wrong1-text" class="form-control" placeholder="Answer Text" style="margin-bottom: 5px;">
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="new-q-wrong1-img" class="form-control" placeholder="Image URL (optional)" style="font-size: 0.9em;">
+                    </div>
+                </div>
+
+                <div class="answer-input-group" style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                    <label>Wrong Answer 2</label>
+                    <input type="text" id="new-q-wrong2-text" class="form-control" placeholder="Answer Text" style="margin-bottom: 5px;">
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="new-q-wrong2-img" class="form-control" placeholder="Image URL (optional)" style="font-size: 0.9em;">
+                    </div>
+                </div>
+
+                <div class="answer-input-group" style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px;">
+                    <label>Wrong Answer 3</label>
+                    <input type="text" id="new-q-wrong3-text" class="form-control" placeholder="Answer Text" style="margin-bottom: 5px;">
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="new-q-wrong3-img" class="form-control" placeholder="Image URL (optional)" style="font-size: 0.9em;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="media-section" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px;">
+                <h4>Media Attachment (Optional)</h4>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="new-q-media-src" class="form-control" placeholder="URL or Data URI (Type auto-detected)">
+                </div>
+            </div>
+
+            <button id="btn-submit-question" class="btn primary" style="width: 100%; margin-top: 20px;">Add Question</button>
+        </div>
+    </div>
+
+    <script src="editor.js"></script>
+</body>
+</html>

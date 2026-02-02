@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benny's Matchy Match Editor</title>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; height: 100vh; margin: 0; overflow: hidden; }
+        #sidebar { width: 250px; background: #f0f0f0; padding: 20px; border-right: 1px solid #ccc; display: flex; flex-direction: column; }
+        #main { flex-grow: 1; padding: 20px; overflow-y: auto; position: relative; }
+        
+        .category-list { flex-grow: 1; overflow-y: auto; margin-bottom: 20px; }
+        .category-item { padding: 10px; cursor: pointer; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+        .category-item:hover { background: #e0e0e0; }
+        .category-item.active { background: #ccc; font-weight: bold; }
+        
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .card-item { border: 1px solid #ccc; padding: 10px; border-radius: 5px; background: #fff; display: flex; flex-direction: column; gap: 10px; }
+        .card-image { width: 100%; height: 150px; background: #eee; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; box-sizing: border-box; }
+        .card-image img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+        .modal-content { background-color: #fff !important; padding: 20px; border-radius: 5px; width: 80%; max-width: 800px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .modal-content * { background-color: inherit; }
+        .modal-content h2, .modal-content p, .modal-content label, .modal-content span { background-color: transparent; }
+        .modal-content input, .modal-content button, .modal-content select { background-color: revert; }
+        #search-results { background-color: #fff !important; }
+        #search-results > div { background-color: #fff; }
+        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 24px; font-weight: bold; cursor: pointer; color: #aaa; background-color: transparent !important; }
+        .close-modal:hover { color: #000; }
+        
+        .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 10px; background-color: #fff; }
+        .asset-item { border: 1px solid #ddd; padding: 5px; cursor: pointer; text-align: center; }
+        .asset-item:hover { background: #f0f8ff; border-color: #007bff; }
+        .asset-item img { width: 100%; height: 80px; object-fit: contain; }
+        .asset-item.selected { border: 2px solid #007bff; background: #e6f2ff; }
+
+        /* Editors */
+        #photo-editor-canvas { max-width: 100%; max-height: 500px; border: 1px solid #ccc; }
+        #audio-waveform { width: 100%; height: 150px; background: #333; margin: 20px 0; position: relative; }
+        
+        .btn { padding: 5px 10px; cursor: pointer; }
+        .btn-primary { background: #007bff !important; color: white; border: none; }
+        .btn-danger { background: #dc3545 !important; color: white; border: none; }
+        
+        .category-item.drag-over { background-color: #e6f2ff; border: 2px dashed #007bff; }
+        .card-item[draggable="true"] { cursor: grab; }
+        .card-item[draggable="true"]:active { cursor: grabbing; }
+        
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .row { display: flex; gap: 10px; }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #ccc;">
+            <label style="font-size: 12px; color: #666; display: block; margin-bottom: 3px;">Matching Pack</label>
+            <div style="display: flex; gap: 5px;">
+                 <input type="text" id="pack-title-input" placeholder="My Game Name" 
+                   style="flex-grow: 1; min-width: 0; width: 0; box-sizing: border-box; padding: 5px; font-weight: bold;" 
+                   onchange="handlePackNameChange(this.value)">
+                 <button class="btn" style="padding: 2px 8px; font-size: 18px;" onclick="toggleProjectList()" title="Open Matching Pack...">📁</button>
+                 <button class="btn" style="padding: 2px 8px; font-size: 18px; color: green; font-weight: bold;" onclick="triggerNewProject()" title="New Matching Pack (Blank)">+</button>
+            </div>
+            <div id="project-list-dropdown" style="display: none; background: white; border: 1px solid #ccc; max-height: 200px; overflow-y: auto; margin-top: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position: absolute; width: 220px; z-index: 500;">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+        <h2>Categories</h2>
+        <div style="font-size: 12px; margin-bottom: 5px;">
+             Status: <span id="server-status">Checking...</span>
+        </div>
+        <div style="margin-bottom: 10px;">
+             <button class="btn" style="width: 100%; font-size: 0.8em; padding: 4px;" onclick="sortCategoriesAZ()">Sort A-Z</button>
+        </div>
+        <div id="category-list" class="category-list"></div>
+        <div>
+            <input type="text" id="new-cat-name" placeholder="New Category Name" style="width: 100%; box-sizing: border-box; margin-bottom: 5px;">
+            <button class="btn btn-primary" style="width: 100%;" onclick="createCategory()">Add Category</button>
+        </div>
+        <div style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 10px;">
+            <button class="btn" style="width: 100%;" onclick="openAssetManager()">Manage Assets</button>
+            <!-- <button class="btn" style="width: 100%; margin-top: 5px;" onclick="refreshAssets()">Refresh Assets</button> -->
+            <button class="btn" style="width: 100%; margin-top: 5px; background-color: #ff9800; color: white;" onclick="importManifestFile()">Import JSON</button>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 5px;" onclick="saveManifest()">Save Changes (Download)</button>
+            <button id="btn-update-registry" class="btn" style="width: 100%; margin-top: 5px; background-color: #673ab7; color: white;" onclick="updateGameRegistry()">Update Game Registry</button>
+            <button class="btn" style="width: 100%; margin-top: 5px; background-color: #555; color: white; font-size: 0.8em;" onclick="resetLocalStorage()">⚠️ Reset All Local Data</button>
+            <button class="btn" style="width: 100%; margin-top: 15px; background-color: #17a2b8; color: white;" onclick="BennyTutorial.show()">❓ View Tutorial</button>
+            <div id="save-status" style="margin-top: 10px; font-size: 0.9em; color: #666;"></div>
+        </div>
+    </div>
+    
+    <div id="main">
+        <div id="welcome-screen" style="text-align: center; margin-top: 50px;">
+            <h1>Welcome to Benny's Matchy Match Editor</h1>
+            <p>Select a category to edit or create a new one.</p>
+            <button class="btn btn-primary" onclick="openAssetManager()">Import Assets</button>
+            <button class="btn btn-primary" style="background-color: #ff9800;" onclick="importManifestFile()">Import JSON</button>
+        </div>
+
+        <div id="category-editor" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h1 id="current-cat-title" style="margin:0;">Category Name</h1>
+                <div style="display: flex; gap: 10px;">
+                    <select id="card-sort" onchange="sortCards(this.value)" style="padding: 5px;">
+                        <option value="">Sort Cards...</option>
+                        <option value="name-asc">Name (A-Z)</option>
+                        <option value="name-desc">Name (Z-A)</option>
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
+                    <button class="btn" onclick="toggleCompactView()" id="view-toggle-btn">Compact View</button>
+                    <!-- Buttons moved to card list -->
+                </div>
+            </div>
+
+            <!-- Bulk Actions Toolbar -->
+            <div id="bulk-actions" style="background: #f0f0f0; padding: 10px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; border-radius: 5px;">
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                    <input type="checkbox" id="select-all-checkbox" onchange="toggleSelectAll(this)"> 
+                    <strong>Select All</strong>
+                </label>
+                <span id="selection-count" style="font-size: 0.9em; color: #666; margin-left: 10px;">0 selected</span>
+                
+                <div style="flex: 1;"></div>
+                
+                <select id="move-target-cat" style="padding: 5px;">
+                    <option value="">Move to...</option>
+                </select>
+                <button class="btn" onclick="moveSelectedCards()">Move</button>
+                <button class="btn btn-danger" onclick="deleteSelectedCards()">Delete</button>
+            </div>
+
+            <div id="cards-container" class="card-grid"></div>
+        </div>
+    </div>
+
+    <!-- Asset Manager Modal -->
+    <div id="asset-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('asset-modal')">&times;</span>
+            <h2>Asset Manager</h2>
+            <div class="row">
+                <label for="asset-upload" class="btn btn-primary">Select Folder to Import (Server)</label>
+                <input type="file" id="asset-upload" webkitdirectory directory multiple onchange="uploadAssets()" style="display: none;">
+                <span id="upload-status"></span>
+            </div>
+            <div id="manual-scan-container" style="display: none; margin-top: 10px; padding: 10px; background: #f8f9fa; border: 1px solid #ddd;">
+                <strong>Standalone Mode:</strong> 
+                <label for="manual-scan" class="btn btn-primary">Load Assets Folder</label>
+                <input type="file" id="manual-scan" webkitdirectory directory multiple onchange="handleManualScan(this)" style="display: none;">
+                <p style="font-size: 12px; margin: 5px 0;">Select your 'assets' folder to load images/sounds into the editor.</p>
+            </div>
+            <div style="margin-top: 10px;">
+                <select id="asset-sort" onchange="filterAssets()" style="padding: 5px; margin-right: 10px;">
+                    <option value="name-asc">Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                    <option value="date-desc">Newest First</option>
+                    <option value="date-asc">Oldest First</option>
+                </select>
+                <input type="text" id="asset-manager-search" placeholder="Search assets..." style="padding: 5px; width: 200px; margin-right: 10px;" oninput="filterAssets()">
+                <button class="btn" onclick="filterAssets('all')">All</button>
+                <button class="btn" onclick="filterAssets('image')">Images</button>
+                <button class="btn" onclick="filterAssets('audio')">Audio</button>
+                <button class="btn" id="btn-import-local-manager" onclick="triggerAssetManagerImport()">Import Local</button>
+                <button class="btn btn-danger" id="btn-delete-multi-manager" style="display:none;" onclick="deleteSelectedAssets()">Delete Selected</button>
+                <button class="btn btn-danger" onclick="resetAssetList()">Clear Entire List</button>
+                <input type="file" id="asset-manager-import" multiple style="display: none;" onchange="handleAssetManagerImport(this)">
+            </div>
+            <div id="asset-list" class="asset-grid"></div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn" onclick="closeModal('asset-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Asset Selector Modal (for picking an image/sound for a card) -->
+    <div id="selector-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('selector-modal')">&times;</span>
+            <h2 id="selector-title">Select Asset</h2>
+            <div id="selector-actions" style="margin-bottom: 10px; display: none;">
+                <input type="text" id="asset-selector-search" placeholder="Type to filter assets..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px; padding: 8px;">
+                <button class="btn" id="btn-import-local" onclick="triggerLocalImport()">Import Local File</button>
+                <button class="btn" id="btn-search-symbols" onclick="openSymbolSearch()">Search Online Symbols</button>
+                <button class="btn" id="btn-search-sounds" onclick="openSoundSearch()" style="display:none;">Search FreeSound</button>
+                <input type="file" id="local-import-input" multiple style="display: none;" onchange="handleLocalImport(this)">
+            </div>
+            <div id="selector-list" class="asset-grid"></div>
+            
+            <!-- Sticky Footer for Actions -->
+            <div style="margin-top: 20px; text-align: right; position: sticky; bottom: -20px; background: white; padding: 10px; border-top: 1px solid #eee; margin-left: -20px; margin-right: -20px; padding-right: 30px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1);">
+                <button class="btn btn-primary" id="selector-confirm-btn" style="display: none;" onclick="confirmSelection()">Confirm Selection</button>
+                <button class="btn" onclick="closeModal('selector-modal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Photo Editor Modal -->
+    <div id="photo-editor-modal" class="modal">
+        <div class="modal-content">
+            <h2>Photo Editor</h2>
+            <div style="text-align: center;">
+                <canvas id="photo-editor-canvas"></canvas>
+            </div>
+            <div class="row" style="justify-content: center; margin-top: 10px; gap: 10px;">
+                <button class="btn" onclick="undoPhotoEdit()" title="Undo (Ctrl+Z)">Undo</button>
+                <button class="btn" onclick="rotateImage()">Rotate</button>
+                <button class="btn" onclick="enableCropMode()">Crop Mode</button>
+                <button class="btn" onclick="applyCrop()" id="apply-crop-btn" style="display:none;">Apply Crop</button>
+                <button class="btn" onclick="activateMagicWand()" id="magic-wand-btn">Magic Wand (Remove BG)</button>
+                <button class="btn" onclick="resetPhotoEditor()">Reset</button>
+            </div>
+            <div id="magic-wand-controls" style="text-align: center; display: none; margin-top: 5px;">
+                <label>Tolerance: <input type="range" id="wand-tolerance" min="0" max="100" value="30" onchange="updateWandTolerance(this.value)"></label>
+                <span id="wand-tolerance-val">30</span>
+                <p style="font-size: 12px; color: #666;">Click on the background color to remove it.</p>
+            </div>
+            <p id="crop-instructions" style="text-align: center; display: none; color: #666;">Drag on the image to select an area to crop.</p>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-primary" onclick="saveEditedPhoto()">Save Copy</button>
+                <button class="btn" onclick="closeModal('photo-editor-modal')">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Online Search Modal -->
+    <div id="search-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('search-modal')">&times;</span>
+            <h2 id="search-modal-title">Search Open Symbols</h2>
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="symbol-search-input" placeholder="Search parameters..." style="flex: 1; padding: 8px;">
+                <button class="btn btn-primary" onclick="performSearch()">Search</button>
+            </div>
+            <div id="search-results" class="asset-grid" style="max-height: 400px; overflow-y: auto;"></div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn" onclick="closeModal('search-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Editor Modal -->
+    <div id="audio-editor-modal" class="modal">
+        <div class="modal-content">
+            <h2>Audio Editor</h2>
+            <div id="audio-waveform"></div>
+            <div class="row" style="margin-bottom: 10px; align-items: center;">
+                <button class="btn" onclick="playAudioPreview()">Play</button>
+                <button class="btn" onclick="stopAudioPreview()">Stop</button>
+                <div style="border-left: 1px solid #ccc; padding-left: 10px; display: flex; gap: 5px;">
+                    <button class="btn" onclick="setAudioIn()">Set In [</button>
+                    <button class="btn" onclick="setAudioOut()">Set Out ]</button>
+                </div>
+                <label style="margin-left: 10px;">Start: <input type="number" id="audio-start" step="0.1" value="0" style="width: 60px;"></label>
+                <label>End: <input type="number" id="audio-end" step="0.1" value="0" style="width: 60px;"></label>
+                <label>Cursor: <span id="audio-cursor-val">0.00</span>s</label>
+            </div>
+            <div class="row" style="border-top: 1px solid #eee; padding-top: 10px;">
+                <strong>Record New:</strong>
+                <button class="btn" onclick="startRecording('mic')" id="btn-rec-mic">🎤 Record Mic</button>
+                <button class="btn" onclick="startRecording('system')" id="btn-rec-sys">🖥️ Record System</button>
+                <button class="btn btn-danger" onclick="stopRecording()" id="btn-stop-rec" style="display:none;">⏹ Stop Recording</button>
+                <span id="recording-status" style="color: red; display: none;">Recording...</span>
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button class="btn btn-primary" onclick="saveEditedAudio()">Save Clip</button>
+                <button class="btn" onclick="closeAudioEditor()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="editor_new.js"></script>
+    <script src="../../../shared/tutorial-modal.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            BennyTutorial.init({
+                title: "Benny’s Matchy Match Game Editor",
+                videoUrl: "https://youtu.be/ZEQum6gdVL4",
+                localStorageKey: "bennyHubSeenTutorial_matchyMatch"
+            });
+        });
+    </script>
+</body>
+</html>

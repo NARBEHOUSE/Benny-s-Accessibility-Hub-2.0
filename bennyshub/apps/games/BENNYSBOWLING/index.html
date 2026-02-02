@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Bowling</title>
+		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"/>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="container"></div>
+
+		<!-- Load shared voice manager first for TTS consistency -->
+		<script src="../../../shared/voice-manager.js" onerror="console.error('Failed to load voice-manager.js')"></script>
+		<script src="../../../shared/ios-audio-fix.js"></script>
+		<script src="../../../shared/scan-manager.js"></script>
+		<script src="js/ammo.js"></script>
+		<script src="js/three.js"></script>
+		<script src="js/GLTFLoader.js"></script>
+		<script src="js/scores.js"></script>
+		<script src="js/bowlphysics.js"></script>
+		<script src="js/bowlchallenge.js"></script>
+	</body>
+</html>

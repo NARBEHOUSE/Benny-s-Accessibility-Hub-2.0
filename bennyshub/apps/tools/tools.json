@@ -1,0 +1,36 @@
+{
+  "tools": [
+    {
+      "id": "keyboard",
+      "title": "Keyboard",
+      "description": "Predictive, simple input mapped for two-button access.",
+      "path": "apps/tools/keyboard/index.html",
+      "image": "images/tools/keyboard.png",
+      "genres": ["Communication", "Accessibility"]
+    },
+    {
+      "id": "phraseboard",
+      "title": "Phrase & Media Board",
+      "description": "Editable phrase & media tiles with scanning and speak-out.",
+      "path": "apps/tools/phraseboard/index.html",
+      "image": "images/tools/phraseboard.png",
+      "genres": ["Communication", "Accessibility"]
+    },
+    {
+      "id": "ytsearch",
+      "title": "YouTube Search",
+      "description": "Search and watch YouTube videos with accessible scanning controls.",
+      "path": "apps/tools/ytsearch/index.html",
+      "image": "images/tools/ytsearch.png",
+      "genres": ["Entertainment", "Accessibility", "Media"]
+    },
+    {
+      "id": "journal",
+      "title": "Journal",
+      "description": "Ben's personal journal.",
+      "path": "apps/tools/journal/index.html",
+      "image": "images/tools/journal.png",
+      "genres": ["Communication", "Writing"]
+    }
+  ]
+}

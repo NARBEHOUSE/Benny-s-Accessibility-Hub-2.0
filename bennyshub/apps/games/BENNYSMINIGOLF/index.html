@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benny's Mini Golf</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui-layer"></div>
+        <div id="rotate-message">
+            <div class="rotate-icon">↻</div>
+            <div>Please Rotate Your Device</div>
+        </div>
+    </div>
+
+    <div id="course-creator-warning-overlay" class="hidden">
+        <div class="overlay-content">
+            <h2>Mouse Required</h2>
+            <p>Opening the Course Creator requires a mouse or touch device. It is not fully accessible with switch controls.</p>
+            <div class="scannable-options">
+                <button id="cc-cancel" class="scannable">Cancel</button>
+                <button id="cc-proceed" class="scannable">Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Load shared voice manager first -->
+    <script src="../../../shared/voice-manager.js" type="module"></script>
+    <script src="../../../shared/ios-audio-fix.js"></script>
+    <script src="../../../shared/scan-manager.js" type="module"></script>
+    <script src="js/matter.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/particles.js"></script>
+    <script src="js/menu.js"></script>
+    <script src="js/physics.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

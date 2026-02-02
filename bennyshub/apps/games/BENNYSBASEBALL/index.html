@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benny's Baseball Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #000428 0%, #004e92 100%);
+            overflow: hidden;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        #gameCanvas {
+            display: block;
+            background: #1a5f1a;
+            margin: 0 auto;
+            cursor: pointer;
+        }
+
+        .controls-info {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 14px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            max-width: 90vw;
+            word-wrap: break-word;
+            z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            .controls-info {
+                font-size: 12px;
+                padding: 6px 12px;
+                bottom: 5px;
+            }
+            
+            #pauseButton {
+                font-size: 14px;
+                padding: 8px 16px;
+                bottom: 15px;
+                left: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .controls-info {
+                font-size: 10px;
+                padding: 4px 8px;
+                border-radius: 6px;
+                bottom: 3px;
+            }
+            
+            #pauseButton {
+                font-size: 12px;
+                padding: 6px 12px;
+                bottom: 10px;
+                left: 10px;
+            }
+        }
+
+        #pauseButton {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, rgba(20, 48, 30, 0.95) 0%, rgba(10, 30, 15, 0.95) 100%);
+            color: #4aff9e;
+            border: 3px solid #4aff9e;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: none;
+        }
+
+        #pauseButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(74, 255, 158, 0.4);
+            background: linear-gradient(135deg, rgba(30, 58, 40, 0.95) 0%, rgba(20, 40, 25, 0.95) 100%);
+        }
+
+        #pauseButton:active {
+            transform: translateY(0px);
+        }
+
+        #pauseButton.visible {
+            display: block;
+        }
+
+        .pause-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+        }
+
+        .pause-overlay.active {
+            display: flex;
+        }
+
+        .pause-menu {
+            background: linear-gradient(135deg, rgba(20, 48, 30, 0.95) 0%, rgba(10, 30, 15, 0.95) 100%);
+            border: 3px solid #4aff9e;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            color: #fff;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .pause-menu h2 {
+            font-size: 48px;
+            margin-bottom: 30px;
+            color: #4aff9e;
+            text-shadow: 3px 3px 0px rgba(0, 0, 0, 0.3);
+        }
+
+        .pause-menu button {
+            display: block;
+            width: 100%;
+            padding: 15px 30px;
+            margin: 15px 0;
+            font-size: 24px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            background: linear-gradient(135deg, rgba(255, 235, 59, 0.2) 0%, rgba(255, 235, 59, 0.4) 50%, rgba(255, 235, 59, 0.2) 100%);
+            border: 2px solid #ffeb3b;
+            color: #ffeb3b;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .pause-menu button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 235, 59, 0.4);
+            background: linear-gradient(135deg, rgba(255, 235, 59, 0.3) 0%, rgba(255, 235, 59, 0.5) 50%, rgba(255, 235, 59, 0.3) 100%);
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <button id="pauseButton">⏸ PAUSE</button>
+    <div class="controls-info">
+        SPACE: Scan Options | ENTER: Select | CLICK: Select Option
+    </div>
+
+    <!-- Pause Menu Overlay -->
+    <div class="pause-overlay" id="pauseOverlay">
+        <div class="pause-menu" id="pauseMenu">
+            <h2>⏸ PAUSED</h2>
+            <button onclick="resumeGame()">Resume Game</button>
+            <button onclick="showPauseSettings()">Settings</button>
+            <button onclick="restartGame()">Restart Game</button>
+            <button onclick="quitToMenu()">Main Menu</button>
+        </div>
+        
+        <!-- Pause Settings Menu -->
+        <div class="pause-menu" id="pauseSettingsMenu" style="display: none;">
+            <h2>⚙️ SETTINGS</h2>
+            <button id="pauseMusicToggle" onclick="togglePauseMusic()">Music: ON</button>
+            <button id="pauseSoundToggle" onclick="togglePauseSound()">Sound Effects: ON</button>
+            <button id="pauseTTSToggle" onclick="togglePauseTTS()">Text-to-Speech: ON</button>
+            <button id="pauseVoiceToggle" onclick="togglePauseVoice()">Voice: DEFAULT</button>
+            <button onclick="pauseNextTrack()">Next Track</button>
+            <button onclick="showResetSeasonConfirmation()">Reset Season</button>
+            <button onclick="backToPauseMenu()">Back</button>
+        </div>
+
+        <!-- Reset Season Confirmation Dialog -->
+        <div class="pause-menu" id="resetSeasonConfirmation" style="display: none;">
+            <h2>⚠️ RESET SEASON</h2>
+            <p style="color: #fff; font-size: 20px; margin: 20px 0; text-align: center;">Are you sure you want to reset the season?</p>
+            <button onclick="confirmResetSeason()">Confirm</button>
+            <button onclick="cancelResetSeason()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Load JavaScript modules in dependency order -->
+    <!-- Load voice manager first for TTS consistency -->
+    <script src="../../../shared/voice-manager.js" onerror="console.error('Failed to load voice-manager.js')"></script>    <script src="../../../shared/ios-audio-fix.js"></script>    
+    <!-- Core constants and state management -->
+    <script src="js/core/constants.js" onerror="console.error('Failed to load constants.js')"></script>
+    <script src="js/core/GameState.js" onerror="console.error('Failed to load GameState.js')"></script>
+    
+    <!-- Systems that don't depend on other modules -->
+    <script src="js/systems/AudioSystem.js" onerror="console.error('Failed to load AudioSystem.js')"></script>
+    <script src="js/systems/SeasonManager.js" onerror="console.error('Failed to load SeasonManager.js')"></script>
+    
+    <!-- Shared Voice Manager -->
+    <script src="../../../shared/voice-manager.js"></script>
+    <script src="../../../shared/scan-manager.js"></script>
+
+    <!-- Entity classes -->
+    <script src="js/entities/Player.js" onerror="console.error('Failed to load Player.js')"></script>
+    
+    <!-- Graphics and rendering -->
+    <script src="js/graphics/FieldRenderer.js" onerror="console.error('Failed to load FieldRenderer.js')"></script>
+    <script src="js/graphics/UIRenderer.js" onerror="console.error('Failed to load UIRenderer.js')"></script>
+    
+    <!-- Animation system -->
+    <script src="js/animation/AnimationSystem.js" onerror="console.error('Failed to load AnimationSystem.js')"></script>
+    
+    <!-- Game logic and mechanics -->
+    <script src="js/logic/GameLogic.js" onerror="console.error('Failed to load GameLogic.js')"></script>
+    
+    <!-- Menu and input handling -->
+    <script src="js/menus/MenuSystem.js" onerror="console.error('Failed to load MenuSystem.js')"></script>
+    <script src="js/input/InputHandler.js" onerror="console.error('Failed to load InputHandler.js')"></script>
+    
+    <!-- Main game class (must be loaded last) -->
+    <script src="js/Game.js" onerror="console.error('Failed to load Game.js')"></script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streaming Hub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Main Menu Screen -->
+    <div id="main-menu" class="screen-view active">
+        <h1 class="app-title">Streaming Hub</h1>
+        <div class="menu-grid">
+            <button class="menu-btn" id="btn-recent" onclick="openRecent()">Recently Watched</button>
+            <button class="menu-btn" id="btn-browse" onclick="openBrowse()">Browse All</button>
+            <button class="menu-btn" id="btn-shows" onclick="openShows()">Shows</button>
+            <button class="menu-btn" id="btn-movies" onclick="openMovies()">Movies</button>
+            <button class="menu-btn" id="btn-search" onclick="openSearch()">Search</button>
+            <button class="menu-btn" id="btn-settings" onclick="openSettings()">Settings</button>
+            <button class="menu-btn danger full-width" id="btn-exit" onclick="exitApp()">Exit</button>
+        </div>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="settings-menu" class="screen-view" style="display:none;">
+        <h1>Settings</h1>
+        <div class="settings-grid">
+            <div class="setting-row">
+                <span>Theme</span>
+                <button class="setting-toggle" id="toggle-theme" onclick="cycleTheme()">Default</button>
+            </div>
+            <div class="setting-row">
+                <span>Highlight Style</span>
+                <button class="setting-toggle" id="toggle-highlight" onclick="cycleHighlightStyle()">Fill</button>
+            </div>
+            <div class="setting-row">
+                <span>Highlight Color</span>
+                <button class="setting-toggle" id="toggle-color" onclick="cycleHighlightColor()">Yellow</button>
+            </div>
+            <div class="setting-row">
+                <span>Scan Speed</span>
+                <button class="setting-toggle" id="toggle-speed" onclick="cycleSpeed()">Medium</button>
+            </div>
+            <div class="setting-row">
+                <span>Auto Scan</span>
+                <button class="setting-toggle" id="toggle-autoscan" onclick="toggleAutoScan()">Off</button>
+            </div>
+            <div class="setting-row">
+                <span>TTS Voice</span>
+                <button class="setting-toggle" id="toggle-voice" onclick="cycleVoice()">Default</button>
+            </div>
+             <div class="setting-row">
+                <span>Editor</span>
+                <button class="setting-toggle" onclick="openEditorConfirm()">Open Editor</button>
+            </div>
+             <div class="setting-row">
+                <span>Search History</span>
+                <button class="setting-toggle" onclick="clearSearchHistory()">Clear</button>
+            </div>
+        </div>
+        <button class="back-btn-large" onclick="openMainMenu()">Back to Main Menu</button>
+    </div>
+
+    <!-- Browse / Search Results Screen -->
+    <div id="app-container" class="screen-view" style="display:none;">
+        <header>
+            <button class="back-header-btn" id="global-back-btn" onclick="handleGlobalBack()">← Genres</button>
+            <h1 id="view-title">Browse</h1>
+            <div id="active-search-badge"></div>
+        </header>
+
+        <div id="main-content">
+            <!-- Genre View -->
+            <div id="genre-view">
+                <div id="genre-grid"></div>
+            </div>
+
+            <!-- Items View -->
+            <div id="items-view" style="display: none;">
+                <!-- Internal header for Items view removed, using global header -->
+                <div id="items-grid"></div>
+                <div class="pagination-controls">
+                    <button class="page-btn" id="prev-btn">Previous</button>
+                    <span id="page-indicator">Page 1/1</span>
+                    <button class="page-btn" id="next-btn">Next</button>
+                </div>
+            </div>
+
+            <!-- Episodes View -->
+            <div id="episode-view" style="display: none;">
+                <div class="episode-header">
+                    <h2 id="ep-show-title">Select Season</h2>
+                </div>
+                
+                <!-- Season Grid -->
+                <div id="season-grid" class="grid-layout"></div>
+                
+                <!-- Episode Grid -->
+                <div id="episode-grid" class="grid-layout" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Item Detail Modal -->
+    <div id="item-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-body">
+                <img id="modal-img" src="" alt="Cover">
+                <div class="modal-info">
+                    <h2 id="modal-title">Movie Title</h2>
+                    <p id="modal-meta">2024 • Director Name</p>
+                    <p id="modal-desc">Description goes here...</p>
+                    <div class="modal-actions">
+                        <button class="modal-action-btn primary" id="btn-play" onclick="checkAndPlay(currentModalItem)">Play</button>
+                        <button class="modal-action-btn" id="btn-info" onclick="speak(`${currentModalItem.title}. Released in ${currentModalItem.year || 'unknown year'}.`)">Read Info</button>
+                        <button class="modal-action-btn" id="btn-trailer" onclick="playTrailer(currentModalItem.trailer)">View Trailer</button>
+                        <button class="modal-action-btn danger" id="btn-close-modal" onclick="closeModal()">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor Confirmation Modal -->
+    <div id="editor-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="width: auto; max-width: 600px;">
+            <div class="modal-body" style="text-align: center; flex-direction: column; height: auto; padding: 40px; justify-content: center;">
+                <h2 style="color: #ffcc00; margin-bottom: 20px;">WARNING</h2>
+                <p style="margin-bottom: 30px; font-size: 1.2em;">Opening the editor requires mouse input.</p>
+                <div class="modal-actions" style="display: flex; justify-content: center; gap: 20px; margin-top: 10px;">
+                    <button class="modal-action-btn danger" onclick="closeEditorModal()" style="min-width: 150px;">Cancel</button>
+                    <button class="modal-action-btn primary" onclick="startEditor()" style="min-width: 150px;">Proceed</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause Menu -->
+    <div id="pause-menu" class="hidden">
+        <div class="pause-menu-content">
+            <h2>Paused</h2>
+            <button class="pause-btn" id="btn-resume" onclick="closePauseMenu(true)">Continue Browsing</button>
+            <button class="pause-btn" id="btn-pause-settings" onclick="openSettings()">Settings</button>
+            <button class="pause-btn" id="btn-main-menu" onclick="closePauseMenu(false); openMainMenu();">Main Menu</button>
+        </div>
+    </div>
+
+    <!-- Keyboard Overlay -->
+    <div id="keyboard-container" class="hidden">
+        <div class="keyboard-content">
+            <input type="text" id="search-input" placeholder="Search..." readonly>
+            <div id="prediction-bar"></div>
+            <div id="keyboard-keys"></div>
+        </div>
+    </div>
+
+    <script src="predictions.js?v=2"></script>
+    <script src="keyboard_integration.js?v=2"></script>
+    <script src="app.js?v=2"></script>
+</body>
+</html>

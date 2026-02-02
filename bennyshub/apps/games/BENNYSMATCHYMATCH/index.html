@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benny's Matchy Match</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="header">
+            <div id="score-display" style="display: none;">Score - P1: 0 P2: 0</div>
+            <div id="turn-display" style="display: none;">Turn: Player 1</div>
+        </div>
+        <div id="main-content">
+            <!-- Content will be injected here by JavaScript -->
+        </div>
+    </div>
+
+    <!-- Audio elements for sound effects -->
+    <div id="audio-container"></div>
+
+    <!-- Load shared voice manager first -->
+    <script src="../../../shared/voice-manager.js"></script>
+    <script src="../../../shared/ios-audio-fix.js"></script>
+    <script src="../../../shared/scan-manager.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

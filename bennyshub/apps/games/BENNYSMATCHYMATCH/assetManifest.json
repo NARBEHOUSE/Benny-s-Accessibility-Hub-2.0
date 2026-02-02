@@ -1,0 +1,6 @@
+{
+    "packs": [
+        "packs/animals.json",
+        "packs/miscellaneous.json"
+    ]
+}

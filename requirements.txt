@@ -1,0 +1,29 @@
+# Core System & GUI
+pywin32; sys_platform == 'win32'
+psutil
+pynput
+pyautogui
+
+# Web Servers (for Hub & Games)
+flask
+fastapi
+uvicorn
+requests
+
+# Discord / Messenger
+discord.py
+
+# Audio & TTS
+pyttsx3
+pygame
+
+# Browser Automation (Search tools)
+playwright
+
+# Data Handling
+pandas
+openpyxl
+
+# Legacy / Optional (Keep if unsure)
+pymunk
+pyside6

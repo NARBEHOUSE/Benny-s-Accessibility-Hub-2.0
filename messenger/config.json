@@ -1,0 +1,6 @@
+{
+  "DISCORD_TOKEN": "your-token",
+  "GUILD_ID": "id",
+  "CHANNEL_IDS": ["id"],
+  "DM_BRIDGE_CHANNEL_ID": "id"
+}

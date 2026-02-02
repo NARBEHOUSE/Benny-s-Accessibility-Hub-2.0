@@ -1,0 +1,718 @@
+/* NARBE Scan Keyboard Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0b0f14;
+    color: #e9eef5;
+    overflow: hidden;
+    height: 100vh;
+    user-select: none;
+    display: flex;
+    flex-direction: column;
+}
+
+#app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-width: 1600px; /* Prevent excessive expansion on ultra-wide screens */
+    margin: 0 auto;
+    width: 100%;
+}
+
+#keyboard-container {
+    flex: 1;
+    padding: clamp(4px, 0.5vh, 10px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2px, 0.3vh, 6px);
+    min-height: 0;
+    overflow: hidden;
+    justify-content: flex-start;
+    /* Fill remaining space after top bar */
+    height: calc(100vh - clamp(8px, 1vh, 20px));
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    /* Dynamic height based on screen size */
+    height: clamp(36px, 5vh, 60px);
+    padding: clamp(2px, 0.5vh, 6px) 0;
+}
+
+.top-bar h1 {
+    font-size: clamp(16px, 2.5vw, 28px);
+    margin: 0;
+}
+
+.status {
+    color: #9fb6c9;
+    font-size: clamp(10px, 1.5vw, 16px);
+}
+
+.pill-container {
+    background: #0f1521;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 8px;
+    padding: clamp(3px, 0.4vh, 8px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2px, 0.3vh, 5px);
+    flex: 1;
+    min-height: 0;
+    overflow: hidden; /* Remove scrolling, let content fill space */
+    justify-content: space-between; /* Distribute rows evenly */
+    /* Use remaining space after top bar and padding */
+    height: calc(100vh - clamp(44px, 6vh, 80px));
+    position: relative;
+}
+
+.row-wrap {
+    background: #0f1521;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 6px;
+    padding: clamp(2px, 0.3vh, 5px);
+    display: flex;
+    gap: clamp(2px, 0.3vh, 5px);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    /* Dynamic height that fills available space evenly */
+    flex: 1;
+    min-height: clamp(32px, 5vh, 48px);
+    max-height: clamp(65px, 10vh, 85px);
+    align-items: stretch;
+    position: relative;
+    scroll-margin: 20px;
+}
+
+/* Specific sizing for different row types */
+.row-wrap[data-row-id="row_text"] {
+    /* Text input gets slightly more space */
+    flex: 1.2;
+    min-height: clamp(38px, 6vh, 55px);
+}
+
+.row-wrap[data-row-id="row_modes"],
+.row-wrap[data-row-id="row_controls"] {
+    /* Control rows get standard space */
+    flex: 1;
+}
+
+.row-wrap[data-row-id*="row_history"] {
+    /* History rows get less space when visible */
+    flex: 0.8;
+    min-height: clamp(30px, 4.5vh, 42px);
+}
+
+.row-wrap[data-row-id="predRow"] {
+    /* Predictive row gets standard space */
+    flex: 1;
+}
+
+.row-wrap.focused {
+    border: clamp(2px, 0.3vh, 3px) solid #FFD64D !important;
+    background: rgba(255, 214, 77, 0.15) !important;
+    box-shadow: 0 0 clamp(15px, 2vh, 25px) rgba(255, 214, 77, 0.4), 
+                inset 0 0 clamp(5px, 1vh, 12px) rgba(255, 214, 77, 0.1) !important;
+    /* Remove scale transform that causes overflow */
+    transform: none !important;
+    z-index: 10 !important;
+    position: relative;
+    /* Add subtle visual emphasis without scaling */
+    filter: brightness(1.1);
+}
+
+/* Ensure focused rows are never hidden by other elements */
+.row-wrap.focused::before {
+    content: '';
+    position: absolute;
+    /* Adjust positioning to stay within bounds */
+    top: -1px;
+    left: -1px;
+    right: -1px;
+    bottom: -1px;
+    border: 2px solid #FFD64D;
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: -1;
+    animation: focusPulse 2s ease-in-out infinite;
+    /* Ensure it doesn't overflow container */
+    box-sizing: border-box;
+}
+
+@keyframes focusPulse {
+    0%, 100% { 
+        opacity: 1; 
+        /* Remove transform that could cause overflow */
+        box-shadow: 0 0 5px rgba(255, 214, 77, 0.3);
+    }
+    50% { 
+        opacity: 0.8; 
+        box-shadow: 0 0 15px rgba(255, 214, 77, 0.6);
+    }
+}
+
+.text-input {
+    width: 100%;
+    background: #ADD8E6;
+    border: 2px solid #000;
+    border-radius: 6px;
+    padding: clamp(4px, 0.8vh, 12px);
+    font-size: clamp(14px, 2.2vh, 24px);
+    font-weight: 800;
+    color: #000;
+    text-transform: uppercase;
+    text-align: center;
+    /* Fill parent height exactly */
+    height: 100%;
+    outline: none;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Prevent text from breaking layout */
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.scan-btn {
+    /* Fixed proportional sizing */
+    flex: 1;
+    height: 100%; /* Match parent row height exactly */
+    max-height: none; /* Remove conflicting max-height */
+    min-height: auto; /* Remove conflicting min-height */
+    border: 1px solid rgba(124, 203, 255, 0.35);
+    background: linear-gradient(to bottom, #15354d, #0f2a41);
+    color: #e9f5ff;
+    font-size: clamp(9px, 1.4vh, 18px);
+    font-weight: 600;
+    border-radius: 6px;
+    padding: clamp(2px, 0.5vh, 8px);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative;
+    /* Maintain aspect ratio */
+    aspect-ratio: auto;
+}
+
+.scan-btn:hover {
+    background: linear-gradient(to bottom, #1a4463, #133750);
+}
+
+.scan-btn.primary {
+    border: 1px solid rgba(124, 203, 255, 0.50);
+    background: linear-gradient(to bottom, #1a4463, #133750);
+}
+
+.scan-btn.warn {
+    border: 1px solid rgba(255, 170, 0, 0.35);
+    background: linear-gradient(to bottom, #3a1d0a, #2a1407);
+    color: #ffd79a;
+}
+
+.scan-btn.focused {
+    border: clamp(2px, 0.3vh, 3px) solid #FFD64D !important;
+    background: rgba(255, 214, 77, 0.15) !important;
+    box-shadow: 0 0 clamp(10px, 1.5vh, 20px) rgba(255, 214, 77, 0.4) !important;
+    /* Reduce scale to prevent overflow */
+    transform: scale(1.02) !important;
+    z-index: 5 !important;
+    color: #fff !important;
+    font-weight: bold !important;
+    /* Ensure proper containment */
+    overflow: hidden;
+}
+
+.scan-btn:empty {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(11, 15, 20, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.loading-panel {
+    background: #0f1521;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 14px;
+    padding: clamp(20px, 3vw, 32px);
+    text-align: center;
+    min-width: clamp(250px, 30vw, 400px);
+}
+
+.loading-label {
+    color: #e9eef5;
+    font-weight: 800;
+    font-size: clamp(16px, 2.5vw, 24px);
+    margin-bottom: clamp(8px, 1.5vw, 16px);
+}
+
+.loading-bar {
+    background: #0b111d;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 10px;
+    height: clamp(10px, 1.5vh, 18px);
+    overflow: hidden;
+}
+
+.loading-progress {
+    background: #79c0ff;
+    height: 100%;
+    border-radius: 10px;
+    animation: loading-pulse 1.5s ease-in-out infinite;
+    width: 100%;
+}
+
+@keyframes loading-pulse {
+    0%, 100% { opacity: 0.6; transform: translateX(-100%); }
+    50% { opacity: 1; transform: translateX(0%); }
+}
+
+/* Slideshow Overlays */
+.slideshow-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.94);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: clamp(8px, 1.5vw, 16px);
+}
+
+.slideshow-container {
+    background: rgba(0, 0, 0, 0.94);
+    border-radius: 14px;
+    padding: clamp(6px, 1vw, 12px);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(6px, 1vw, 12px);
+    max-width: 95vw;
+    max-height: 95vh;
+    width: 100%;
+    height: 100%;
+}
+
+.slideshow-content {
+    flex: 1;
+    background: #000;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.slideshow-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.youtube-player {
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 8px;
+}
+
+.slideshow-controls {
+    display: flex;
+    gap: clamp(3px, 0.5vw, 6px);
+    padding: clamp(3px, 0.5vw, 6px);
+    flex-shrink: 0;
+    /* Fixed height for slideshow controls */
+    height: clamp(45px, 8vh, 65px);
+}
+
+.slideshow-controls .scan-btn {
+    flex: 1;
+    font-size: clamp(10px, 1.5vw, 14px);
+    /* Match the container height exactly */
+    height: 100%;
+    min-height: auto;
+    max-height: none;
+}
+
+/* YouTube Button Enhancements */
+.youtube-btn {
+    border: 2px solid #ff0000 !important;
+    background: linear-gradient(to bottom, #ff0000, #cc0000) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 12px rgba(255, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.youtube-btn:hover {
+    background: linear-gradient(to bottom, #ff3333, #e60000) !important;
+    box-shadow: 0 6px 16px rgba(255, 0, 0, 0.4);
+    transform: translateY(-1px);
+}
+
+.youtube-btn.focused {
+    border: 3px solid #FFD64D !important;
+    background: linear-gradient(to bottom, #ff3333, #e60000) !important;
+    box-shadow: 0 0 20px rgba(255, 214, 77, 0.6), 0 6px 16px rgba(255, 0, 0, 0.4);
+}
+
+.youtube-logo {
+    display: inline-block;
+    font-size: clamp(12px, 2vw, 18px);
+    margin-right: clamp(4px, 0.8vw, 8px);
+    background: linear-gradient(45deg, #ffffff, #f0f0f0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    font-weight: bold;
+}
+
+/* Add a subtle pulse animation for extra emphasis */
+.youtube-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.youtube-btn:hover::before {
+    left: 100%;
+}
+
+/* Utility Classes */
+.hidden {
+    display: none !important;
+}
+
+/* Settings Menu */
+.settings-menu {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 2vh 2vw;
+    overflow-y: auto;
+}
+
+.settings-menu.hidden {
+    display: none;
+}
+
+.settings-header {
+    text-align: center;
+    margin-bottom: 2vh;
+}
+
+.settings-header h2 {
+    color: #e9eef5;
+    font-size: clamp(24px, 6vh, 72px);
+    margin: 0;
+    font-weight: 900;
+}
+
+.settings-instructions {
+    margin-top: 1vh;
+    padding: 0.5vh 1vw;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0.5vh;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-instructions .instruction-row {
+    display: flex;
+    justify-content: space-around;
+    gap: 2vw;
+}
+
+.settings-instructions p {
+    color: #e9eef5;
+    font-size: clamp(8px, 1.2vh, 14px);
+    margin: 0.2vh 0;
+    line-height: 1.3;
+    opacity: 0.9;
+}
+
+.settings-instructions strong {
+    color: #ffeb3b;
+    font-weight: 600;
+}
+
+.settings-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr) auto;
+    gap: 1.5vh 2vw;
+    flex: 1;
+    max-height: 70vh;
+}
+
+.settings-item {
+    background: #ADD8E6;
+    color: #000;
+    border: none;
+    border-radius: 1vh;
+    padding: 2vh 1vw;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 0;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.settings-item:hover {
+    background: #ffeb3b !important;
+    color: black !important;
+    transform: scale(1.02);
+}
+
+.settings-item.focused {
+    background: #FFD64D !important;
+    color: black !important;
+    border: 3px solid #fff !important;
+    box-shadow: 0 0 20px rgba(255, 214, 77, 0.6) !important;
+    transform: scale(1.05);
+}
+
+.settings-item[data-setting="close"] {
+    grid-column: 1 / 3;
+    grid-row: 3;
+    background: #ff6b6b;
+    color: white;
+}
+
+.settings-item[data-setting="close"]:hover {
+    background: #ffeb3b !important;
+    color: black !important;
+}
+
+.settings-item[data-setting="close"].focused {
+    background: #FFD64D !important;
+    color: black !important;
+}
+
+.setting-label {
+    font-size: clamp(14px, 3vh, 32px);
+    margin-bottom: 0.5vh;
+    font-weight: 900;
+    pointer-events: none;
+}
+
+.setting-value {
+    font-size: clamp(10px, 2vh, 20px);
+    opacity: 0.8;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+/* Responsive Design - Enhanced for proportional scaling */
+@media (min-width: 1800px) {
+    /* Extra large screens - prevent over-expansion */
+    #app {
+        max-width: 1600px;
+    }
+    
+    .row-wrap {
+        height: clamp(50px, 6vh, 70px);
+    }
+    
+    .scan-btn {
+        font-size: clamp(13px, 1.2vw, 18px);
+    }
+}
+
+@media (max-width: 1200px) {
+    .scan-btn {
+        font-size: clamp(9px, 1.5vh, 16px);
+    }
+    
+    .text-input {
+        font-size: clamp(14px, 2.2vh, 22px);
+    }
+}
+
+@media (max-width: 768px) {
+    #keyboard-container {
+        padding: clamp(3px, 0.8vh, 6px);
+        gap: clamp(2px, 0.4vh, 4px);
+    }
+    
+    .pill-container {
+        padding: clamp(2px, 0.6vh, 4px);
+        gap: clamp(2px, 0.4vh, 4px);
+    }
+    
+    .row-wrap {
+        padding: clamp(2px, 0.4vh, 3px);
+        gap: clamp(2px, 0.4vh, 3px);
+        min-height: clamp(32px, 5.5vh, 48px);
+    }
+    
+    .scan-btn {
+        font-size: clamp(8px, 1.8vh, 14px);
+        padding: clamp(2px, 0.6vh, 4px);
+    }
+    
+    .text-input {
+        font-size: clamp(12px, 2.5vh, 20px);
+        padding: clamp(3px, 1vh, 6px);
+    }
+}
+
+@media (max-width: 480px) {
+    .top-bar h1 {
+        font-size: clamp(14px, 4vh, 20px);
+    }
+    
+    .status {
+        font-size: clamp(8px, 2vh, 14px);
+    }
+    
+    .youtube-logo {
+        font-size: clamp(10px, 2.5vh, 16px);
+        margin-right: clamp(2px, 1vh, 4px);
+    }
+    
+    .row-wrap {
+        min-height: clamp(28px, 6vh, 42px);
+    }
+    
+    .scan-btn {
+        font-size: clamp(7px, 2vh, 12px);
+    }
+    
+    .text-input {
+        font-size: clamp(10px, 3vh, 18px);
+    }
+}
+
+/* Prevent layout breaks on very wide screens */
+@media (min-width: 2000px) {
+    #app {
+        max-width: 1800px;
+        /* Remove scaling transform to maintain native sizing */
+    }
+}
+
+/* High DPI screens adjustments */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
+    .scan-btn.focused {
+        border-width: 2px;
+    }
+    
+    .row-wrap.focused {
+        border-width: 2px;
+    }
+}
+
+/* Responsive Design - Enhanced for full viewport utilization */
+@media (min-height: 900px) {
+    /* Larger screens - optimize for full height usage */
+    .pill-container {
+        gap: clamp(3px, 0.4vh, 7px);
+    }
+    
+    .row-wrap {
+        min-height: clamp(45px, 6vh, 65px);
+        max-height: clamp(75px, 11vh, 95px);
+    }
+    
+    .scan-btn {
+        font-size: clamp(11px, 1.6vh, 20px);
+    }
+    
+    .text-input {
+        font-size: clamp(16px, 2.5vh, 28px);
+    }
+}
+
+@media (min-height: 1080px) {
+    /* 1080p and higher - maximize space utilization */
+    .pill-container {
+        gap: clamp(4px, 0.5vh, 8px);
+    }
+    
+    .row-wrap {
+        min-height: clamp(50px, 7vh, 75px);
+        max-height: clamp(85px, 12vh, 105px);
+    }
+    
+    .scan-btn {
+        font-size: clamp(12px, 1.8vh, 22px);
+        padding: clamp(4px, 0.8vh, 12px);
+    }
+    
+    .text-input {
+        font-size: clamp(18px, 2.8vh, 32px);
+        padding: clamp(6px, 1.2vh, 16px);
+    }
+    
+    .top-bar {
+        height: clamp(40px, 6vh, 70px);
+    }
+    
+    .top-bar h1 {
+        font-size: clamp(18px, 3vh, 32px);
+    }
+}
+
+@media (max-height: 600px) {
+    /* Smaller screens - compact layout */
+    .row-wrap {
+        min-height: clamp(28px, 4vh, 36px);
+        max-height: clamp(45px, 7vh, 55px);
+    }
+    
+    .scan-btn {
+        font-size: clamp(8px, 1.2vh, 14px);
+        padding: clamp(2px, 0.4vh, 4px);
+    }
+    
+    .text-input {
+        font-size: clamp(12px, 1.8vh, 18px);
+        padding: clamp(3px, 0.6vh, 6px);
+    }
+}

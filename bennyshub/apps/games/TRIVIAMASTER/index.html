@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trivia Game</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.umd.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Background Particles -->
+        <div id="particles"></div>
+
+        <!-- Header / HUD -->
+        <header id="game-header" class="hidden">
+            <div class="hud-item" id="score-display"><i class="fas fa-star"></i> <span id="score">0</span></div>
+            <div class="hud-item" id="streak-display"><i class="fas fa-fire"></i> <span id="streak">0</span>x</div>
+            <div class="hud-item" id="progress-display">Q: <span id="current-q">1</span>/<span id="total-q">10</span></div>
+            <button id="pause-btn" data-action="pause-game" aria-label="Pause Game"><i class="fas fa-pause"></i></button>
+        </header>
+
+        <!-- Main Menu -->
+        <section id="main-menu" class="screen active">
+            <h1 class="title">TRIVIA MASTER</h1>
+            <div class="menu-options">
+                <button class="scannable menu-btn" data-action="select-game">
+                    <i class="fas fa-gamepad"></i> Select Game
+                </button>
+                <button class="scannable menu-btn" data-action="settings">
+                    <i class="fas fa-cog"></i> Settings
+                </button>
+                <button class="scannable menu-btn" data-action="exit-game">
+                    <i class="fas fa-times"></i> Exit Game
+                </button>
+            </div>
+        </section>
+
+        <!-- Game Selection Screen -->
+        <section id="game-selection" class="screen">
+            <h2>Select a Game</h2>
+            <div id="games-list" class="grid-container">
+                <!-- Games injected by JS -->
+            </div>
+            <button class="scannable back-btn" data-action="back-to-menu" style="margin-top: 20px;">Back</button>
+        </section>
+
+        <!-- Category Selection -->
+        <section id="category-selection" class="screen">
+            <h2>Choose a Category</h2>
+            <div id="category-grid" class="grid-container">
+                <!-- Categories injected by JS -->
+            </div>
+        </section>
+
+        <!-- Game Screen -->
+        <section id="game-screen" class="screen">
+            <div id="answers-container" class="grid-container">
+                <!-- Answers injected by JS -->
+            </div>
+            <div id="question-container">
+                <div id="media-container" data-action="view-media"></div>
+                <div id="question-text-wrapper" class="scannable" data-action="repeat-question">
+                    <h2 id="question-text">Question goes here?</h2>
+                </div>
+            </div>
+            <div class="game-controls">
+                <!-- Controls -->
+            </div>
+        </section>
+
+        <!-- Feedback Screen -->
+        <section id="feedback-screen" class="screen">
+            <div class="feedback-content">
+                <h2 id="feedback-title">Correct!</h2>
+                <p id="feedback-message">+100 Points</p>
+                <div id="feedback-animation"></div>
+                <button class="scannable next-btn" id="next-question-btn" data-action="next-question">Next Question</button>
+            </div>
+        </section>
+
+        <!-- Settings Screen -->
+        <section id="settings-screen" class="screen">
+            <h2>Settings</h2>
+            <div class="settings-list grid-container-settings">
+                <div class="setting-item scannable" data-action="toggle-games-source">
+                    <span>Game Source</span>
+                    <span id="games-source-status">ALL</span>
+                </div>
+                <div class="setting-item scannable" data-action="toggle-tts">
+                    <span>Text-to-Speech</span>
+                    <span id="tts-status">ON</span>
+                </div>
+                <div class="setting-item scannable" data-action="toggle-autoscan">
+                    <span>Auto Scan</span>
+                    <span id="autoscan-status">OFF</span>
+                </div>
+                <div class="setting-item scannable" data-action="cycle-speed">
+                    <span>Scan Speed</span>
+                    <span id="speed-status">Medium</span>
+                </div>
+                <div class="setting-item scannable" data-action="cycle-theme">
+                    <span>Theme</span>
+                    <span id="theme-status">Default</span>
+                </div>
+                <div class="setting-item scannable" data-action="cycle-voice">
+                    <span>Voice</span>
+                    <span id="voice-status">Default</span>
+                </div>
+                <div class="setting-item scannable" data-action="open-editor-confirm">
+                    <span>Custom Game Editor</span>
+                    <i class="fas fa-external-link-alt"></i>
+                </div>
+                <div class="setting-item scannable" data-action="clear-custom-games">
+                    <span>Clear Local Games</span>
+                    <i class="fas fa-trash"></i>
+                </div>
+            </div>
+            <button class="scannable back-btn" data-action="settings-back">Back</button>
+        </section>
+
+        <!-- High Scores Screen -->
+        <section id="highscores-screen" class="screen">
+            <h2>High Scores</h2>
+            <ul id="highscore-list">
+                <!-- Scores injected by JS -->
+            </ul>
+            <button class="scannable back-btn" data-action="back-to-menu">Back</button>
+        </section>
+
+        <!-- End Game Screen -->
+        <section id="end-screen" class="screen">
+            <h2>Game Over!</h2>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <p>High Score: <span id="new-highscore-msg"></span></p>
+            <div class="menu-options">
+                <button class="scannable menu-btn" data-action="play-again">Play Again</button>
+                <button class="scannable menu-btn" data-action="back-to-menu">Main Menu</button>
+            </div>
+        </section>
+        
+        <!-- Pause Overlay -->
+        <div id="pause-overlay" class="hidden">
+            <div class="pause-content">
+                <h2>PAUSED</h2>
+                <button class="scannable" data-action="resume">Continue Game</button>
+                <button class="scannable" data-action="settings">Settings</button>
+                <button class="scannable" data-action="quit">Return to Menu</button>
+            </div>
+        </div>
+
+        <!-- Editor Warning Overlay -->
+        <div id="editor-warning-overlay" class="hidden">
+            <div class="pause-content">
+                <h2>Warning</h2>
+                <p style="text-align: center; font-size: 1.2rem; margin-bottom: 20px;">Opening the game editor will leave this site and will open the Game Editor. You will not be able to scan and select with spacebar and enter.</p>
+                <button class="scannable" data-action="cancel-editor">Cancel</button>
+                <button class="scannable" data-action="open-editor">Continue</button>
+            </div>
+        </div>
+
+        <!-- Load Game Warning Overlay -->
+        <div id="load-game-warning-overlay" class="hidden">
+            <div class="pause-content">
+                <h2>Mouse Input Required</h2>
+                <p style="text-align: center; font-size: 1.2rem; margin-bottom: 20px;">Selecting a custom game file requires mouse input to navigate your computer's file system. The scanning system cannot control the file picker dialog.</p>
+                <button class="scannable" data-action="cancel-load-game">Cancel</button>
+                <button class="scannable" data-action="proceed-load-game">Proceed</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Audio Elements (Placeholders for user to replace if they want real files, but we will use Web Audio API by default) -->
+    <!-- <audio id="bg-music" loop src="music.mp3"></audio> -->
+
+    <!-- Image Popup Overlay -->
+    <div id="image-popup-overlay" class="hidden">
+        <img id="popup-image" src="" alt="Enlarged Answer">
+        <div id="popup-video-container" class="hidden"></div>
+    </div>
+
+    <!-- Load shared voice manager first -->
+    <script src="../../../shared/voice-manager.js"></script>
+    <script src="../../../shared/ios-audio-fix.js"></script>
+    <script src="../../../shared/scan-manager.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
