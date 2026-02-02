@@ -993,7 +993,6 @@ class ControlBar(tk.Tk):
                 pass
         else:
             # Fallback toggle if no CDP (assume it was playing)
-            self._send_media_prev_next("playpause")  # Actually need play/pause logic
             # on_play_pause toggle logic is complex, let's just trigger play/pause key
             try:
                  win32api.keybd_event(0xB3, 0, 0, 0) # VK_MEDIA_PLAY_PAUSE
