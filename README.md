@@ -82,6 +82,15 @@ For a seamless appliance-like experience, it is recommended to add `comm-v10.py`
 3.  Move the shortcuts into this folder.
 This ensures the communication system and background message listener are active immediately when the PC turns on.
 
+## License & Usage
+**This software is free for PERSONAL USE only.**
+
+It is intended to help individuals with disabilities, their families, and caregivers.
+*   ✅ **Allowed:** Personal use, modification for personal needs, sharing with other caregivers for free.
+*   ❌ **Prohibited:** Any commercial use, selling the software, or bundling it with paid products/services.
+
+See the [LICENSE](LICENSE) file for full details.
+
 ## Credits
 *   **Concept & Caregiving:** Nancy & Ari
 *   **Development:** AI-Assisted (ChatGPT / Copilot) & NarbeHouse, LLC
