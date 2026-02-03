@@ -688,6 +688,7 @@ class ControlBar(tk.Tk):
                 takefocus=0
             )
             b.pack(side=tk.LEFT, expand=True, fill=tk.BOTH, padx=8, pady=10)
+            b._current_pady = 10
             self.tk_buttons.append(b)
             if "id" in it:
                 self._btn_idx[it["id"]] = len(self.tk_buttons) - 1
@@ -723,12 +724,23 @@ class ControlBar(tk.Tk):
     # ---------- Highlight helpers ----------
     def _highlight(self, idx: int):
         for i, b in enumerate(self.tk_buttons):
-            if i == idx:
-                b.configure(bg="#ffd84d")
-            else:
-                # Restore original color
-                orig = self.items[i].get("bg", "#e6f0ff")
-                b.configure(bg=orig)
+            is_active = (i == idx)
+            target_bg = "#ffd84d" if is_active else self.items[i].get("bg", "#e6f0ff")
+            target_pady = 2 if is_active else 10
+            
+            # Optimization: check current configured values to minimize layout thrashing
+            current_bg = b.cget("bg")
+            if current_bg != target_bg:
+                b.configure(bg=target_bg)
+            
+            current_pady = getattr(b, "_current_pady", 10)
+            if current_pady != target_pady:
+                try:
+                    b.pack_configure(pady=target_pady)
+                    b._current_pady = target_pady
+                except Exception:
+                    pass
+
         self.update_idletasks()
         
         # TTS if definition exists for this item

@@ -9,7 +9,7 @@ class KeyboardController {
         
         // Journal-style Layout (Alphabetical Blocks of 6)
         this.rows = [
-            ["Space", "Del", "Clear", "Search", "Exit"], // Controls
+            ["Space", "Del", "Del Word", "Clear", "Search", "Exit"], // Controls
             ["A", "B", "C", "D", "E", "F"],
             ["G", "H", "I", "J", "K", "L"],
             ["M", "N", "O", "P", "Q", "R"],
@@ -21,6 +21,7 @@ class KeyboardController {
         this.controlSymbols = {
             "Space": "—",
             "Del": "⌫",
+            "Del Word": "⌦",
             "Clear": "✕",
             "Search": "🔍",
             "Exit": "⏻"
@@ -220,6 +221,13 @@ class KeyboardController {
                 this.speak(this.inputElement.value || "Deleted");
                 this.triggerSearchUpdate();
                 break;
+            case "Del Word":
+                const wordsArr = this.inputElement.value.trimEnd().split(' ');
+                if (wordsArr.length > 0) wordsArr.pop();
+                this.inputElement.value = wordsArr.join(' ') + (wordsArr.length > 0 ? " " : "");
+                this.speak(this.inputElement.value || "Deleted word");
+                this.triggerSearchUpdate();
+                break;
             case "Clear":
                 this.inputElement.value = "";
                 this.speak("Cleared");
@@ -320,6 +328,7 @@ class KeyboardController {
                  const realRowIdx = this.currentRowIndex - this.firstKeyRowIndex;
                  const key = this.rows[realRowIdx][this.currentBtnIndex];
                  if (key === "Del") this.speak("Delete letter");
+                 else if (key === "Del Word") this.speak("Delete word");
                  else this.speak(key);
              }
         }

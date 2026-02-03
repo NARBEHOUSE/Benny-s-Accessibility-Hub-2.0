@@ -422,7 +422,7 @@ function openBrowseInternal(title) {
     currentState = STATE.GENRES;
     currentGenrePage = 1;
     renderGenreGrid();
-    highlightGenre(0); // Focus first slot (Back)
+    highlightGenre(-1); // Focus Header
     speak(title);
 }
 
@@ -623,7 +623,7 @@ function openItemsView(title) {
     currentState = STATE.ITEMS;
     currentPage = 1;
     renderItemsGrid();
-    highlightItem(0); // Start at Back button (0)
+    highlightItem(-1); // Start at Header
     speak(title);
 }
 
@@ -734,7 +734,7 @@ function createEmptySlot(slotIdx) {
     return empty;
 }
 
-function highlightItem(localIdx) {
+function highlightItem(localIdx, direction = 1) {
     if (localIdx === undefined) localIdx = 0;
     
     clearHighlights();
@@ -756,14 +756,16 @@ function highlightItem(localIdx) {
     // Check if current slot is visible
     let el = document.getElementById(`item-${itemIndex}`);
     
-    // If hidden, find next visible slot (scan forward, wrap through header)
+    // If hidden, find next visible slot (scan in direction, wrap through header)
     if (!el || el.style.visibility === 'hidden') {
         let startIdx = itemIndex;
-        itemIndex++;
+        itemIndex += direction;
         
         while (itemIndex !== startIdx) {
-            if (itemIndex > 8) {
-                itemIndex = -1; // Wrap to header
+            if (direction === 1) {
+                if (itemIndex > 8) itemIndex = -1;
+            } else {
+                if (itemIndex < -1) itemIndex = 8;
             }
             
             if (itemIndex === -1) {
@@ -778,7 +780,7 @@ function highlightItem(localIdx) {
             if (el && el.style.visibility !== 'hidden') {
                 break; // Found a visible slot
             }
-            itemIndex++;
+            itemIndex += direction;
         }
     }
     
@@ -899,8 +901,8 @@ async function showModal(item) {
     actionContainer.appendChild(btnClose);
 
     currentState = STATE.MODAL;
-    modalIndex = 0;
-    highlightModal(0);
+    modalIndex = -1;
+    highlightModal(-1);
     speak(item.title);
 }
 
@@ -924,6 +926,13 @@ function closeModal() {
 function highlightModal(idx) {
     clearHighlights();
     const btns = document.querySelectorAll('#item-modal .modal-action-btn');
+    
+    // Allow -1 state (No selection)
+    if (idx === -1) {
+        modalIndex = -1;
+        return;
+    }
+
     if (idx >= btns.length) idx = 0;
     if (idx < 0) idx = btns.length - 1;
     modalIndex = idx;
@@ -1059,7 +1068,7 @@ async function openSeasonSelector(title, episodesData) {
     // User requested consistency, so let's show season list even if 1.
     
     renderSeasonGrid();
-    highlightSeason(0); // Back button
+    highlightSeason(-1); // Header
     speak(`Select a season for ${title}`);
 }
 
@@ -1233,7 +1242,7 @@ function openSeasonEpisodes(seasonNum) {
     currentEpisodePage = 1;
     
     renderEpisodeGrid();
-    highlightEpisode(0);
+    highlightEpisode(-1);
     speak(`Season ${seasonNum}. Select an episode.`);
 }
 
@@ -1271,7 +1280,7 @@ function renderEpisodeGrid() {
             }
             speak("Back to show");
         };
-        highlightSeason(0);
+        highlightSeason(-1);
         speak("Back to Seasons");
     };
     
@@ -1435,7 +1444,7 @@ function handleGlobalBack() {
         document.getElementById('season-grid').style.display = 'grid';
         document.getElementById('ep-show-title').textContent = "Select Season";
         currentState = STATE.SEASONS;
-        highlightSeason(0);
+        highlightSeason(-1);
         speak("Back to Seasons");
     } else if (currentState === STATE.ITEMS) {
         // Special case for Recently Watched
@@ -1622,7 +1631,7 @@ function scanForward() {
     else if (currentState === STATE.MAIN) highlightMain(mainIndex + 1);
     else if (currentState === STATE.SETTINGS) highlightSettings(settingsIndex + 1);
     else if (currentState === STATE.GENRES) highlightGenre(genreIndex + 1);
-    else if (currentState === STATE.ITEMS) highlightItem(itemIndex + 1);
+    else if (currentState === STATE.ITEMS) highlightItem(itemIndex + 1, 1);
     else if (currentState === STATE.MODAL) highlightModal(modalIndex + 1);
     else if (currentState === STATE.SEASONS) highlightSeason(seasonIndex + 1);
     else if (currentState === STATE.EPISODES) highlightEpisode(episodeIndex + 1);
@@ -1634,7 +1643,7 @@ function scanBackward() {
     else if (currentState === STATE.MAIN) highlightMain(mainIndex - 1);
     else if (currentState === STATE.SETTINGS) highlightSettings(settingsIndex - 1);
     else if (currentState === STATE.GENRES) highlightGenre(genreIndex - 1);
-    else if (currentState === STATE.ITEMS) highlightItem(itemIndex - 1);
+    else if (currentState === STATE.ITEMS) highlightItem(itemIndex - 1, -1);
     else if (currentState === STATE.MODAL) highlightModal(modalIndex - 1);
     else if (currentState === STATE.SEASONS) highlightSeason(seasonIndex - 1);
     else if (currentState === STATE.EPISODES) highlightEpisode(episodeIndex - 1);
