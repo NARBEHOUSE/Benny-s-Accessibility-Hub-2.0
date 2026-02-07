@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Benny's Dice</title>
+    <!-- Shared Scripts -->
+    <script src="../../../shared/scan-manager.js"></script>
+    <script src="../../../shared/voice-manager.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Import maps polyfill -->
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.150.1/examples/jsm/",
+                "cannon-es": "https://unpkg.com/cannon-es@0.20.0/dist/cannon-es.js"
+            }
+        }
+    </script>
+</head>
+<body>
+    
+    <!-- Game Canvas Area -->
+    <div id="game-area">
+        <!-- Overlay container for 3D dice interaction -->
+        <div id="dice-overlays" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:50;"></div>
+        <div id="instructions"></div>
+        <!-- Halo for keyboard scanning of 3D objects -->
+        <div id="scan-halo" class="scanned-die-halo"></div>
+    </div>
+    
+    <!-- Menus Overlay -->
+    <div id="menu-layer" class="overlay">
+        <!-- Main Menu -->
+        <div id="main-menu" class="menu-panel">
+           <h1 style="color:white; -webkit-text-stroke: 1px black; font-size: 3em; margin: 0 0 20px 0;">BENNY'S DICE</h1>
+           <div class="menu-item focused" data-action="toggle-mode">Mode: <span id="mode-display">Free Throw</span></div>
+           <div class="menu-item" data-action="play">Play</div>
+           <div class="menu-item" data-action="settings">Settings</div>
+           <div class="menu-item" data-action="exit">Exit</div>
+        </div>
+    
+        <!-- Setup Menu (Hidden by default) -->
+        <div id="setup-panel" class="menu-panel hidden">
+            <h2>Game Setup</h2>
+            <div class="menu-item" data-action="toggle-players">Players: <span id="player-count">1</span></div>
+            <div class="menu-item" data-action="start-game">Start Game</div>
+            <div class="menu-item" data-action="back-from-setup">Back</div>
+        </div>
+
+        <!-- Pause Menu (Hidden by default) -->
+        <div id="pause-menu" class="menu-panel hidden">
+            <h2>Paused</h2>
+            <div class="menu-item focused" data-action="resume-game">Continue</div>
+            <div class="menu-item" data-action="settings">Settings</div>
+            <div class="menu-item" data-action="confirm-quit">Main Menu</div>
+        </div>
+        
+        <!-- Settings Menu -->
+        <div id="settings-menu" class="menu-panel hidden">
+            <h2>⚙️ Settings</h2>
+            <div class="menu-item" data-action="toggle-tts" aria-label="Text to speech">TTS: <span id="setting-tts-value">On</span></div>
+            <div class="menu-item" data-action="cycle-voice" aria-label="Voice selection">Voice: <span id="setting-voice-value">Default</span></div>
+            <div class="menu-item" data-action="toggle-autoscan" aria-label="Automatic scanning">Auto Scan: <span id="setting-autoscan-value">Off</span></div>
+            <div class="menu-item" data-action="cycle-speed" aria-label="Scan speed">Scan Speed: <span id="setting-speed-value">1s</span></div>
+            <div class="menu-item" data-action="toggle-sound" aria-label="Sound effects">Sound Effects: <span id="setting-sound-value">On</span></div>
+            <div class="menu-item" data-action="back-from-settings" aria-label="Go back">Back</div>
+        </div>
+        
+        <!-- Rules Panels -->
+        <div id="rules-freethrow" class="rules-panel hidden">
+            <h2>🎲 Free Throw Mode</h2>
+            <h3>How to Play:</h3>
+            <ul>
+                <li>Add any dice you want: D4, D6, D8, D10, D12, or D20</li>
+                <li>Click <strong>THROW</strong> to roll all your dice</li>
+                <li>Watch them tumble in 3D physics!</li>
+                <li>Add more dice anytime and throw again</li>
+            </ul>
+            <h3>Perfect For:</h3>
+            <p>Board games, tabletop RPGs, or just for fun!</p>
+            <button class="start-btn focused" data-action="start-after-rules">Let's Roll! 🎲</button>
+        </div>
+        
+        <div id="rules-yarkle" class="rules-panel hidden">
+            <h2>Yarkle Rules</h2>
+            <h3>Goal:</h3>
+            <p>First to reach <strong>10,000 points</strong> wins!</p>
+            <h3>Scoring:</h3>
+            <ul>
+                <li><strong>Single 1</strong> = 100 points</li>
+                <li><strong>Single 5</strong> = 50 points</li>
+                <li><strong>Three 1s</strong> = 1,000 points</li>
+                <li><strong>Three of a kind</strong> = Face × 100 (e.g., three 4s = 400)</li>
+                <li><strong>Four/Five/Six of a kind</strong> = Double previous!</li>
+                <li><strong>Straight (1-2-3-4-5-6)</strong> = 2,500 points</li>
+                <li><strong>Three Pairs</strong> = 1,500 points</li>
+            </ul>
+            <h3>Gameplay:</h3>
+            <ul>
+                <li>Roll all 6 dice</li>
+                <li>Set aside scoring dice (tap to select)</li>
+                <li><strong>ROLL</strong> remaining dice or <strong>BANK</strong> your points</li>
+                <li><strong>BUST!</strong> = No scoring dice = Lose turn points!</li>
+                <li><strong>HOT DICE!</strong> = All 6 score = Roll all again!</li>
+            </ul>
+            <button class="start-btn focused" data-action="start-after-rules">Start Game! 🎯</button>
+        </div>
+        
+        <div id="rules-fahtzee" class="rules-panel hidden">
+            <h2>Fahtzee Rules</h2>
+            <h3>The Goal:</h3>
+            <p>Score the most points over <strong>13 rounds</strong>!</p>
+            <h3>How to Play:</h3>
+            <ul>
+                <li><strong>Roll dice</strong> up to 3 times per turn.</li>
+                <li><strong>Hold</strong> dice you want to keep.</li>
+                <li><strong>Pick</strong> a scoring box to save your points!</li>
+            </ul>
+            <h3>Winning Hands to Aim For:</h3>
+            <ul>
+                <li><strong>5 of a Kind</strong> ("Fahtzee") = 50 pts!</li>
+                <li><strong>Straight</strong> (1-2-3-4-5 or 2-3-4-5-6) = 40 pts</li>
+                <li><strong>Full House</strong> (3 same + 2 same) = 25 pts</li>
+                <li><strong>4 of a Kind</strong> = Add up all dice</li>
+                <li><strong>3 of a Kind</strong> = Add up all dice</li>
+            </ul>
+            <button class="start-btn focused" data-action="start-after-rules">Start Game!</button>
+        </div>
+    </div>
+
+    <!-- In-Game UI (Hidden by default) -->
+    <div id="ui-container" class="hidden">
+        <!-- Free Throw Controls -->
+        <div id="controls-Free-Throw" class="game-controls-set">
+            <div class="dice-controls">
+                <button class="dice-btn" onclick="appState.addDie('d4')" data-scan="true">D4<span id="count-d4" class="count-badge">0</span></button>
+                <button class="dice-btn" onclick="appState.addDie('d6')" data-scan="true">D6<span id="count-d6" class="count-badge">0</span></button>
+                <button class="dice-btn" onclick="appState.addDie('d8')" data-scan="true">D8<span id="count-d8" class="count-badge">0</span></button>
+                <button class="dice-btn" onclick="appState.addDie('d10')" data-scan="true">D10<span id="count-d10" class="count-badge">0</span></button>
+                <button class="dice-btn" onclick="appState.addDie('d12')" data-scan="true">D12<span id="count-d12" class="count-badge">0</span></button>
+                <button class="dice-btn" onclick="appState.addDie('d20')" data-scan="true">D20<span id="count-d20" class="count-badge">0</span></button>
+            </div>
+            <div class="action-buttons" style="display:flex; gap:20px;">
+                <button id="throwBtn" onclick="throwDice()" data-scan="true">THROW!</button>
+                <button id="clearBtn" onclick="clearDice()" data-scan="true">Clear All</button>
+                <button id="pauseBtn" class="dice-btn" onclick="setAppState('PAUSE')" style="background:#444; min-width: 80px;" data-scan="true">Pause</button>
+            </div>
+        </div>
+        
+        <!-- Placeholder Controls for other games -->
+        <div id="controls-Yarkle" class="game-controls-set hidden">
+            <div class="yarkle-info" style="display:flex; gap:20px; color:#d7ccc8; margin-bottom:8px; flex-wrap:wrap; justify-content:center; font-size:1.2em;">
+                <span id="yarkle-score-p1" style="background:#2e7d32; padding:3px 10px; border-radius:5px;">YOU: <strong id="yarkle-total-score">0</strong></span>
+                <span id="yarkle-score-cpu" style="background:#c62828; padding:3px 10px; border-radius:5px;">CPU: <strong id="yarkle-ai-score">0</strong></span>
+                <div id="yarkle-mp-scoreboard" style="display:none; gap:10px; flex-wrap:wrap;"></div>
+                <span style="background:#5d4037; padding:3px 10px; border-radius:5px;">Turn: <strong id="yarkle-turn-score">0</strong></span>
+                <span id="yarkle-turn-indicator" style="color:#ffeb3b; padding:3px 10px;">Your Turn</span>
+            </div>
+            <!-- Dice Row Removed - Interaction moved to board -->
+            <div class="action-buttons" style="display:flex; gap:15px; justify-content:center; margin-top:20px;">
+                <button id="yarkleRollBtn" class="dice-btn" style="background:#2e7d32; padding:15px 40px; font-size:1.5em; flex-grow:1; max-width:200px;" onclick="playerYarkleRoll()" data-scan="true">ROLL</button>
+                <button id="yarkleBankBtn" class="dice-btn" style="background:#1565c0; padding:15px 40px; font-size:1.5em; flex-grow:1; max-width:200px;" onclick="playerYarkleBank()" data-scan="true">BANK</button>
+                <button id="yarklePauseBtn" class="dice-btn" style="background:#444; padding:15px 20px; font-size:1.2em;" onclick="setAppState('PAUSE')" data-scan="true">Pause</button>
+            </div>
+            <div id="yarkle-message" style="color:#ffeb3b; margin-top:15px; font-size:1.3em; text-align:center;"></div>
+        </div>
+        
+        <div id="controls-Fahtzee" class="game-controls-set hidden">
+            <div class="fahtzee-info" style="display:flex; gap:15px; color:#d7ccc8; margin-bottom:8px; font-size:1.2em; flex-wrap:wrap; justify-content:center;">
+                <span id="fahtzee-score-p1" style="background:#2e7d32; padding:3px 10px; border-radius:5px;">YOU: <strong id="fahtzee-total-score">0</strong></span>
+                <span id="fahtzee-score-cpu" style="background:#c62828; padding:3px 10px; border-radius:5px;">CPU: <strong id="fahtzee-ai-score">0</strong></span>
+                <div id="fahtzee-mp-scoreboard" style="display:none; gap:10px; flex-wrap:wrap;"></div>
+                <span style="background:#5d4037; padding:3px 10px; border-radius:5px;">Round: <strong id="fahtzee-round">1</strong>/13</span>
+                <span style="background:#5d4037; padding:3px 10px; border-radius:5px;">Rolls: <strong id="fahtzee-rolls-left">3</strong></span>
+                <span id="fahtzee-turn-indicator" style="color:#ffeb3b; padding:3px 10px;">Your Turn</span>
+            </div>
+            <!-- Dice Row Removed - Interaction moved to board -->
+            <div class="action-buttons" style="display:flex; gap:15px; justify-content:center; margin-top:20px;">
+                <button id="fahtzeeRollBtn" class="dice-btn" style="background:#2e7d32; padding:15px 40px; font-size:1.5em; flex-grow:1; max-width:200px;" onclick="playerFahtzeeRoll()" data-scan="true">ROLL</button>
+                <button id="fahtzeeScoreBtn" class="dice-btn" style="background:#1565c0; padding:15px 40px; font-size:1.5em; flex-grow:1; max-width:200px;" onclick="playerFahtzeeScore()" data-scan="true">TAKE POINTS</button>
+                <button id="fahtzeePauseBtn" class="dice-btn" style="background:#444; padding:15px 20px; font-size:1.2em;" onclick="setAppState('PAUSE')" data-scan="true">Pause</button>
+            </div>
+            <div id="fahtzee-message" style="color:#ffeb3b; font-size:1.3em; text-align:center; margin-top:15px;"></div>
+        </div>
+    </div>
+    
+    <!-- Fahtzee Scorecard Overlay -->
+    <div id="fahtzee-scorecard-overlay" class="overlay hidden" style="z-index:150;">
+        <div class="menu-panel" style="width:350px; max-height:90vh; overflow-y:auto;">
+            <h2 style="margin-top:0;">Choose Category</h2>
+            <div id="fahtzee-categories"></div>
+            <div style="margin-top:15px; border-top:2px solid #3e2723; padding-top:10px;">
+                <button id="fahtzee-cancel-score" class="menu-item" style="background:#c62828;" onclick="closeFahtzeeScorecard()">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="js/game.js"></script>
+</body>
+</html>

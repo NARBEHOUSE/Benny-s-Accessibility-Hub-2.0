@@ -1,0 +1,238 @@
+body { margin: 0; overflow: hidden; background-color: #1a1a1a; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; }
+#game-area {
+    flex: 1 1 0;
+    min-height: 0;
+    position: relative;
+    background-color: #222;
+    overflow: hidden;
+}
+#instructions {
+    position: absolute;
+    top: 20px;
+    width: 100%;
+    text-align: center;
+    color: white;
+    pointer-events: none;
+    font-size: 24px;
+    text-shadow: 1px 1px 2px black;
+    z-index: 10;
+}
+/* --- Menu Styles --- */
+.overlay {
+    position: absolute; top:0; left:0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); z-index: 100;
+    display: flex; justify-content: center; align-items: center;
+}
+.menu-panel {
+    background: #5d4037; border: 4px solid #3e2723; border-radius: 12px;
+    padding: 30px; text-align: center; color: #d7ccc8; width: 400px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+}
+.menu-item {
+    background: #3e2723; margin: 10px 0; padding: 15px; border-radius: 8px;
+    font-size: 20px; cursor: pointer; border: 2px solid transparent;
+}
+.menu-item:hover, .menu-item.focused {
+    background: #4e342e; border-color: #ffeb3b; color: #fff; transform: scale(1.02);
+}
+.hidden { display: none !important; }
+
+.game-controls-set {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+}
+
+/* --- In Game UI --- */
+#ui-container {
+    flex: 0 0 160px;
+    min-height: 160px;
+    background: #5d4037; /* Wood color */
+    border-top: 5px solid #3e2723;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.5);
+    z-index: 200;
+    position: relative;
+}
+.dice-controls {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.dice-btn {
+    background: #3e2723;
+    border: 2px solid #8d6e63;
+    color: #d7ccc8;
+    padding: 8px 15px;
+    cursor: pointer;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+    transition: all 0.2s;
+}
+.dice-btn:hover, .dice-btn.focused { background: #4e342e; border-color: #ffeb3b; transform: translateY(-2px); }
+.dice-btn:active, .dice-btn.active { transform: translateY(1px); }
+.dice-btn span { font-size: 12px; opacity: 0.8; }
+.count-badge {
+    background: #a1887f;
+    color: #3e2723;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-top: 4px;
+}
+#action-buttons, .action-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    width: 100%;
+}
+#throwBtn, #clearBtn {
+    padding: 10px 30px; font-size: 18px; border-radius: 5px; font-weight: bold;
+    cursor: pointer; transition: 0.1s; border: 2px solid;
+    box-shadow: 0 4px rgba(0,0,0,0.3);
+}
+#throwBtn { background: #2e7d32; color: white; border-color: #1b5e20; }
+#throwBtn:hover, #throwBtn.focused { background: #388e3c; border-color: #ffeb3b; }
+#throwBtn:active, #throwBtn.active { transform: translateY(4px); box-shadow: none; }
+
+#clearBtn { background: #c62828; color: white; border-color: #b71c1c; }
+#clearBtn:hover, #clearBtn.focused { background: #d32f2f; border-color: #ffeb3b; }
+#clearBtn:active, #clearBtn.active { transform: translateY(4px); box-shadow: none; }
+
+/* Dice slot for Yarkle/Fahtzee */
+.dice-slot {
+    width: 60px; height: 60px; background: #f5f5f5; border: 3px solid #8d6e63;
+    border-radius: 10px; display: flex; justify-content: center; align-items: center;
+    font-size: 28px; font-weight: bold; color: #222; cursor: pointer; transition: all 0.2s;
+    box-shadow: 2px 2px 8px rgba(0,0,0,0.4);
+    position: relative;
+    transition: all 0.3s ease;
+}
+.dice-slot:hover, .dice-slot.focused { border-color: #ffeb3b; transform: scale(1.05); }
+.dice-slot.held { background: #90caf9; border-color: #1565c0; }
+.dice-slot.scoring { background: #a5d6a7; border-color: #2e7d32; }
+.dice-slot.locked { opacity: 0.6; cursor: default; background: #bdbdbd; }
+.dice-slot[data-scan="true"] { outline: none; }
+
+/* Glowing dice effects */
+.dice-slot.glow-gold {
+    animation: glowGold 0.8s ease-in-out infinite alternate;
+    border-color: #ffd700 !important;
+}
+.dice-slot.glow-green {
+    animation: glowGreen 0.8s ease-in-out infinite alternate;
+    border-color: #4caf50 !important;
+}
+.dice-slot.glow-red {
+    animation: glowRed 0.8s ease-in-out infinite alternate;
+    border-color: #f44336 !important;
+}
+.dice-slot.glow-rainbow {
+    animation: glowRainbow 1s ease-in-out infinite;
+}
+@keyframes glowGold {
+    from { box-shadow: 0 0 10px #ffd700, 0 0 20px #ffd700; }
+    to { box-shadow: 0 0 20px #ffd700, 0 0 40px #ffd700, 0 0 60px #ffd700; }
+}
+@keyframes glowGreen {
+    from { box-shadow: 0 0 10px #4caf50, 0 0 20px #4caf50; }
+    to { box-shadow: 0 0 20px #4caf50, 0 0 40px #4caf50; }
+}
+@keyframes glowRed {
+    from { box-shadow: 0 0 10px #f44336, 0 0 20px #f44336; }
+    to { box-shadow: 0 0 20px #f44336, 0 0 40px #f44336; }
+}
+@keyframes glowRainbow {
+    0% { box-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000; border-color: #ff0000; }
+    25% { box-shadow: 0 0 20px #ffff00, 0 0 40px #ffff00; border-color: #ffff00; }
+    50% { box-shadow: 0 0 20px #00ff00, 0 0 40px #00ff00; border-color: #00ff00; }
+    75% { box-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff; border-color: #00ffff; }
+    100% { box-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff; border-color: #ff00ff; }
+}
+
+/* Rules panel styling */
+.rules-panel {
+    background: linear-gradient(135deg, #5d4037 0%, #3e2723 100%);
+    border: 4px solid #8d6e63;
+    border-radius: 16px;
+    padding: 25px;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    color: #fff;
+    text-align: left;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.9);
+}
+.rules-panel h2 {
+    text-align: center;
+    color: #ffeb3b;
+    margin: 0 0 15px 0;
+    font-size: 28px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+.rules-panel h3 {
+    color: #a5d6a7;
+    margin: 15px 0 8px 0;
+    font-size: 18px;
+}
+.rules-panel p, .rules-panel li {
+    color: #d7ccc8;
+    line-height: 1.5;
+    font-size: 15px;
+}
+.rules-panel ul {
+    padding-left: 20px;
+    margin: 8px 0;
+}
+.rules-panel .start-btn {
+    display: block;
+    width: 100%;
+    margin-top: 20px;
+    padding: 15px;
+    font-size: 22px;
+    background: #2e7d32;
+    border: 3px solid #4caf50;
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.rules-panel .start-btn:hover, .rules-panel .start-btn.focused {
+    background: #388e3c;
+    transform: scale(1.03);
+    box-shadow: 0 0 20px #4caf50;
+}
+
+/* Fahtzee category buttons */
+.fahtzee-cat {
+    background: #3e2723; padding: 8px 12px; margin: 4px 0; border-radius: 6px;
+    display: flex; justify-content: space-between; cursor: pointer; border: 2px solid transparent;
+    color: #d7ccc8; font-size: 14px;
+}
+.fahtzee-cat:hover { border-color: #ffeb3b; background: #4e342e; }
+.fahtzee-cat.used { opacity: 0.5; cursor: default; background: #2e2e2e; }
+.fahtzee-cat.used:hover { border-color: transparent; }
+.fahtzee-cat .score { font-weight: bold; color: #ffeb3b; }
+
+/* Die Selection Halo */
+.scanned-die-halo {
+     position: absolute; width: 0; height: 0; transform: translate(-50%, -50%);
+     border: 4px solid #ffeb3b; border-radius: 50%; pointer-events: none; z-index:50;
+     box-shadow: 0 0 10px #ffeb3b;
+     display: none;
+}
+
+#game-area canvas { display: block; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }

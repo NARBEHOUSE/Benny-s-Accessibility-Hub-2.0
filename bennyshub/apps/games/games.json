@@ -81,6 +81,14 @@
       "genres": ["Strategy", "Classic"]
     },
     {
+      "id": "bennysdice",
+      "title": "Benny's Dice",
+      "description": "A 3D dice game with Free Throw, Yarkle, and Fahtzee modes. Roll dice with realistic physics!",
+      "path": "apps/games/BENNYSDICE/index.html",
+      "image": "images/games/bennysdice.png",
+      "genres": ["Classic", "Board"]
+    },
+    {
       "id": "bennyswordjumble",
       "title": "Benny's Word Jumble",
       "description": "A word puzzle game where you have to rearrange the word to advance.",
