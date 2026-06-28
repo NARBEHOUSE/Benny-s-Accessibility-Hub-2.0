@@ -3,7 +3,7 @@ title Install Dependencies - Benny's Hub
 echo Installing dependencies for Benny's Hub...
 echo.
 
-REM Ensure Node.js is in PATH
+REM ─── Node.js ───────────────────────────────────────────────────────────────
 set "PATH=%PATH%;C:\Program Files\nodejs\"
 
 if exist node_modules (
@@ -23,6 +23,33 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
-echo Dependencies installed successfully!
+echo Node.js dependencies installed successfully!
+
+REM ─── Python ────────────────────────────────────────────────────────────────
+echo.
+echo Installing Python dependencies...
+
+python --version >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo ERROR: Python not found in PATH.
+    echo Please ensure Python is installed (https://www.python.org/) and added to PATH.
+    pause
+    exit /b
+)
+
+python -m pip install --upgrade pip
+
+python -m pip install -r requirements.txt
+
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo ERROR: pip install failed. See output above for details.
+    pause
+    exit /b
+)
+
+echo.
+echo All dependencies installed successfully!
 echo You can now run start_hub.bat
 pause
