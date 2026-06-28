@@ -1,0 +1,24 @@
+# Benny's Accessibility Hub 2.0 - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Discord Integration (Messenger)
+discord.py>=2.0.0
+websockets>=12.0
+
+# GUI Framework (Messenger, Search)
+PySide6>=6.5.0
+
+# Text-to-Speech
+pyttsx3>=2.90
+
+# Windows System Control (Streaming, Control Bar)
+pyautogui>=0.9.50
+pywin32>=305
+psutil>=5.9.0
+pynput>=1.7.6
+
+# Data Processing (Streaming)
+pandas>=2.0.0
+
+# HTTP Requests
+requests>=2.28.0

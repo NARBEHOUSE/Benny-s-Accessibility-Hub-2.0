@@ -1,0 +1,884 @@
+body {
+    background-color: #121212;
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevent body scroll, handle in views */
+    height: 100vh;
+}
+
+/* --- Global Highlight Styles --- */
+
+/* 1. FILL STYLE (Yellow Background, Black Text) */
+body.highlight-fill .highlighted,
+body.highlight-fill .menu-btn.highlighted,
+body.highlight-fill .setting-toggle.highlighted,
+body.highlight-fill .back-btn-large.highlighted,
+body.highlight-fill .back-header-btn.highlighted,
+body.highlight-fill .genre-card.highlighted,
+body.highlight-fill .card.highlighted,
+body.highlight-fill .nav-card.highlighted,
+body.highlight-fill .modal-action-btn.highlighted,
+body.highlight-fill #search-input.highlighted,
+body.highlight-fill .prediction-chip.highlighted,
+body.highlight-fill .kb-key.highlighted,
+body.highlight-fill .page-btn.highlighted,
+body.highlight-fill .pause-btn.highlighted {
+    background-color: var(--highlight-color, yellow) !important;
+    color: var(--highlight-text-color, black) !important;
+    border-color: white !important;
+    box-shadow: 0 0 15px var(--highlight-color, yellow) !important;
+    transform: scale(1.05) !important;
+    z-index: 100 !important;
+}
+
+/* 2. OUTLINE STYLE (Transparent/Dark BG, Yellow Border) */
+body.highlight-outline .highlighted,
+body.highlight-outline .menu-btn.highlighted,
+body.highlight-outline .setting-toggle.highlighted,
+body.highlight-outline .back-btn-large.highlighted,
+body.highlight-outline .back-header-btn.highlighted,
+body.highlight-outline .genre-card.highlighted,
+body.highlight-outline .card.highlighted,
+body.highlight-outline .nav-card.highlighted,
+body.highlight-outline .modal-action-btn.highlighted,
+body.highlight-outline #search-input.highlighted,
+body.highlight-outline .prediction-chip.highlighted,
+body.highlight-outline .kb-key.highlighted,
+body.highlight-outline .page-btn.highlighted,
+body.highlight-outline .pause-btn.highlighted {
+    background-color: transparent !important; 
+    /* For cards with images, transparent shows image. For solid buttons, it shows body bg. */
+    
+    border: 5px solid var(--highlight-color, yellow) !important;
+    box-shadow: 0 0 15px var(--highlight-color, yellow) !important;
+    color: inherit !important; /* Keep original text color (usually white) */
+    transform: scale(1.05) !important;
+    z-index: 100 !important;
+}
+
+/* Specific fix for nav-cards in outline mode to stay visible against dark bg */
+body.highlight-outline .nav-card.highlighted,
+body.highlight-outline .menu-btn.highlighted, 
+body.highlight-outline .setting-toggle.highlighted {
+    background-color: #222 !important; 
+}
+
+/* --- Screen Management --- */
+.screen-view {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #121212;
+    z-index: 10;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.screen-view.active { display: flex !important; }
+
+/* --- Main Menu --- */
+#main-menu {
+    justify-content: center;
+    align-items: center;
+}
+.app-title {
+    font-size: 4em;
+    margin-bottom: 50px;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(255,255,255,0.2);
+}
+.menu-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    width: 80%;
+    max-width: 800px;
+}
+.full-width {
+    grid-column: 1 / -1;
+}
+.menu-btn {
+    background: #2a2a2a;
+    border: 3px solid #444;
+    color: white;
+    font-size: 2em;
+    padding: 40px;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.2s;
+}
+.menu-btn:hover, .menu-btn.highlighted {
+    background: #3a3a3a;
+    border-color: yellow;
+    transform: scale(1.05);
+    box-shadow: 0 0 20px yellow;
+    z-index: 100;
+}
+.menu-btn.danger { border-color: #b21f2d; background: #3a0e12; }
+.menu-btn.danger.highlighted { background: #b21f2d; border-color: yellow; }
+
+/* --- Settings Menu --- */
+#settings-menu { align-items: center; justify-content: flex-start; padding-top: 50px; }
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    width: 90%;
+    margin-top: 40px;
+}
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1e1e1e;
+    padding: 20px;
+    border-radius: 10px;
+    font-size: 1.5em;
+    border: 2px solid #333;
+}
+.setting-toggle {
+    background: #333;
+    color: white;
+    border: 2px solid #555;
+    padding: 10px 30px;
+    font-size: 1em;
+    border-radius: 8px;
+    cursor: pointer;
+    min-width: 150px;
+}
+.setting-toggle.highlighted {
+    background: yellow;
+    color: black;
+    border-color: white;
+}
+.back-btn-large {
+    margin-top: 40px;
+    font-size: 1.5em;
+    padding: 15px 40px;
+    background: #333;
+    color: white;
+    border: 2px solid #555;
+    border-radius: 10px;
+}
+.back-btn-large.highlighted { border-color: yellow; background: #444; }
+
+/* --- App Container (Browse/Items) --- */
+#app-container header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px 20px 10px;
+    border-bottom: 2px solid #333;
+    margin-bottom: 20px;
+}
+.back-header-btn {
+    font-size: 1.5em;
+    padding: 10px 20px;
+    background: #333;
+    color: white;
+    border: 2px solid #555;
+    border-radius: 8px;
+}
+.back-header-btn.highlighted { border-color: yellow; background: #555; }
+#view-title { margin: 0; font-size: 2.5em; margin-left: 20px; }
+
+#main-content {
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- Genre Grid --- */
+/* Grid for Genres (Paginated) */
+#genre-view {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+#genre-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 15px;
+    height: 100%; /* Fill available height */
+    flex-grow: 1; /* Grow to fill parent */
+    padding: 10px;
+    box-sizing: border-box;
+}
+.genre-card {
+    height: 180px;
+    background-color: #222;
+    background-size: cover;
+    background-position: center;
+    border: 3px solid #333;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+/* Dark overlay for text readability */
+.genre-card::before {
+    content: '';
+    position: absolute;
+    top:0; left:0; right:0; bottom:0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1;
+}
+.genre-card span {
+    position: relative;
+    z-index: 2;
+    font-size: 2.2em;
+    font-weight: bold;
+    text-transform: uppercase;
+    text-shadow: 2px 2px 4px black;
+}
+.genre-card.highlighted {
+    border-color: yellow;
+    transform: scale(1.05);
+    box-shadow: 0 0 20px yellow;
+    z-index: 10;
+}
+
+/* --- Items Grid --- */
+/* Items view structure */
+#items-view {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Episodes View Styling */
+#episode-view {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.episode-header {
+    width: 100%;
+    text-align: center;
+    padding: 15px 0;
+    border-bottom: 2px solid #333;
+    margin-bottom: 10px;
+}
+
+.episode-header h2 {
+    margin: 0;
+    font-size: 2em;
+    color: #fff;
+}
+
+/* Grid layout for cards */
+#items-grid, .grid-layout {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-auto-rows: 1fr; /* Equal height rows */
+    gap: 20px;
+    padding: 20px;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+/* Simple Card: Image + Title only */
+.card {
+    background-color: #1e1e1e;
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    border: 4px solid transparent;
+    height: 100%;
+    position: relative;
+    aspect-ratio: 16/9; /* Standard video aspect */
+    box-sizing: border-box;
+}
+
+.card.highlighted {
+    border-color: yellow;
+    transform: scale(1.02);
+    box-shadow: 0 0 20px yellow;
+    z-index: 5;
+}
+
+.card-image {
+    width: 100%;
+    height: 80%; /* Takes most space */
+    object-fit: cover;
+    background-color: #000;
+}
+
+.card-content {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #2a2a2a;
+    padding: 5px;
+}
+
+.card-title {
+    font-size: 1.2em;
+    font-weight: bold; /* Bold title */
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 10px;
+}
+
+/* --- Modal --- */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 3000; /* Above keyboard */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.modal-overlay.hidden { display: none; }
+
+.modal-content {
+    background: #1e1e1e;
+    width: 80%;
+    max-width: 900px;
+    border: 2px solid #555;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+}
+
+.modal-body {
+    display: flex;
+    flex-direction: row;
+    height: 500px;
+}
+
+#modal-img {
+    width: 40%;
+    object-fit: cover;
+    background: black;
+}
+
+.modal-info {
+    width: 60%;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+}
+
+#modal-title { font-size: 2.5em; margin: 0 0 10px 0; }
+#modal-meta { font-size: 1.2em; color: #aaa; margin-bottom: 20px; }
+#modal-desc { font-size: 1.2em; line-height: 1.5; flex-grow: 1; overflow-y: auto; color: #ddd; }
+
+.modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.modal-action-btn {
+    padding: 20px;
+    font-size: 1.4em;
+    background: #333;
+    color: white;
+    border: 2px solid #555;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.modal-action-btn.primary { background: #0056b3; font-weight: bold; }
+.modal-action-btn.danger { background: #b21f2d; }
+
+.modal-action-btn.highlighted {
+    background-color: yellow;
+    color: black;
+    border-color: white;
+    transform: scale(1.05);
+}
+
+/* --- Keyboard & Misc --- */
+#keyboard-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background-color: #000;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 1vh 1vw;
+    box-sizing: border-box;
+}
+#keyboard-container.hidden { display: none; }
+
+.keyboard-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    gap: 10px;
+}
+
+/* 1. Input Bar */
+#search-input {
+    flex: 0 0 20vh; /* Fixed height 20% viewport */
+    width: 100%;
+    font-size: clamp(24px, 6vh, 80px); /* Massive text */
+    text-align: center;
+    border-radius: 15px;
+    margin: 0;
+    box-sizing: border-box;
+    /* Reset stats */
+    display: block;
+}
+
+/* 2. Prediction Bar */
+#prediction-bar {
+    flex: 0 0 12vh;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr); /* 6 columns */
+    gap: 10px;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.prediction-chip {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    border-radius: 10px;
+    text-transform: capitalize;
+}
+
+/* 3. Keys Area */
+#keyboard-keys {
+    flex: 1; /* Take remaining space */
+    display: flex;
+    flex-direction: column; /* Stack rows */
+    gap: 10px;
+    height: auto;
+    width: 100%;
+    padding-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.kb-row {
+    flex: 1; /* Each row takes equal vertical space */
+    display: flex; /* Row of keys */
+    gap: 10px;
+    width: 100%;
+}
+
+.kb-key {
+    flex: 1; /* Each key takes equal width */
+    height: 100%; /* Fill row height */
+    margin: 0;
+    padding: 0;
+    font-size: clamp(20px, 4vh, 60px);
+    font-weight: 900;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Remove default button styles */
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+/* Ensure controls in first row are sized well */
+.key-control .symbol { font-size: 1.5em; display: block; }
+.key-control .label { font-size: 0.5em; display: block; }
+.key-control { flex-direction: column; line-height: 1; }
+
+/* Hide Scrollbars in keyboard view */
+#keyboard-container { overflow: hidden; }
+
+/* --- Themes --- */
+
+/* Theme: Default (Dark Gray) */
+body.default { 
+    background-color: #121212; 
+    color: #fff; 
+}
+body.default .card, body.default .menu-btn, body.default .kb-key, body.default .prediction-chip {
+    background-color: #2a2a2a;
+    border-color: #444;
+}
+
+/* Theme: High Contrast (Black/White) */
+body.high-contrast { 
+    background-color: #000000; 
+    color: #ffffff; 
+}
+body.high-contrast .card, body.high-contrast .menu-btn, body.high-contrast .kb-key, body.high-contrast .prediction-chip {
+    background-color: #000;
+    border: 4px solid #fff;
+    color: #fff;
+    font-weight: bold;
+}
+body.high-contrast .highlighted {
+    background-color: #fff !important;
+    color: #000 !important;
+}
+
+/* Theme: Dark Blue (Navy/Azure) */
+body.dark-blue { 
+    background-color: #001e3c; 
+    color: #b3d9ff; 
+}
+body.dark-blue .card, body.dark-blue .menu-btn, body.dark-blue .kb-key, body.dark-blue .prediction-chip {
+    background-color: #003366;
+    border-color: #007acc;
+    color: #e6f7ff;
+}
+body.dark-blue .highlighted {
+    background-color: #00aaff !important;
+    color: #000 !important;
+}
+
+/* Theme: Midnight (Purple/Pink) */
+body.midnight { 
+    background-color: #1a0033; 
+    color: #f2ccff; 
+}
+body.midnight .card, body.midnight .menu-btn, body.midnight .kb-key, body.midnight .prediction-chip {
+    background-color: #330066;
+    border-color: #bf00ff;
+    color: #f9e6ff;
+}
+body.midnight .highlighted {
+    background-color: #ff00ff !important;
+    color: #000 !important;
+}
+
+/* Theme: Forest (Green/Beige) */
+body.forest { 
+    background-color: #0d260d; 
+    color: #e6ffe6; 
+}
+body.forest .card, body.forest .menu-btn, body.forest .kb-key, body.forest .prediction-chip {
+    background-color: #1a4d1a;
+    border-color: #4caf50;
+    color: #f0fff0;
+}
+body.forest .highlighted {
+    background-color: #66ff66 !important;
+    color: #000 !important;
+}
+
+/* Theme: Slate (Gray/Orange) */
+body.slate { 
+    background-color: #2f3640; 
+    color: #f5f6fa; 
+}
+body.slate .card, body.slate .menu-btn, body.slate .kb-key, body.slate .prediction-chip {
+    background-color: #353b48;
+    border-color: #e1b12c;
+}
+body.slate .highlighted {
+    background-color: #e1b12c !important;
+    color: #000 !important;
+}
+
+
+/* Theme Overrides for Settings */
+body.default .setting-row { background: #2a2a2a; border-color: #444; }
+body.high-contrast .setting-row { background: #000; border: 4px solid #fff; }
+body.dark-blue .setting-row { background: #003366; border-color: #0074d9; }
+body.midnight .setting-row { background: #330066; border-color: #bf00ff; }
+body.forest .setting-row { background: #1a4d1a; border-color: #4caf50; }
+body.slate .setting-row { background: #353b48; border-color: #e1b12c; }
+
+/* Grid for Genres (Paginated) - Combined Rule */
+/* Rules moved to combined block above for clarity and to prevent override conflicts */
+.genre-card {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-size: cover;
+    background-position: center;
+    border: 3px solid #444; /* Match nav-card border */
+    border-radius: 12px; /* Match nav-card radius */
+    font-size: 1.5em; /* Base font size */
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    /* width/height controlled by grid cell */
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+/* Ensure text is readable over image */
+.genre-card span {
+    background: rgba(0,0,0,0.6);
+    padding: 5px 10px;
+    border-radius: 4px;
+    z-index: 2;
+    /* Responsive Text Sizing */
+    font-size: clamp(0.8rem, 2.5vw, 2rem);
+    text-align: center;
+    max-width: 90%;
+    word-wrap: break-word;
+}
+/* Ensure nav-card within genre grid follows grid sizing */
+#genre-grid .nav-card {
+    height: 100%;
+    width: 100%;
+    aspect-ratio: auto; /* Allow grid to determine ratio */
+}
+
+/* Dedicated Navigation Card Styles (Previous/Next Page) */
+.nav-card {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 1.8em !important; /* Larger text size */
+    font-weight: bold;
+    color: #fff;
+    padding: 10px;
+    box-sizing: border-box;
+}
+/* Allow text wrapping in nav cards */
+.nav-card span, .nav-card {
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+/* Mouse Hover Effects */
+.card:hover, .genre-card:hover, .menu-btn:hover, .pause-btn:hover, .kb-key:hover {
+    filter: brightness(1.2);
+}
+
+/* Accordion Styles */
+.accordion {
+    background-color: #2c2c2c;
+    color: white;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 1.2em;
+    font-weight: bold;
+    transition: 0.4s;
+    border-bottom: 1px solid #444;
+}
+
+.accordion.active, .accordion:hover {
+    background-color: #3e3e3e;
+}
+
+.accordion:after {
+    content: '\002B';
+    color: #777;
+    font-weight: bold;
+    float: right;
+    margin-left: 5px;
+}
+
+.accordion.active:after {
+    content: "\2212";
+}
+
+.panel {
+    padding: 0 18px;
+    background-color: #1e1e1e;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+    margin-bottom: 2px;
+}
+
+/* --- FULLSCREEN KEYBOARD LAYOUT (Matches New Keyboard) --- */
+#keyboard-container {
+    padding: 10px;
+    background-color: #000; /* Force black background for keyboard overlay to cover app */
+    display: flex; /* Ensure it uses flex to fill */
+    flex-direction: column;
+}
+
+.keyboard-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    gap: 10px;
+}
+
+/* 1. Input Bar */
+#search-input {
+    flex: 0 0 20vh; /* Fixed height 20% viewport */
+    width: 100%;
+    font-size: clamp(24px, 6vh, 80px); /* Massive text */
+    text-align: center;
+    border-radius: 15px;
+    margin: 0;
+    box-sizing: border-box;
+    /* Reset stats */
+    display: block;
+}
+
+/* 2. Prediction Bar */
+#prediction-bar {
+    flex: 0 0 12vh;
+    display: grid;
+    grid-template-columns: repeat(6, 1fr); /* 6 columns */
+    gap: 10px;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.prediction-chip {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    border-radius: 10px;
+    text-transform: capitalize;
+}
+
+/* 3. Keys Area */
+#keyboard-keys {
+    flex: 1; /* Take remaining space */
+    display: flex;
+    flex-direction: column; /* Stack rows */
+    gap: 10px;
+    height: auto;
+    width: 100%;
+    padding-bottom: 10px;
+    box-sizing: border-box;
+}
+
+.kb-row {
+    flex: 1; /* Each row takes equal vertical space */
+    display: flex; /* Row of keys */
+    gap: 10px;
+    width: 100%;
+}
+
+.kb-key {
+    flex: 1; /* Each key takes equal width */
+    height: 100%; /* Fill row height */
+    margin: 0;
+    padding: 0;
+    font-size: clamp(20px, 4vh, 60px);
+    font-weight: 900;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Remove default button styles */
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+/* Ensure controls in first row are sized well */
+.key-control .symbol { font-size: 1.5em; display: block; }
+.key-control .label { font-size: 0.5em; display: block; }
+.key-control { flex-direction: column; line-height: 1; }
+
+/* Hide Scrollbars in keyboard view */
+#keyboard-container { overflow: hidden; }
+
+/* --- Highlight Styles for Keyboard --- */
+.row-highlighted .kb-key,
+.row-highlighted .prediction-chip {
+    background-color: var(--highlight-color, yellow) !important;
+    color: var(--highlight-text-color, black) !important;
+    box-shadow: 0 0 10px var(--highlight-color, yellow);
+}
+
+#search-input.highlighted {
+    background-color: var(--highlight-color, yellow) !important;
+    color: var(--highlight-text-color, black) !important;
+    box-shadow: 0 0 10px var(--highlight-color, yellow);
+}
+
+.prediction-chip.highlighted {
+    background-color: var(--highlight-color, yellow) !important;
+    color: var(--highlight-text-color, black) !important;
+    box-shadow: 0 0 10px var(--highlight-color, yellow);
+}
+
+/* --- Dynamic Highlight Colors --- */
+body {
+    --highlight-color: yellow;
+    --highlight-text-color: black;
+}
+
+body.color-yellow { --highlight-color: yellow; --highlight-text-color: black; }
+body.color-cyan { --highlight-color: cyan; --highlight-text-color: black; }
+body.color-green { --highlight-color: #00ff00; --highlight-text-color: black; }
+body.color-magenta { --highlight-color: magenta; --highlight-text-color: white; }
+body.color-orange { --highlight-color: orange; --highlight-text-color: black; }
+body.color-white { --highlight-color: white; --highlight-text-color: black; }
+
+/* --- Pause Menu --- */
+#pause-menu {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.9);
+    z-index: 4000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+#pause-menu.hidden { display: none; }
+
+.pause-menu-content {
+    background: #2a2a2a;
+    padding: 40px;
+    border: 4px solid #555;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    width: 500px;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+}
+.pause-menu-content h2 {
+    font-size: 3em;
+    margin: 0 0 20px 0;
+    color: white;
+}
+.pause-btn {
+    font-size: 2em;
+    padding: 20px;
+    background: #333;
+    color: white;
+    border: 3px solid #555;
+    border-radius: 12px;
+    cursor: pointer;
+}
+

@@ -1,0 +1,36 @@
+{
+  "name": "bennys-hub",
+  "version": "1.0.0",
+  "description": "Benny's Accessible PC Hub - Switch-accessible apps for communication, entertainment, and productivity",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "author": "Benny's Software",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^40.4.1",
+    "electron-builder": "^26.7.0"
+  },
+  "dependencies": {
+    "xlsx": "^0.18.5"
+  },
+  "build": {
+    "appId": "com.benny.hub",
+    "productName": "Benny's Hub",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "bennyshub/images/icon.ico"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "bennyshub/**/*",
+      "data/**/*"
+    ]
+  }
+}

@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Sensitive data files - user specific
+bennyshub/apps/tools/messenger/config.json
+bennyshub/apps/tools/messenger/dm_index.json
+bennyshub/apps/tools/messenger/messenger_settings.json
+bennyshub/apps/tools/messenger/processed_dm_ids.json
+bennyshub/apps/tools/messenger/read_state*.json
+bennyshub/apps/tools/messenger/recent_messages*.json
+bennyshub/apps/tools/messenger/*.lock
+
+# Journal entries
+bennyshub/apps/tools/journal/entries.json
+
+# Search history
+bennyshub/apps/tools/search/search_history.json
+bennyshub/apps/tools/streaming/search_history.json
+
+# API keys
+bennyshub/apps/tools/streaming/timd-api.json
+bennyshub/apps/tools/messenger/ai_key.json
+bennyshub/apps/tools/messenger/keyboard_context*.json
+bennyshub/apps/tools/messenger/processed_dm_ids*.json
+bennyshub/apps/tools/rt-convo/api.txt
+bennyshub/apps/tools/rt-convo/context.json
+bennyshub/apps/tools/rt-convo/google-credentials.json
+
+# Streaming user data (contains Plex server IDs and watch history)
+bennyshub/apps/tools/streaming/data.json
+bennyshub/apps/tools/streaming/episodes.json
+bennyshub/apps/tools/streaming/data/*.json
+bennyshub/apps/tools/streaming/data/*.xlsx
+
+# Voice settings (may contain user preferences)
+bennyshub/shared/voice-settings.json
+
+# Logs
+*.log
+crash.log
+
+# Runtime signal files
+bennyshub/apps/nav_signal.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp

@@ -1,0 +1,3364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RT Convo</title>
+  <style>
+    :root {
+      --brand:          #5bb0ff;
+      --bg:             #1a202c;
+      --card:           #2d3748;
+      --text:           #ffffff;
+      --muted:          #a0aec0;
+      --border:         #4a5568;
+      --danger:         #ef4444;
+      --ok:             #48bb78;
+      --rowHighlight:   #ffff00;
+      --columnHighlight:#00ff00;
+      --tileRadius:     14px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    body.light {
+      --bg:#f0f4f8; --card:#ffffff; --text:#1a202c;
+      --muted:#718096; --border:#cbd5e0;
+    }
+
+    /* ── Header ── */
+    .app-header {
+      background: var(--brand);
+      padding: 0 16px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .app-header .brand { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; }
+    .mic-indicator {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px;
+      background: rgba(0,0,0,.2);
+      padding: 4px 12px; border-radius: 20px;
+    }
+    .mic-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--ok); animation: pulse 1.5s infinite;
+    }
+    .mic-dot.off { background: var(--muted); animation: none; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .settings-icon-btn {
+      background: rgba(0,0,0,.2); border: none; color: #fff;
+      border-radius: 8px; padding: 6px 10px; font-size: 18px;
+      cursor: pointer; line-height: 1;
+    }
+
+    /* ── Listen Mode ── */
+    .listen-tile-wrap { padding: 4px 8px; flex-shrink: 0; }
+    .listen-tile {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 12px 20px; box-sizing: border-box;
+      background: var(--card); border: 2px solid var(--border);
+      border-radius: 10px; font-size: 17px; font-weight: 700;
+      color: var(--text); cursor: pointer; font-family: inherit;
+    }
+    /* Full-screen pulsing ring — shown only when mic is actively recording */
+    #listenRing {
+      position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+      border: 6px solid transparent; border-radius: 4px;
+      transition: border-color 0.4s, box-shadow 0.4s;
+    }
+    body.mic-active #listenRing {
+      border-color: #4299e1;
+      box-shadow: inset 0 0 40px rgba(66,153,225,0.15), 0 0 40px rgba(66,153,225,0.35);
+      animation: listenPulse 2.2s ease-in-out infinite;
+    }
+    @keyframes listenPulse {
+      0%,100% { border-color:#4299e1; box-shadow:inset 0 0 40px rgba(66,153,225,0.15),0 0 40px rgba(66,153,225,0.35); }
+      50%      { border-color:#63b3ed; box-shadow:inset 0 0 70px rgba(66,153,225,0.28),0 0 70px rgba(66,153,225,0.55); }
+    }
+    #listenRingLabel {
+      position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+      background: rgba(66,153,225,0.92); color: #fff;
+      padding: 9px 24px; border-radius: 24px;
+      font-size: 16px; font-weight: 700; letter-spacing: .03em;
+      opacity: 0; transition: opacity 0.4s; white-space: nowrap;
+    }
+    body.mic-active #listenRingLabel { opacity: 1; }
+
+    /* ── Text Bar ── */
+    .text-bar-wrap { padding: 8px 12px 4px; flex-shrink: 0; }
+    .text-bar {
+      width: 100%;
+      min-height: 15vh;
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: clamp(22px, 5vh, 60px);
+      font-weight: 800;
+      color: var(--text);
+      display: flex;
+      align-items: center; justify-content: center;
+      text-align: center;
+      word-break: break-word;
+      overflow: hidden;
+      cursor: default;
+      user-select: none;
+    }
+    .text-bar.text-medium { font-size: clamp(18px, 4vh, 48px); }
+    .text-bar.text-small  { font-size: clamp(14px, 3vh, 36px); }
+    .text-bar.text-tiny   { font-size: clamp(11px, 2vh, 26px); }
+    .text-bar .placeholder {
+      color: var(--muted); font-style: italic;
+      font-weight: 400; font-size: clamp(14px, 2.5vh, 24px);
+    }
+    .text-bar .cursor {
+      display: inline-block;
+      width: 3px; height: .85em;
+      background: currentColor;
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: blink 1s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ── Control Bar ── */
+    .control-bar {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 5px;
+      padding: 4px 12px 5px;
+      flex-shrink: 0;
+    }
+    .ctrl-btn {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center; justify-content: space-between;
+      padding: 5px 3px 4px;
+      min-height: 58px;
+      gap: 2px;
+      font-family: inherit;
+    }
+    .ctrl-symbol {
+      font-size: clamp(18px, 3.5vh, 30px);
+      line-height: 1; flex: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ctrl-text {
+      font-size: clamp(8px, 1.1vh, 11px);
+      font-weight: 700; opacity: .85;
+      white-space: nowrap; text-align: center;
+    }
+    .ctrl-btn.settings{ background:#1a2a3a; border-color:#63b3ed; color:#bee3f8; }
+    .ctrl-btn.get     { background:#1e3a5f; border-color:#5bb0ff; color:#8ac4ff; }
+    .ctrl-btn.mode    { background:#2d1f4a; border-color:#9f7aea; color:#c4a7ff; }
+    .ctrl-btn.del     { background:#3a2010; border-color:#ed8936; color:#f6ad55; }
+    .ctrl-btn.clear   { background:#3a1010; border-color:#fc8181; color:#fca5a5; }
+    .ctrl-btn.exit    { background:#1a2030; border-color:#718096; color:#a0aec0; }
+
+    /* ── Board Grid ── */
+    .board-container {
+      flex: 1;
+      padding: 0 12px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow: hidden;
+    }
+    .board-row {
+      display: grid;
+      gap: 5px;
+      flex: 1;
+    }
+    .tile {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: var(--tileRadius);
+      color: var(--text);
+      font-size: clamp(11px, 1.4vw, 16px);
+      font-weight: 600;
+      padding: 4px 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center; justify-content: center;
+      text-align: center;
+      line-height: 1.3;
+      overflow: hidden;
+      font-family: inherit;
+    }
+    .tile:empty { opacity: .18; }
+    .tile.phrase     { background:#1e3a5f; border-color:#5bb0ff44; }
+    .tile.short      { background:#163050; border-color:#5bb0ff33; font-style: italic; }
+    .tile.starter    { background:#1a3a2a; border-color:#48bb7844; }
+    .tile.completion { background:#2d1f4a; border-color:#9f7aea44; }
+    .tile.topic      { background:#28184a; border-color:#9f7aea66; }
+
+    /* Quick-response row — always visible, gold accent */
+    .tile.quick {
+      background: #1c1a10;
+      border-color: #b7950b;
+      color: #f0d060;
+      font-weight: 800;
+      font-size: clamp(10px, 1.3vw, 15px);
+    }
+    /* Refresh button — first slot in every content row */
+    .tile.refresh-btn {
+      background: #0d1827;
+      border-color: #4a90d9;
+      color: #7db9f0;
+      font-size: clamp(16px, 2.5vw, 24px);
+      font-weight: 900;
+      opacity: 0.8;
+      flex-shrink: 0;
+    }
+    .tile.refresh-btn:hover { opacity: 1; }
+
+    /* ── Status Bar ── */
+    .status-bar {
+      padding: 3px 14px 6px;
+      font-size: 10px; color: var(--muted);
+      flex-shrink: 0;
+      display: flex; justify-content: space-between;
+    }
+
+
+    /* ──────────────────────────────────────────────
+       SCAN HIGHLIGHTS — Hub CSS conventions
+    ─────────────────────────────────────────────── */
+    .text-bar.row-highlight,
+    .ctrl-btn.row-highlight,
+    .tile.row-highlight,
+    .listen-tile.row-highlight,
+    .settings-item.row-highlight,
+    .quiz-option.row-highlight {
+      background: var(--rowHighlight) !important;
+      color: #000 !important;
+      border-color: #000 !important;
+      font-weight: 800 !important;
+    }
+    .text-bar.row-highlight .cursor { background: #000; }
+    .text-bar.row-highlight .placeholder { color: #555; font-style: normal; }
+
+    .text-bar.scan-highlight,
+    .ctrl-btn.scan-highlight,
+    .tile.scan-highlight,
+    .listen-tile.scan-highlight,
+    .settings-item.scan-highlight,
+    .quiz-option.scan-highlight,
+    .quiz-btn.scan-highlight,
+    .consent-btn.scan-highlight {
+      background: var(--columnHighlight) !important;
+      color: #000 !important;
+      border-color: #000 !important;
+      font-weight: 800 !important;
+      outline: 3px solid #000;
+      outline-offset: 2px;
+    }
+    .text-bar.scan-highlight .cursor { background: #000; }
+
+    /* ── Consent ── */
+    .consent-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.92);
+      z-index: 300;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .consent-panel {
+      background: var(--card); border: 2px solid var(--brand);
+      border-radius: 16px; padding: 32px;
+      width: min(90vw, 480px); text-align: center;
+    }
+    .consent-panel h2 { font-size: 22px; color: var(--brand); margin-bottom: 16px; }
+    .consent-panel p  { font-size: 15px; line-height: 1.6; color: var(--muted); margin-bottom: 24px; }
+    .consent-btn {
+      background: var(--brand); border: none; border-radius: 10px;
+      padding: 12px 32px; font-size: 16px; font-weight: 800; cursor: pointer; color: #000;
+    }
+
+    /* ── Generic Overlay ── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.82);
+      display: none; align-items: center; justify-content: center;
+    }
+    .overlay.active { display: flex; }
+    .panel {
+      background: var(--bg); border: 2px solid var(--border);
+      border-radius: 16px; padding: 24px;
+      width: min(90vw, 520px); max-height: 86vh; overflow-y: auto;
+    }
+    .panel h2 { font-size: 20px; margin-bottom: 16px; color: var(--brand); }
+
+    /* ── Settings ── */
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .settings-item {
+      background: var(--card); border: 2px solid var(--border);
+      border-radius: 10px; padding: 12px;
+      color: var(--text); cursor: pointer;
+      text-align: left; font-family: inherit;
+    }
+    .settings-item .label { font-size: 12px; color: var(--muted); }
+    .settings-item .value { font-size: 15px; font-weight: 700; margin-top: 4px; }
+    .settings-item.exit-btn {
+      grid-column: 1 / -1;
+      background: #c53030; border-color: #c53030; color: #fff;
+      text-align: center;
+    }
+    .settings-item.exit-btn .label { color: rgba(255,255,255,0.75); }
+    .settings-item.exit-btn .value { color: #fff; }
+    .api-section { margin-top: 16px; }
+    .setup-notice {
+      background: #7c4a00; border: 2px solid #f6ad55; border-radius: 10px;
+      padding: 14px 16px; margin-bottom: 14px; font-size: 14px; line-height: 1.55;
+      color: #feebc8;
+    }
+    .setup-notice strong { color: #fbd38d; }
+    .setup-notice.hidden { display: none; }
+    .api-section label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+    .api-section input {
+      width: 100%; background: var(--card); border: 2px solid var(--border);
+      border-radius: 8px; padding: 10px 12px; color: var(--text); font-size: 14px;
+    }
+    .api-section input:focus { outline: none; border-color: var(--brand); }
+    .api-save-btn {
+      margin-top: 8px; background: var(--brand); border: none;
+      border-radius: 8px; padding: 8px 20px; font-weight: 700; cursor: pointer; color: #000;
+    }
+
+    /* ── Quiz ── */
+    .quiz-panel { border-color: var(--brand); width: min(92vw, 560px); }
+    .quiz-panel h2 { color: var(--brand); }
+    .quiz-q { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+    .quiz-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .quiz-option {
+      background: var(--card); border: 2px solid var(--border);
+      border-radius: 10px; padding: 14px;
+      font-size: 16px; font-weight: 600; cursor: pointer;
+      color: var(--text); text-align: center; font-family: inherit;
+    }
+    .quiz-acts { margin-top: 16px; display: flex; gap: 10px; justify-content: flex-end; }
+    .quiz-btn {
+      background: var(--card); border: 2px solid var(--border);
+      border-radius: 8px; padding: 10px 20px;
+      color: var(--text); font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+    .quiz-btn.primary { background: var(--brand); border-color: var(--brand); color: #000; }
+
+    /* ── Smart Typing keyboard ── */
+    .tile.key {
+      background: #1a2535;
+      border-color: #3a4a5a;
+      font-size: clamp(16px, 3vw, 26px);
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+    .tile.pred-word   { background: #1a3a2a; border-color: #48bb7844; font-size: clamp(11px, 1.6vw, 17px); }
+    .tile.pred-phrase { background: #2d1f4a; border-color: #9f7aea44; font-size: clamp(11px, 1.6vw, 17px); font-style: italic; }
+
+    /* ── Bio section ── */
+    .bio-section { margin-top: 16px; }
+    .bio-section label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+    .bio-section textarea {
+      width: 100%; height: 90px;
+      background: var(--card); border: 2px solid var(--border);
+      border-radius: 8px; padding: 10px 12px;
+      color: var(--text); font-size: 14px;
+      resize: vertical; font-family: inherit;
+    }
+    .bio-section textarea:focus { outline: none; border-color: var(--brand); }
+    .bio-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .bio-save-btn {
+      background: var(--brand); border: none;
+      border-radius: 8px; padding: 8px 20px;
+      font-weight: 700; cursor: pointer; color: #000;
+    }
+    .bio-keyboard-btn {
+      background: var(--card); border: 2px solid var(--border);
+      border-radius: 8px; padding: 8px 16px;
+      color: var(--text); font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+
+    /* ── Warning Modal (mouse-required operations) ── */
+    .warning-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.88);
+      display: none; align-items: center; justify-content: center;
+      z-index: 400;
+    }
+    .warning-modal.active { display: flex; }
+    .warning-content {
+      background: var(--bg); border: 2px solid var(--danger);
+      border-radius: 16px; padding: 32px;
+      width: min(90vw, 480px); text-align: center;
+    }
+    .warning-title { font-size: 22px; color: var(--danger); margin-bottom: 12px; font-weight: 900; }
+    .warning-message { font-size: 15px; line-height: 1.6; color: var(--muted); margin-bottom: 24px; }
+    .warning-buttons { display: flex; gap: 16px; justify-content: center; }
+    .warning-button {
+      background: var(--card); border: 2px solid var(--border);
+      border-radius: 10px; padding: 12px 28px;
+      font-size: 16px; font-weight: 800; cursor: pointer;
+      color: var(--text); font-family: inherit;
+    }
+    .warning-button.proceed { background: var(--danger); border-color: var(--danger); color: #fff; }
+    .warning-button.scan-highlight {
+      background: var(--columnHighlight) !important; color: #000 !important;
+      border-color: #000 !important; outline: 3px solid #000; outline-offset: 2px;
+    }
+
+    /* ── Edit Topics ── */
+    .edit-topics-panel { border-color: var(--border); }
+    .edit-cat { margin-bottom: 20px; }
+    .edit-cat h3 { font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+    .edit-phrase-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+    .edit-phrase-row {
+      display: flex; gap: 8px; align-items: center;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 10px; font-size: 14px;
+    }
+    .edit-phrase-row span { flex: 1; }
+    .edit-rm { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 16px; }
+    .edit-add-row { display: flex; gap: 8px; }
+    .edit-add-row input {
+      flex: 1; background: var(--card); border: 2px solid var(--border);
+      border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 14px;
+    }
+    .edit-add-row input:focus { outline: none; border-color: var(--brand); }
+    .edit-add-btn {
+      background: var(--brand); border: none; border-radius: 8px;
+      padding: 8px 16px; font-weight: 700; cursor: pointer; color: #000;
+    }
+    .edit-footer { margin-top: 16px; display: flex; justify-content: flex-end; }
+    .edit-footer button {
+      background: var(--card); border: 2px solid var(--border);
+      border-radius: 8px; padding: 10px 20px; color: var(--text);
+      font-weight: 700; cursor: pointer; font-family: inherit;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Consent -->
+<div class="consent-overlay" id="consentOverlay">
+  <div class="consent-panel">
+    <h2>💬 Communication App</h2>
+    <p>
+      <strong>Hello everyone.</strong><br><br>
+      This app is helping this person communicate. It listens to our conversation and suggests phrases
+      and responses for them to select — they are in full control of everything said.<br><br>
+      <strong>Nothing is recorded or shared.</strong> Audio stays on this device only.<br>
+      Only text is sent to the AI provider to generate suggestions.
+    </p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <button class="consent-btn" id="consentRepeatBtn" style="background:var(--card);border:2px solid var(--brand);color:var(--brand);">Repeat</button>
+      <button class="consent-btn" id="consentBtn">Begin</button>
+    </div>
+  </div>
+</div>
+
+<!-- Listen Mode Ring (full-screen, pointer-events:none) -->
+<div id="listenRing"><div id="listenRingLabel">🎤 Listening…</div></div>
+
+<!-- Settings Overlay -->
+<div class="overlay" id="settingsOverlay" style="z-index:100;">
+  <div class="panel">
+    <h2>⚙ Settings</h2>
+    <div class="setup-notice hidden" id="setupNotice">
+      <strong>Welcome — a quick setup will make this app work properly.</strong><br>
+      Paste an API key below (Anthropic, OpenAI, or Google) to enable AI suggestions. Then add a bio — your name, interests, communication style, anything useful. <em>The more context you give, the more accurate the suggestions become.</em>
+    </div>
+    <div class="settings-grid" id="settingsGrid">
+      <button class="settings-item" data-action="scanSpeed">
+        <div class="label">Scan Speed</div>
+        <div class="value" id="scanSpeedDisplay">2s</div>
+      </button>
+      <button class="settings-item" data-action="toggleMic">
+        <div class="label">Microphone</div>
+        <div class="value" id="micToggleDisplay">On</div>
+      </button>
+      <button class="settings-item" data-action="toggleProfanity">
+        <div class="label">Language</div>
+        <div class="value" id="profanityDisplay">Clean</div>
+      </button>
+      <button class="settings-item" data-action="quizAdd">
+        <div class="label">Personality Profile</div>
+        <div class="value">Add / Expand</div>
+      </button>
+      <button class="settings-item" data-action="quizClear">
+        <div class="label">Personality Profile</div>
+        <div class="value">Clear Answers</div>
+      </button>
+      <button class="settings-item" data-action="exportProfile">
+        <div class="label">Profile</div>
+        <div class="value">Export JSON</div>
+      </button>
+      <button class="settings-item" data-action="importProfile">
+        <div class="label">Profile</div>
+        <div class="value">Import JSON</div>
+      </button>
+      <button class="settings-item exit-btn" data-action="closeSettings">
+        <div class="label">Navigation</div>
+        <div class="value">← Exit Settings</div>
+      </button>
+    </div>
+    <div class="api-section">
+      <label>API Key (stored locally, never shared)</label>
+      <input type="password" id="apiKeyInput" placeholder="Paste your API key here…" autocomplete="off" />
+      <button class="api-save-btn" id="apiSaveBtn">Save Key</button>
+      <div id="apiKeyStatus" style="margin-top:6px;font-size:12px;color:var(--muted);"></div>
+    </div>
+    <div class="bio-section">
+      <label>Background Context — type or paste here (used by AI for all suggestions)</label>
+      <textarea id="bioInput" maxlength="1200" placeholder="Name, age, condition, interests, communication style, things to avoid, etc. The more context here, the better the suggestions. (1200 character limit)"></textarea>
+      <div class="bio-actions">
+        <button class="bio-save-btn" id="bioSaveBtn">Save</button>
+        <button class="bio-keyboard-btn" id="bioKeyboardBtn">⌨ Use Scan Keyboard</button>
+      </div>
+      <div id="bioStatus" style="margin-top:6px;font-size:12px;color:var(--muted);"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Quiz Overlay -->
+<div class="overlay" id="quizOverlay" style="z-index:150;">
+  <div class="panel quiz-panel">
+    <h2 id="quizTitle">🧠 Getting to Know You</h2>
+    <div class="quiz-q" id="quizQ">What are some things you enjoy talking about?</div>
+    <div class="quiz-opts" id="quizOpts"></div>
+    <div class="quiz-acts">
+      <button class="quiz-btn"         id="quizReadBtn">🔊 Read Again</button>
+      <button class="quiz-btn"         id="quizSkipBtn">Skip</button>
+      <button class="quiz-btn primary" id="quizDoneBtn">Done for Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Topics Overlay -->
+<div class="overlay" id="editTopicsOverlay" style="z-index:200;">
+  <div class="panel edit-topics-panel">
+    <h2>✏️ Edit Topic Board</h2>
+    <div id="editTopicsContent"></div>
+    <div class="edit-footer"><button id="editTopicsCloseBtn">Done</button></div>
+  </div>
+</div>
+
+<!-- Warning Modal (operations that require mouse input) -->
+<div class="warning-modal" id="warningModal">
+  <div class="warning-content">
+    <div class="warning-title">⚠ Warning</div>
+    <div class="warning-message" id="warningMessage"></div>
+    <div class="warning-buttons">
+      <button class="warning-button back" id="warningBackBtn">GO BACK</button>
+      <button class="warning-button proceed" id="warningProceedBtn">PROCEED</button>
+    </div>
+  </div>
+</div>
+
+<!-- App Shell -->
+<div class="app-header">
+  <div class="brand">💬 Conversation</div>
+  <div class="mic-indicator" id="micIndicator">
+    <div class="mic-dot" id="micDot"></div>
+    <span id="micLabel">Mic Off</span>
+  </div>
+</div>
+
+<div class="text-bar-wrap">
+  <div class="text-bar" id="textBar">
+    <span class="placeholder">Use the board to build a message…</span>
+  </div>
+</div>
+
+<div class="control-bar" id="controlBar"></div>
+
+<div class="board-container" id="boardContainer"></div>
+
+<div class="listen-tile-wrap">
+  <button class="listen-tile" id="listenTile" data-tts="Listen mode">
+    <span>🎤</span><span>Listen Mode</span>
+  </button>
+</div>
+
+
+<div class="status-bar">
+  <span id="statusLeft">Ready</span>
+  <span id="statusRight">Space: scan · Hold 3s: back · Enter: select · Hold 6s on bar: clear+refresh</span>
+</div>
+
+<!-- Shared Hub Scripts -->
+<script src="../../../shared/electron-bridge.js"></script>
+<script src="../../../shared/voice-manager.js"></script>
+<script src="../../../shared/ios-audio-fix.js"></script>
+<script src="../../../shared/scan-manager.js"></script>
+
+<script>
+(() => {
+  // ─────────────────────────────────────────────
+  // STORAGE
+  // ─────────────────────────────────────────────
+  const LS = {
+    get: (k, d) => { try { const v = localStorage.getItem(k); return v !== null ? JSON.parse(v) : d; } catch { return d; } },
+    set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+  };
+
+  // ─────────────────────────────────────────────
+  // DEFAULTS
+  // ─────────────────────────────────────────────
+  const DEFAULT_TOPIC_BOARD = {
+    'Comedy':      ["That's hilarious", "I love that show", "So funny", "Classic", "That show is the best", "Stop it"],
+    'Superheroes': ["That hero is my favorite", "Marvel is better", "What about the other one?", "I love the MCU", "DC is cool too"],
+    'Gaming':      ["I've played that", "That's a great game", "What level are you on?", "I need to try that", "Easy game"],
+    'Family':      ["How is everyone?", "Tell them I said hi", "That's nice to hear", "I miss them", "Great news"],
+    'General':     ["Interesting", "I agree", "I don't think so", "Tell me more", "That makes sense", "Not really"]
+  };
+
+  const BOARD_SIZES = [
+    { rows: 4, cols: 4 },
+    { rows: 5, cols: 5 },
+    { rows: 6, cols: 6 }
+  ];
+
+  // Fixed bottom row — always present regardless of mode or board size
+  const QUICK_RESPONSES = ["Yes", "No", "Help", "I don't know", "Maybe", "Repeat that"];
+
+  // ─────────────────────────────────────────────
+  // APP STATE
+  // ─────────────────────────────────────────────
+  let settings = LS.get('conv_settings', {
+    listeningEnabled: true,
+    boardSize: { rows: 6, cols: 6 }, allowProfanity: false
+  });
+  settings.boardSize = { rows: 6, cols: 6 }; // always use full 6×6 layout
+  if (settings.allowProfanity === undefined) settings.allowProfanity = false;
+
+  let personality = LS.get('conv_personality', {
+    communicationStyle: { directness: 0.7, humor: 0.5, sarcasm: 0.3, wordiness: 0.4 },
+    interests: {}
+  });
+  let topicBoard    = LS.get('conv_topicBoard', DEFAULT_TOPIC_BOARD);
+  let textBuffer    = '';
+  let transcriptWindow  = '';  // session-only — never persisted
+  let transcriptSummary = '';
+  let lastFetchedTranscriptWordCount = 0; // tracks words seen by last callAPI() call
+  let lastCallAPISuggestions = null;      // previous suggestions — sent to AI to prevent repeats
+  let lastSentContext = '';               // most-recent context spoken to the API — for Repeat button
+  let topicRefreshCount      = 0;         // how many times callAPI has run on the same transcript
+  let topicAnchorContext     = '';        // the "MOST RECENT" text from when new speech came in
+  let topicShownSuggestions  = [];        // all shorts shown since last new speech (for dedup)
+  let rowTypeRefreshCounts   = {};        // per-type refresh count for individual row refreshes
+  let rowTypeShownItems      = {};        // per-type accumulated shown items (for dedup in row refresh)
+  let typingShownPredictions = [];        // all prediction words/phrases shown this topic session (case-normalized)
+  let isLoading     = false;
+  let recognition   = null;
+
+  let currentSuggestions = { shorts: [], starters: [], completions: [] };
+  let completionTiles    = []; // References to Row D + Row E buttons for in-place updates
+  let boardMode          = 'convo';   // 'convo' | 'phrases' | 'typing'
+  let phraseCatIdx       = 0;
+
+  // Smart Typing Mode
+  let typingBuffer      = '';   // chars typed since last space/prediction — prediction context
+  let typingTarget      = 'buffer'; // 'buffer' | 'bio'
+  let preBioTextBuffer  = '';   // saved textBuffer before entering bio-edit mode
+  let typingPredTiles        = { words: [], phrases: [] };
+  let typingPredWordsRowIdx  = -1;   // allRows index of the words prediction row
+  let typingPredPhrasesRowIdx = -1;  // allRows index of the phrases prediction row
+  let typingFetchTimer  = null;
+
+  // Selection history & personality drift
+  let selectionHistory  = LS.get('conv_selectionHistory', { counts: {}, topWords: [] });
+  let bioText           = LS.get('conv_bio', '');
+
+  // Warning modal state
+  let inWarning          = false;
+  let warningBtnIdx      = 0;
+  let pendingWarningAction = null;
+
+  // API context cache — skip re-sending static data when unchanged
+  let apiContextCache   = { bioHash: '', personalityHash: '', cachedProfile: '' };
+  function hashStr(s) {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+    return h.toString(36);
+  }
+  function getProfileBlurb() {
+    const bioH  = hashStr(bioText);
+    const persH = hashStr(JSON.stringify(personality));
+    if (bioH === apiContextCache.bioHash && persH === apiContextCache.personalityHash) {
+      return apiContextCache.cachedProfile; // return cached — unchanged since last call
+    }
+    const interests = Object.entries(personality.interests)
+      .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.slice(0,4).join(', ') : v}`)
+      .slice(0, 6).join('; ') || 'not set';
+    const style = personality.communicationStyle;
+    const blurb = [
+      `Style: directness=${style.directness?.toFixed(2)}, humor=${style.humor?.toFixed(2)}, sarcasm=${style.sarcasm?.toFixed(2)}, wordiness=${style.wordiness?.toFixed(2)}`,
+      `Interests: ${interests}`,
+      selectionHistory.topWords.length ? `Often uses: ${selectionHistory.topWords.slice(0,20).join(', ')}` : ''
+    ].filter(Boolean).join('\n');
+    apiContextCache = { bioHash: bioH, personalityHash: persH, cachedProfile: blurb };
+    return blurb;
+  }
+
+  // ─────────────────────────────────────────────
+  // LOCAL CONTEXT SAVE / LOAD (Electron HTTP server)
+  // ─────────────────────────────────────────────
+  async function saveContextToServer() {
+    if (!window.location.origin.startsWith('http://127.0.0.1')) return;
+    try {
+      await fetch(`${window.location.origin}/api/rt-convo/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          personality, bioText, selectionHistory, topicBoard,
+          settings: { listeningEnabled: settings.listeningEnabled, allowProfanity: settings.allowProfanity }
+        })
+      });
+    } catch {}
+  }
+
+  async function loadContextFromServer() {
+    if (!window.location.origin.startsWith('http://127.0.0.1')) return;
+    try {
+      const res  = await fetch(`${window.location.origin}/api/rt-convo/load`);
+      const data = await res.json();
+      if (!data) return;
+      if (data.personality)      { personality      = data.personality;      LS.set('conv_personality',      personality); }
+      if (data.bioText != null)  { bioText          = data.bioText;          LS.set('conv_bio',              bioText); }
+      if (data.selectionHistory) { selectionHistory = data.selectionHistory; LS.set('conv_selectionHistory', selectionHistory); }
+      if (data.topicBoard)       { topicBoard       = data.topicBoard;       LS.set('conv_topicBoard',       topicBoard); }
+      if (data.settings) {
+        settings.listeningEnabled = data.settings.listeningEnabled ?? settings.listeningEnabled;
+        settings.allowProfanity   = data.settings.allowProfanity   ?? settings.allowProfanity;
+        LS.set('conv_settings', settings);
+      }
+      apiContextCache = { bioHash: '', personalityHash: '', cachedProfile: '' };
+    } catch {}
+  }
+
+  if (settings.theme === 'light') document.body.classList.add('light');
+
+  // ─────────────────────────────────────────────
+  // NARBSCANMANAGER
+  // ─────────────────────────────────────────────
+  let scanInterval     = 2000;
+  let inputSensitivity = 50;
+  let isAutoScanning   = false;
+  let autoScanTimer    = null;
+
+  function syncScanSettings() {
+    if (!window.NarbeScanManager) return;
+    const s = window.NarbeScanManager.getSettings();
+    scanInterval     = s.scanInterval     || 2000;
+    inputSensitivity = s.inputSensitivity || 50;
+    const was = isAutoScanning;
+    isAutoScanning = s.autoScan || false;
+    if (isAutoScanning && !was) startAutoScan();
+    if (!isAutoScanning && was) stopAutoScan();
+  }
+  if (window.NarbeScanManager) {
+    window.NarbeScanManager.subscribe(syncScanSettings);
+    syncScanSettings();
+  }
+  function startAutoScan() {
+    if (autoScanTimer) return;
+    autoScanTimer = setInterval(() => { if (!inSettings && !inQuiz && !inConsent) advanceScan(); }, scanInterval);
+  }
+  function stopAutoScan() { clearInterval(autoScanTimer); autoScanTimer = null; }
+  function syncSpeedDisplay() {
+    if (!window.NarbeScanManager) return;
+    document.getElementById('scanSpeedDisplay').textContent =
+      (window.NarbeScanManager.getScanInterval() / 1000).toFixed(0) + 's';
+  }
+
+  // ─────────────────────────────────────────────
+  // SCAN STATE
+  // ─────────────────────────────────────────────
+  let allRows         = [];  // arrays of elements; each has a ._label string for row TTS
+  let rowLabels       = [];  // parallel label array for row TTS
+  let controlBtns     = [];
+  let scanMode        = 'row';
+  let currentRowIndex = 0;
+  let currentItemIndex= 0;
+
+  let inSettings  = false;
+  let settingsIdx = 0;
+  let inQuiz      = false;
+  let quizOptIdx  = 0;
+  let inConsent   = true;   // true until consent modal dismissed — uses same scan machine
+  let consentBtnIdx = 0;    // 0 = Repeat, 1 = Begin
+
+  // Row reading state — reads each cell sequentially for low vision
+  let rowReadGen   = 0;   // Incremented to invalidate stale reads
+  let rowReadTimer = null;
+  let rowReadIdx   = 0;
+
+  // ─────────────────────────────────────────────
+  // SCAN TTS — speaks every cell for low vision
+  // ─────────────────────────────────────────────
+
+  // Single one-shot announcement (settings, quiz, column-mode items).
+  // Also cancels any active row reading.
+  function scanSpeak(text) {
+    if (!text || !text.trim()) return;
+    rowReadGen++;
+    clearTimeout(rowReadTimer);
+    rowReadTimer = null;
+    if (window.NarbeVoiceManager?.speak) {
+      window.NarbeVoiceManager.cancel?.();
+      window.NarbeVoiceManager.speak(text.trim(), { rate: 1.05 });
+    } else {
+      speechSynthesis.cancel();
+      const utt = new SpeechSynthesisUtterance(text.trim());
+      utt.rate = 1.05;
+      speechSynthesis.speak(utt);
+    }
+  }
+
+  // Returns the speakable text for a single cell (handles text bar specially).
+  // For suggestion tiles (rows 2+), prepends the current text buffer so Ben hears the full sentence.
+  function getCellText(rowIdx, item) {
+    if (rowIdx === 0) return textBuffer || 'Text bar, empty';
+    const tileText = item?.dataset.tts || item?.textContent?.trim() || '';
+    const prefix = textBuffer.trim();
+    if (prefix && rowIdx >= 2 && tileText &&
+        !item?.classList.contains('refresh-btn') &&
+        item?.id !== 'listenTile') {
+      return prefix + ': ' + tileText;
+    }
+    return tileText;
+  }
+
+  // Starts sequential reading of every cell in the highlighted row.
+  function startRowRead(rowIdx, row) {
+    if (rowReadCooldown) return;
+    rowReadGen++;
+    const gen = rowReadGen;
+    rowReadIdx = 0;
+    if (window.NarbeVoiceManager?.cancel) window.NarbeVoiceManager.cancel();
+    else speechSynthesis.cancel();
+    readNextCell(rowIdx, row, gen);
+  }
+
+  // Reads one cell, then schedules the next. Loops on multi-cell rows.
+  function readNextCell(rowIdx, row, gen) {
+    if (gen !== rowReadGen || currentRowIndex !== rowIdx) return;
+
+    // Skip empty/blank cells and refresh buttons (refresh btn is not spoken during row-read)
+    while (rowReadIdx < row.length && (
+      !getCellText(rowIdx, row[rowReadIdx]).trim() ||
+      row[rowReadIdx]?.classList.contains('refresh-btn') ||
+      row[rowReadIdx]?.dataset?.skipRead === 'true'
+    )) {
+      rowReadIdx++;
+    }
+
+    if (rowReadIdx >= row.length) {
+      return; // Read across once, then stop — wait for the user to act
+    }
+
+    const text = getCellText(rowIdx, row[rowReadIdx]);
+    const utt  = new SpeechSynthesisUtterance(text);
+    if (window.NarbeVoiceManager) {
+      const vs = window.NarbeVoiceManager.getSettings();
+      utt.rate   = vs.rate   || 1.05;
+      utt.pitch  = vs.pitch  || 1.0;
+      utt.volume = vs.volume || 1.0;
+      const voice = window.NarbeVoiceManager.getCurrentVoice?.();
+      if (voice) utt.voice = voice;
+    } else {
+      utt.rate = 1.05;
+    }
+    utt.onend  = () => {
+      if (gen !== rowReadGen || currentRowIndex !== rowIdx) return;
+      rowReadIdx++;
+      rowReadTimer = setTimeout(() => readNextCell(rowIdx, row, gen), 150);
+    };
+    speechSynthesis.speak(utt);
+  }
+
+  // ─────────────────────────────────────────────
+  // CONSENT
+  // ─────────────────────────────────────────────
+  const consentEl         = document.getElementById('consentOverlay');
+  const consentBtn        = document.getElementById('consentBtn');
+  const consentRepeatBtn  = document.getElementById('consentRepeatBtn');
+
+  const CONSENT_MSG =
+    'Hello everyone. This app is helping this person communicate. ' +
+    'It will listen to our conversation and suggest phrases and responses for them to select. ' +
+    'They are in full control of everything said. ' +
+    'Nothing is recorded or shared outside this device. ' +
+    'Only text is sent to the AI provider to generate suggestions.';
+
+  function speakConsentMsg() {
+    if (window.NarbeVoiceManager?.speak) {
+      window.NarbeVoiceManager.cancel?.();
+      window.NarbeVoiceManager.speak(CONSENT_MSG);
+    } else {
+      speechSynthesis.cancel();
+      speechSynthesis.speak(new SpeechSynthesisUtterance(CONSENT_MSG));
+    }
+  }
+
+  function acceptConsent() {
+    speechSynthesis.cancel();
+    inConsent = false;
+    document.getElementById('consentRepeatBtn').classList.remove('scan-highlight');
+    document.getElementById('consentBtn').classList.remove('scan-highlight');
+    consentEl.style.display = 'none';
+    init();
+  }
+
+  consentBtn.addEventListener('click', acceptConsent);
+  consentRepeatBtn.addEventListener('click', speakConsentMsg);
+
+  // Highlight first consent button and speak the announcement
+  document.getElementById('consentRepeatBtn').classList.add('scan-highlight');
+  setTimeout(speakConsentMsg, 600);
+
+  // ─────────────────────────────────────────────
+  // INIT
+  // ─────────────────────────────────────────────
+  function init() {
+    syncSpeedDisplay();
+    document.getElementById('micToggleDisplay').textContent  = settings.listeningEnabled ? 'On' : 'Off';
+    document.getElementById('profanityDisplay').textContent  = settings.allowProfanity ? 'Casual' : 'Clean';
+    const bioEl = document.getElementById('bioInput');
+    if (bioEl) bioEl.value = bioText;
+    buildRows();
+    setupMicHandlers();
+    loadApiKeyStatus();
+    bindStaticActions();
+    // Listen tile: the ONLY control for mic on/off — keyboard actions never touch the mic
+    const listenTileEl = document.getElementById('listenTile');
+    if (listenTileEl) {
+      // Real user touch/click only — block programmatic .click() to prevent accidental activation on scan
+      listenTileEl.addEventListener('click', (e) => {
+        if (!e.isTrusted) return;
+        toggleListenMode();
+      });
+    }
+    if (!LS.get('conv_apiKey', '')) setTimeout(() => openSettings(), 1200);
+    // Load saved context from local file (Electron), then refresh displays
+    loadContextFromServer().then(() => {
+      document.getElementById('micToggleDisplay').textContent = settings.listeningEnabled ? 'On' : 'Off';
+      document.getElementById('profanityDisplay').textContent = settings.allowProfanity ? 'Casual' : 'Clean';
+      const bioInputEl = document.getElementById('bioInput');
+      if (bioInputEl) bioInputEl.value = bioText;
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // BUILD ROWS
+  // ─────────────────────────────────────────────
+  function buildRows() {
+    allRows    = [];
+    rowLabels  = [];
+
+    // Row 0: text bar (single-item row)
+    const textBar = document.getElementById('textBar');
+    textBar.onclick = speakTextBar;
+    allRows.push([textBar]);
+    rowLabels.push(''); // Dynamic — computed in getRowLabel()
+
+    // Row 1: control bar
+    buildControlBar();
+
+    // Rows 2+ (including listen tile as last row): built by buildGrid()
+    buildGrid();
+
+    highlightRow();
+  }
+
+  // ─── Control Bar ─────────────────────────────
+  function getCtrlConfig() {
+    if (boardMode === 'typing') return [
+      { symbol:'↩',  label:'Done',     tts:'Done typing',       cls:'mode',     action: finishTyping    },
+      { symbol:'⎵',  label:'Space',    tts:'Space',             cls:'get',      action: typeSpace       },
+      { symbol:'⌦',  label:'Del Word', tts:'Delete word',       cls:'del',      action: deleteLastWord  },
+      { symbol:'✕',  label:'Clear',    tts:'Clear',             cls:'clear',    action: clearBuffer     },
+      { symbol:'⚙',  label:'Settings', tts:'Settings',          cls:'settings', action: openSettings    },
+      { symbol:'⏻',  label:'Exit',     tts:'Exit',              cls:'exit',     action: exitApp         },
+    ];
+    if (boardMode === 'convo') return [
+      { symbol:'🔊', label:'Repeat',   tts:'Repeat context',        cls:'get',      action: repeatLastContext   },
+      { symbol:'⌨',  label:'Type',     tts:'Smart typing mode',     cls:'mode',     action: () => switchToTypingMode('buffer') },
+      { symbol:'⌦',  label:'Del Word', tts:'Delete word',           cls:'del',      action: deleteLastWord      },
+      { symbol:'✕',  label:'Clear',    tts:'Clear',                 cls:'clear',    action: clearBuffer         },
+      { symbol:'⚙',  label:'Settings', tts:'Settings',              cls:'settings', action: openSettings        },
+      { symbol:'⏻',  label:'Exit',     tts:'Exit',                  cls:'exit',     action: exitApp             },
+    ];
+    return [
+      { symbol:'→',  label:'Next',     tts:'Next topic',            cls:'get',      action: nextCategory        },
+      { symbol:'←',  label:'Prev',     tts:'Previous topic',        cls:'get',      action: prevCategory        },
+      { symbol:'💬', label:'Convo',    tts:'Conversation mode',     cls:'mode',     action: switchToConvoMode   },
+      { symbol:'✕',  label:'Clear',    tts:'Clear',                 cls:'clear',    action: clearBuffer         },
+      { symbol:'⚙',  label:'Settings', tts:'Settings',              cls:'settings', action: openSettings        },
+      { symbol:'⏻',  label:'Exit',     tts:'Exit',                  cls:'exit',     action: exitApp             },
+    ];
+  }
+
+  function buildControlBar() {
+    const bar = document.getElementById('controlBar');
+    bar.innerHTML = '';
+    const cfg = getCtrlConfig();
+    controlBtns = cfg.map(c => {
+      const btn = document.createElement('button');
+      btn.className = `ctrl-btn ${c.cls}`;
+      btn.dataset.tts = c.tts;
+      btn.innerHTML   = `<span class="ctrl-symbol">${c.symbol}</span><span class="ctrl-text">${c.label}</span>`;
+      btn.addEventListener('click', c.action);
+      bar.appendChild(btn);
+      return btn;
+    });
+    const ctrlLabel = 'Controls';
+    if (allRows.length >= 2) { allRows[1] = controlBtns; rowLabels[1] = ctrlLabel; }
+    else                     { allRows.push(controlBtns); rowLabels.push(ctrlLabel); }
+  }
+
+  // ─── Grid ─────────────────────────────────────
+  function buildGrid() {
+    // Drop old grid rows (keep row 0 + row 1)
+    allRows   = allRows.slice(0, 2);
+    rowLabels = rowLabels.slice(0, 2);
+    const container = document.getElementById('boardContainer');
+    container.innerHTML = '';
+    const { rows, cols } = settings.boardSize;
+    if      (boardMode === 'typing')  buildTypingGrid(container);
+    else if (boardMode === 'phrases') buildPhrasesGrid(container, rows, cols);
+    else                              buildConvoGrid(container, rows, cols);
+    // Always re-append the listen tile as the last row after grid rebuild
+    const listenTile = document.getElementById('listenTile');
+    if (listenTile) {
+      allRows.push([listenTile]);
+      rowLabels.push('Listen mode');
+      listenRowIndex = allRows.length - 1;
+    }
+  }
+
+  function buildConvoGrid(container, rows, cols) {
+    const shorts      = currentSuggestions.shorts?.length      ? currentSuggestions.shorts      : placeholderShorts();
+    const starters    = currentSuggestions.starters?.length    ? currentSuggestions.starters    : placeholderStarters();
+    const completions = currentSuggestions.completions?.length ? currentSuggestions.completions : placeholderCompletions();
+    completionTiles   = [];
+
+    if (rows >= 6) {
+      // ── Full layout ─────────────────────────────────────────────
+      // Row indices: shorts=2, starters=3, D=4, E=5, F=6
+      const cc = cols - 1; // content slots per row (1 taken by refresh button)
+
+      // Shorts: ready-to-use phrases — first content row (scan jumps here after Get)
+      let si = 0;
+      addGridRow(container, cols, 'short', () => shorts[si++] || '',
+        t => selectShortPhrase(t),
+        'Short phrases',
+        () => refreshRowByType('short', 2));
+
+      // Starters: sentence-opening fragments
+      let ri = 0;
+      addGridRow(container, cols, 'starter', () => starters[ri++] || '',
+        t => selectStarter(t),
+        'Sentence starters',
+        () => refreshRowByType('starter', 3));
+
+      // D: completions row 1 — 1-2 word completions
+      let ci = 0;
+      const rowD = addGridRow(container, cols, 'completion', () => completions[ci++] || '',
+        t => addToBuffer(t, 'completion'),
+        completions[0] ? `Completions: ${completions[0]}` : 'Completions',
+        () => refreshRowByType('completion', 4));
+
+      // E: completions row 2 — 2-3 word completions
+      const rowE = addGridRow(container, cols, 'completion', () => completions[ci++] || '',
+        t => addToBuffer(t, 'completion'),
+        completions[cc] ? `More completions: ${completions[cc]}` : 'More completions',
+        () => refreshRowByType('completion', 5));
+
+      // F: completions row 3 — 3-4 word completions
+      const rowF = addGridRow(container, cols, 'completion', () => completions[ci++] || '',
+        t => addToBuffer(t, 'completion'),
+        completions[cc * 2] ? `Longer completions: ${completions[cc * 2]}` : 'Longer completions',
+        () => refreshRowByType('completion', 6));
+
+      // Exclude the refresh button from completionTiles (it's position 0 in each row)
+      completionTiles = [...rowD, ...rowE, ...rowF].filter(b => !b.classList.contains('refresh-btn'));
+    } else {
+      // ── Smaller board fallback ──────────────────────────────────
+      const contentRows = rows - 1;
+      let si = 0, ci = 0;
+      const starterIdx = allRows.length;
+      addGridRow(container, cols, 'starter', () => starters[si++] || '',
+        t => selectStarter(t), 'Sentence starters',
+        () => refreshRowByType('starter', starterIdx));
+      const compRows = Math.min(contentRows - 1, 3);
+      const compTileArrays = [];
+      for (let r = 0; r < compRows; r++) {
+        const compIdx = allRows.length;
+        const compRow = addGridRow(container, cols, 'completion', () => completions[ci++] || '',
+          t => addToBuffer(t, 'completion'), 'Completions',
+          () => refreshRowByType('completion', compIdx));
+        compTileArrays.push(compRow);
+      }
+      completionTiles = compTileArrays.flat().filter(b => !b.classList.contains('refresh-btn'));
+    }
+
+    buildQuickRow(container);
+  }
+
+  function buildPhrasesGrid(container, rows, cols) {
+    const cats    = Object.keys(topicBoard);
+    const cat     = cats[phraseCatIdx] || cats[0] || '';
+    const phrases = topicBoard[cat] || [];
+    const contentRows = rows - 1;
+    let idx = 0;
+    for (let r = 0; r < contentRows; r++) {
+      const first = phrases[idx] || '';
+      const label = first ? `${cat}: ${first}` : `${cat} phrases`;
+      addGridRow(container, cols, 'topic', () => phrases[idx++] || '', t => addToBuffer(t, 'phrase'), label);
+    }
+    buildQuickRow(container);
+  }
+
+  function addGridRow(container, cols, type, getText, onSelect, label, refreshFn) {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'board-row';
+    rowEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    const btns = [];
+
+    // First slot: refresh button (not read during row-scan TTS — skipped by class check)
+    if (refreshFn) {
+      const rb = document.createElement('button');
+      rb.className    = 'tile refresh-btn';
+      rb.textContent  = '↺';
+      rb.dataset.tts  = 'Refresh';
+      rb.addEventListener('click', refreshFn);
+      rowEl.appendChild(rb);
+      btns.push(rb);
+    }
+
+    const contentCount = refreshFn ? cols - 1 : cols;
+    for (let c = 0; c < contentCount; c++) {
+      const text = getText();
+      const btn  = document.createElement('button');
+      btn.className     = `tile ${type}`;
+      btn.textContent   = text;
+      btn.dataset.tts   = text;
+      btn.addEventListener('click', () => { const t = btn.dataset.tts; if (t) onSelect(t); });
+      rowEl.appendChild(btn);
+      btns.push(btn);
+    }
+    container.appendChild(rowEl);
+    allRows.push(btns);
+    rowLabels.push(label);
+    return btns;
+  }
+
+  function buildQuickRow(container) {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'board-row';
+    rowEl.style.gridTemplateColumns = 'repeat(6, 1fr)'; // Always 6 columns
+    const btns = QUICK_RESPONSES.map(text => {
+      const btn = document.createElement('button');
+      btn.className   = 'tile quick';
+      btn.textContent = text;
+      btn.dataset.tts = text;
+      btn.addEventListener('click', () => addToBuffer(text, 'phrase'));
+      rowEl.appendChild(btn);
+      return btn;
+    });
+    container.appendChild(rowEl);
+    allRows.push(btns);
+    rowLabels.push('Quick responses: Yes, No, Help, I don\'t know, Maybe, Repeat that');
+  }
+
+  // Placeholder content — 5 items per row (1 slot per row = refresh button)
+  function placeholderPhrases() {
+    return ["I'm ready to chat", "What are we talking about?",
+            "Tell me more about that", "That sounds interesting",
+            "I have something to say"];
+  }
+  function placeholderShorts() {
+    return ["Sure", "No problem", "Not really", "Good idea", "Sounds fun"];
+  }
+  function placeholderStarters() {
+    return ["I think", "I feel", "I want", "What about", "Can you"];
+  }
+  function placeholderCompletions() {
+    return ["that",               "not sure",              "sounds good",         "I disagree",
+            "depends",            "that's right",          "it depends",          "not really",
+            "I agree with that",  "that's a good point",   "I'm not sure about that", "sounds good to me",
+            "maybe we can try",   "I definitely agree",    "that's absolutely right"];
+  }
+
+  // ── Short phrase selected: set as full message, stay on shorts row, predict next ──
+  function selectShortPhrase(text) {
+    logSelection(text);
+    setTextBuffer(text.trimEnd() + ' '); // always trailing space, even after period
+    setStatus(`"${text.length > 45 ? text.slice(0, 45) + '…' : text}" — Enter to speak`);
+    scanSpeak(text);
+    currentRowIndex  = 2;
+    currentItemIndex = 0;
+    scanMode = 'row';
+    highlightRow();
+    refreshShortsNextSentence(text, 2);
+  }
+
+  // ── Refresh shorts row with sentences that would naturally follow the selected one ──
+  async function refreshShortsNextSentence(selectedPhrase, rowIdx) {
+    const apiKey = LS.get('conv_apiKey', '');
+    if (!apiKey) return;
+
+    rowReadCooldown = true;
+    const contentBtns = allRows[rowIdx]?.slice(1) || [];
+    contentBtns.forEach(btn => { btn.textContent = '…'; btn.dataset.tts = ''; btn.style.opacity = '0.35'; });
+    setStatus('Predicting next sentence…');
+
+    const cc           = settings.boardSize.cols - 1;
+    const requestCount = cc + 4;
+    const prevShown    = rowTypeShownItems['short'] || [];
+    const recentCtx    = transcriptWindow ? transcriptWindow.split(' ').slice(-60).join(' ') : '';
+
+    const sys =
+`Communication assistant for a nonspeaking AAC user.
+${getProfileBlurb()}${bioText ? `\nBackground: ${bioText}` : ''}
+Return ONLY valid JSON: {"shorts":[]}
+The user just said: "${selectedPhrase}"
+${recentCtx ? `Conversation so far: ${recentCtx}` : ''}
+Generate ${requestCount} complete sentences (2–5 words each) the user could say NEXT — what logically follows after saying "${selectedPhrase}"? I will take the best ${cc}.
+- These must be FOLLOW-UP sentences, NOT variations or rephrasing of what was just said
+- Think: what would a person naturally say after "${selectedPhrase}" in this conversation?
+- Complete, ready-to-speak sentences only
+${prevShown.length ? `ALREADY SHOWN — do not repeat: ${JSON.stringify(prevShown.slice(-16))}` : ''}
+${profanityInstruction()}`;
+
+    try {
+      const parsed   = await callAI(sys, `What would naturally be said after "${selectedPhrase}"?`, 400);
+      const rawItems = parsed.shorts || [];
+      const seenExact = new Set(prevShown.map(s => s.toLowerCase()));
+      const accepted  = [];
+      for (const c of rawItems) {
+        if (accepted.length >= cc) break;
+        if (!c || !c.trim()) continue;
+        if (seenExact.has(c.toLowerCase())) continue;
+        seenExact.add(c.toLowerCase());
+        accepted.push(c);
+      }
+      const newItems = [...accepted, ...Array(Math.max(0, cc - accepted.length)).fill('')];
+      rowTypeShownItems['short'] = [...prevShown, ...accepted];
+      contentBtns.forEach((btn, i) => {
+        const t = newItems[i] || '';
+        btn.textContent = t; btn.dataset.tts = t; btn.style.opacity = t ? '' : '0.18';
+      });
+      currentSuggestions.shorts = newItems;
+      if (newItems[0]) rowLabels[rowIdx] = `Short phrases: ${newItems[0]}`;
+      setStatus('Next sentences ready ✓');
+      if (window.NarbeVoiceManager?.cancel) window.NarbeVoiceManager.cancel();
+      else speechSynthesis.cancel();
+      rowReadCooldown = false;
+      if (currentRowIndex === rowIdx && allRows[rowIdx])
+        setTimeout(() => startRowRead(rowIdx, allRows[rowIdx]), 350);
+    } catch {
+      rowReadCooldown = false;
+      setStatus('Refresh failed');
+    }
+  }
+
+  // ── Starter selected: add to buffer + fetch contextual completions ──
+  function selectStarter(text) {
+    logSelection(text);
+    const cur  = textBuffer;
+    const next = cur + (cur && !cur.endsWith(' ') ? ' ' : '') + text + ' ';
+    setTextBuffer(next);
+    setStatus('Loading completions…');
+
+    // Suppress row TTS while loading so the starters row doesn't re-read mid-fetch
+    rowReadCooldown = true;
+    completionTiles.forEach(btn => {
+      btn.textContent = '…';
+      btn.dataset.tts = '';
+      btn.style.opacity = '0.5';
+    });
+
+    fetchCompletions(text).then(() => {
+      rowReadCooldown = false;
+      if (allRows.length > 4) {
+        currentRowIndex  = 4;
+        currentItemIndex = 0;
+        scanMode = 'row';
+        highlightRow(); // reads the now-populated completion tiles
+      }
+    }).catch(() => { rowReadCooldown = false; });
+  }
+
+  // ─────────────────────────────────────────────
+  // TEXT BUFFER
+  // ─────────────────────────────────────────────
+  function setTextBuffer(text) {
+    textBuffer = text;
+    const bar = document.getElementById('textBar');
+    if (text) {
+      // Replace trailing regular spaces with &nbsp; so they render visibly before the cursor
+      const displayHtml = escHtml(text).replace(/ +$/, m => '&nbsp;'.repeat(m.length));
+      bar.innerHTML = `<span>${displayHtml}</span><span class="cursor"></span>`;
+      bar.classList.remove('text-medium','text-small','text-tiny');
+      const len = text.length;
+      if      (len > 100) bar.classList.add('text-tiny');
+      else if (len > 60)  bar.classList.add('text-small');
+      else if (len > 30)  bar.classList.add('text-medium');
+    } else {
+      bar.innerHTML = `<span class="placeholder">Use the board to build a message…</span>`;
+      bar.classList.remove('text-medium','text-small','text-tiny');
+    }
+  }
+  function escHtml(t) {
+    return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Adding to buffer — phrases jump to text bar, starters/completions stay in grid
+  function addToBuffer(text, type) {
+    if (!text) return;
+    logSelection(text); // track every intentional selection for personality drift
+    if (type === 'phrase') {
+      setTextBuffer(withTrailingSpace(text));
+      // Jump scan to text bar row so Ben can immediately speak it
+      currentRowIndex  = 0;
+      currentItemIndex = 0;
+      scanMode = 'row';
+      highlightRow(); // Also triggers scanSpeak(text) via getRowLabel
+      setStatus(`"${text.length > 45 ? text.slice(0,45) + '…' : text}" — Enter to speak`);
+    } else if (type === 'starter') {
+      const cur = textBuffer;
+      const next = cur + (cur && !cur.endsWith(' ') ? ' ' : '') + text + ' ';
+      setTextBuffer(next);
+      setStatus(`Added: "${text}"`);
+      scanSpeak(next.trim() || text);
+    } else if (type === 'completion') {
+      // Purple completion tile: append word and re-fetch what comes next
+      const cur  = textBuffer;
+      const next = cur + (cur && !cur.endsWith(' ') ? ' ' : '') + withTrailingSpace(text);
+      setTextBuffer(next);
+      setStatus('Loading next options…');
+      rowReadCooldown = true;
+      completionTiles.forEach(btn => {
+        btn.textContent = '…';
+        btn.dataset.tts = '';
+        btn.style.opacity = '0.5';
+      });
+      fetchCompletions(next.trim()).then(() => {
+        rowReadCooldown = false;
+        if (allRows.length > 4) {
+          currentRowIndex  = 4;
+          currentItemIndex = 0;
+          scanMode = 'row';
+          highlightRow();
+        }
+      }).catch(() => { rowReadCooldown = false; });
+    } else {
+      // 'short' and other types: just append and speak
+      const cur = textBuffer;
+      const next = cur + (cur && !cur.endsWith(' ') ? ' ' : '') + withTrailingSpace(text);
+      setTextBuffer(next);
+      setStatus(`Added: "${text}"`);
+      scanSpeak(next.trim() || text);
+    }
+  }
+
+  function withTrailingSpace(text) {
+    if (!text) return text;
+    if (text.endsWith(' ')) return text;
+    return /[.!?,;:\-)"']$/.test(text) ? text : text + ' ';
+  }
+
+  function deleteLastWord() {
+    if (!textBuffer) return;
+    const trimmed = textBuffer.trimEnd();
+    const lastSp  = trimmed.lastIndexOf(' ');
+    setTextBuffer(lastSp === -1 ? '' : trimmed.slice(0, lastSp + 1));
+    setStatus('Word deleted');
+    if (textBuffer) scanSpeak(textBuffer);
+  }
+
+  function clearBuffer() {
+    setTextBuffer('');
+    setStatus('Cleared');
+    scanSpeak('Text cleared');
+  }
+
+  // ─────────────────────────────────────────────
+  // SPEAK TEXT BAR (Ben's actual speech)
+  // ─────────────────────────────────────────────
+  function speakTextBar() {
+    const text = textBuffer.trim();
+    if (!text) { setStatus('Nothing to say yet'); scanSpeak('Text bar empty'); return; }
+    if (window.NarbeVoiceManager?.cancel) window.NarbeVoiceManager.cancel();
+    setTimeout(() => {
+      if (window.NarbeVoiceManager?.speakProcessed) {
+        window.NarbeVoiceManager.speakProcessed(text);
+      } else {
+        speechSynthesis.cancel();
+        speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+      }
+    }, 50);
+    appendToTranscript('[Ben said: ' + text + ']');
+    setStatus('Speaking… (hold Enter 6s to clear + refresh)');
+  }
+
+  // ─────────────────────────────────────────────
+  // MODE SWITCHING
+  // ─────────────────────────────────────────────
+  function switchToPhrasesMode() {
+    boardMode = 'phrases'; phraseCatIdx = 0;
+    buildControlBar(); buildGrid();
+    currentRowIndex = 1; currentItemIndex = 0; scanMode = 'row';
+    highlightRow();
+    setStatus(`Phrases: ${Object.keys(topicBoard)[0] || 'Topics'}`);
+  }
+  function switchToConvoMode() {
+    typingBuffer = ''; typingTarget = 'buffer'; // clean up any typing state
+    clearTimeout(typingFetchTimer);
+    boardMode = 'convo';
+    buildControlBar(); buildGrid();
+    currentRowIndex = 1; currentItemIndex = 0; scanMode = 'row';
+    highlightRow();
+    setStatus('Conversation mode');
+  }
+  function nextCategory() {
+    const cats = Object.keys(topicBoard);
+    phraseCatIdx = (phraseCatIdx + 1) % cats.length;
+    buildGrid();
+    currentRowIndex = 2; currentItemIndex = 0; scanMode = 'row';
+    highlightRow();
+    setStatus(`Topic: ${cats[phraseCatIdx]}`);
+  }
+  function prevCategory() {
+    const cats = Object.keys(topicBoard);
+    phraseCatIdx = (phraseCatIdx - 1 + cats.length) % cats.length;
+    buildGrid();
+    currentRowIndex = 2; currentItemIndex = 0; scanMode = 'row';
+    highlightRow();
+    setStatus(`Topic: ${cats[phraseCatIdx]}`);
+  }
+  function exitApp() {
+    saveContextToServer();
+    exitListenMode();
+    teardownGoogleSTTMic();
+    if (window.electronAPI?.speech) window.electronAPI.speech.stop();
+    if (window.parent !== window) {
+      // Running in hub iframe
+      window.parent.postMessage({ action: 'focusBackButton' }, '*');
+    } else if (window.electronAPI?.closeToolWindow) {
+      // Running as a standalone tool BrowserWindow
+      window.electronAPI.closeToolWindow();
+    } else {
+      window.close();
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // MIC & TRANSCRIPTION
+  // Mic is ONLY open when the dedicated Listen Mode row is the highlighted row
+  // AND the computer is not speaking. This prevents TTS bleed into transcription.
+  // ─────────────────────────────────────────────
+  let micActive        = false;
+  let micReady         = false;
+  let micFocusTimer    = null;
+  let listenRowIndex   = -1;   // set by buildRows()
+  let listenSilenceTimer = null; // 3s no-audio → auto-fetch suggestions
+
+  let rowReadCooldown = false; // suppresses startRowRead while completions are loading
+
+  // ── Google Cloud STT mic state ────────────────────────────────────────────────
+  let gstAudioCtx      = null;
+  let gstStream        = null;
+  let gstProcessor     = null;
+  let gstSpeechBuf     = [];
+  let gstSpeaking      = false;
+  let gstSilenceTimer  = null;
+  let gstSpeechStart   = 0;
+  let gstPending       = false;
+  const GST_SILENCE_MS    = 900;
+  const GST_RMS_THRESHOLD = 0.008;
+  const GST_MIN_SPEECH_MS = 400;
+  const GST_MAX_SPEECH_MS = 25000;  // hard cap — flush before 30s API limit
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  function setupMicHandlers() {
+    if (!settings.listeningEnabled) { updateMicUI(false); return; }
+    if (micReady) return;
+
+    if (window.electronAPI) {
+      setupGoogleSTTMic();
+      return;
+    }
+
+    // Web Speech API fallback
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      updateMicUI(false); return;
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SR();
+    recognition.continuous = true; recognition.interimResults = false; recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (e) => {
+      if (!micActive) return;
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) appendToTranscript(e.results[i][0].transcript.trim());
+      }
+    };
+    recognition.onerror = (e) => {
+      if (e.error === 'no-speech' || e.error === 'aborted') return;
+      if (e.error === 'network') { updateMicUI(false); return; }
+      setStatus('Mic error: ' + e.error);
+    };
+    recognition.onend = () => {
+      // Auto-restart only if we deliberately left micActive true (not aborted by closeMic)
+      if (micActive) setTimeout(() => { try { recognition.start(); } catch {} }, 300);
+    };
+    micReady = true;
+  }
+
+  function teardownGoogleSTTMic() {
+    clearTimeout(gstSilenceTimer);
+    if (gstProcessor) { try { gstProcessor.disconnect(); } catch {} gstProcessor = null; }
+    if (gstAudioCtx)  { try { gstAudioCtx.close(); }       catch {} gstAudioCtx  = null; }
+    if (gstStream)    { gstStream.getTracks().forEach(t => t.stop()); gstStream = null; }
+    gstSpeaking = false; gstSpeechBuf = [];
+  }
+
+  function startSAPIFallback() {
+    // Fall back to Windows SAPI when Whisper is unavailable.
+    if (!window.electronAPI?.speech) return;
+    setStatus('Using Windows speech recognition');
+    micReady = true;
+    window.electronAPI.speech.onResult(text => {
+      if (!micActive) return;
+      appendToTranscript(text);
+    });
+    window.electronAPI.speech.onError(() => { micActive = false; updateMicUI(false); });
+    window.electronAPI.speech.start().catch(() => { micReady = false; updateMicUI(false); });
+    window.addEventListener('beforeunload', () => window.electronAPI.speech.stop(), { once: true });
+    updateMicUI(false);
+  }
+
+  function setupGoogleSTTMic() {
+    navigator.mediaDevices.getUserMedia({ audio: {
+      channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true
+    }}).then(stream => {
+      gstStream    = stream;
+      gstAudioCtx  = new (window.AudioContext || window.webkitAudioContext)();
+      const src    = gstAudioCtx.createMediaStreamSource(stream);
+      gstProcessor = gstAudioCtx.createScriptProcessor(4096, 1, 1);
+      const sr     = gstAudioCtx.sampleRate;
+
+      gstProcessor.onaudioprocess = (ev) => {
+        if (!micActive) return;
+        const chunk = ev.inputBuffer.getChannelData(0);
+        let rms = 0;
+        for (let i = 0; i < chunk.length; i++) rms += chunk[i] * chunk[i];
+        rms = Math.sqrt(rms / chunk.length);
+
+        if (rms > GST_RMS_THRESHOLD) {
+          // Speech detected — cancel the silence timer; it restarts after STT responds
+          clearTimeout(listenSilenceTimer);
+          listenSilenceTimer = null;
+
+          if (!gstSpeaking) { gstSpeaking = true; gstSpeechStart = Date.now(); }
+          clearTimeout(gstSilenceTimer);
+          gstSpeechBuf.push(chunk.slice());
+
+          // Hard cap: flush at 25s regardless of silence, to stay within the 60s API limit
+          if (Date.now() - gstSpeechStart >= GST_MAX_SPEECH_MS) {
+            flushGoogleSTT(sr);
+            return;
+          }
+
+          gstSilenceTimer = setTimeout(() => flushGoogleSTT(sr), GST_SILENCE_MS);
+        } else if (gstSpeaking) {
+          gstSpeechBuf.push(chunk.slice());
+        }
+      };
+
+      src.connect(gstProcessor);
+      gstProcessor.connect(gstAudioCtx.destination);
+      micReady = true;
+      setStatus('Google Speech ready');
+      updateMicUI(false);
+    }).catch(err => {
+      setStatus('Mic access denied: ' + err.message);
+      updateMicUI(false);
+    });
+
+    window.addEventListener('beforeunload', teardownGoogleSTTMic, { once: true });
+  }
+
+  function flushGoogleSTT(sr) {
+    const duration = Date.now() - gstSpeechStart;
+    const buf = gstSpeechBuf.slice();
+    gstSpeechBuf = []; gstSpeaking = false;
+    if (!buf.length || duration < GST_MIN_SPEECH_MS || gstPending) return;
+    const totalLen = buf.reduce((a, b) => a + b.length, 0);
+    const int16 = new Int16Array(totalLen);
+    let off = 0;
+    for (const c of buf) {
+      for (let i = 0; i < c.length; i++) {
+        const s = Math.max(-1, Math.min(1, c[i]));
+        int16[off++] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      }
+    }
+    const bytes = new Uint8Array(int16.buffer);
+    let b64 = '';
+    for (let i = 0; i < bytes.length; i++) b64 += String.fromCharCode(bytes[i]);
+    sendToGoogleSTT(btoa(b64), sr);
+  }
+
+  async function sendToGoogleSTT(b64Audio, sampleRate) {
+    if (!window.location.origin.startsWith('http://127.0.0.1')) return;
+    gstPending = true;
+    try {
+      const r = await fetch(window.location.origin + '/api/rt-convo/stt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audio: b64Audio, sampleRate })
+      });
+      const data = await r.json();
+      if (data.text && data.text.trim() && micActive) appendToTranscript(data.text.trim());
+    } catch (err) {
+      console.warn('[Google STT] fetch error:', err.message);
+    }
+    gstPending = false;
+    // Start the 3s silence timer NOW — after the transcript has been updated
+    if (micActive) {
+      clearTimeout(listenSilenceTimer);
+      listenSilenceTimer = setTimeout(autoFetchOnSilence, 3000);
+    }
+  }
+
+  function openMic() {
+    if (micActive || !settings.listeningEnabled) return;
+    if (!micReady) { setStatus('Speech recognition loading, please wait…'); return; }
+    micActive = true;
+    if (!window.electronAPI && recognition) { try { recognition.start(); } catch {} }
+    updateMicUI(true);
+    // 5s silence → auto-fetch; reset whenever speech is detected
+    clearTimeout(listenSilenceTimer);
+    listenSilenceTimer = setTimeout(autoFetchOnSilence, 3000);
+  }
+
+  function closeMic() {
+    clearTimeout(micFocusTimer);
+    micFocusTimer = null;
+    if (!micActive) return;
+    micActive = false;
+    clearTimeout(gstSilenceTimer);
+    gstSpeechBuf = []; gstSpeaking = false;
+    clearTimeout(listenSilenceTimer);
+    listenSilenceTimer = null;
+    if (!window.electronAPI && recognition) { try { recognition.abort(); } catch {} }
+    updateMicUI(false);
+  }
+
+  function toggleListenMode() {
+    if (!settings.listeningEnabled) return;
+    if (micActive) { autoFetchOnSilence(); }
+    else if (micReady) {
+      // Always clear text when entering listen mode so we start fresh
+      setTextBuffer('');
+      typingBuffer = '';
+      clearTimeout(typingFetchTimer);
+      typingShownPredictions = [];
+      openMic(); scanSpeak('Listening');
+    }
+    else { setStatus('Mic not ready yet…'); }
+  }
+
+  // Called when the Listen Mode row becomes the scan-highlighted row.
+  // Does NOT open the mic — mic only opens via explicit toggleListenMode() call.
+  function enterListenMode() {
+    clearTimeout(micFocusTimer);
+    micFocusTimer = null;
+  }
+
+  // Called when scan moves away from the Listen Mode row — closes mic.
+  function exitListenMode() {
+    clearTimeout(micFocusTimer);
+    micFocusTimer = null;
+    closeMic(); // scanning away stops the mic
+  }
+
+  function autoFetchOnSilence() {
+    if (!micActive) return;
+    closeMic();
+    if (isLoading) return;
+
+    // Keyboard mode: update topic from what was heard, then fetch fresh predictions
+    if (boardMode === 'typing') {
+      if (typingPredWordsRowIdx === -1) return;
+
+      // Detect new speech in the transcript since the last fetch
+      const allWords = transcriptWindow.trim().split(/\s+/).filter(Boolean);
+      const newSince = Math.min(lastFetchedTranscriptWordCount, allWords.length);
+      const newWords = allWords.slice(newSince);
+      lastFetchedTranscriptWordCount = allWords.length;
+
+      if (newWords.length > 0) {
+        // New speech heard — anchor predictions to it and reset dedup
+        topicAnchorContext     = newWords.join(' ');
+        topicRefreshCount      = 0;
+        typingShownPredictions = [];
+      }
+
+      // Jump to words prediction row
+      currentRowIndex  = typingPredWordsRowIdx;
+      currentItemIndex = 0;
+      scanMode = 'row';
+      clearHighlights();
+      allRows[typingPredWordsRowIdx]?.forEach(el => el.classList.add('row-highlight'));
+
+      // Silence stale predictions and fetch new ones based on what was heard
+      rowReadCooldown = true;
+      if (window.NarbeVoiceManager?.cancel) window.NarbeVoiceManager.cancel();
+      else speechSynthesis.cancel();
+      clearTimeout(typingFetchTimer);
+      [...typingPredTiles.words, ...typingPredTiles.phrases].forEach(b => {
+        b.textContent = ''; b.dataset.tts = '';
+      });
+      fetchTypingPredictions();
+      return;
+    }
+
+    if (boardMode !== 'convo') return;
+    setTextBuffer('');
+    setStatus('Getting suggestions from conversation…');
+    scanSpeak('Getting suggestions');
+    rowReadCooldown = true;
+    callAPI().then(() => {
+      rowReadCooldown = false;
+      startRowRead(currentRowIndex, allRows[currentRowIndex]);
+    }).catch(() => { rowReadCooldown = false; });
+  }
+
+  function appendToTranscript(text) {
+    transcriptWindow = (transcriptWindow + ' ' + text).trim();
+    const words = transcriptWindow.split(/\s+/);
+    if (words.length > 500) {
+      const older = words.slice(0, words.length - 300).join(' ');
+      transcriptWindow  = words.slice(words.length - 300).join(' ');
+      transcriptSummary = compressTranscript(transcriptSummary + ' ' + older);
+    }
+    // Show word count on mic indicator so it's clear audio is being captured
+    const micLabel = document.getElementById('micLabel');
+    if (micLabel) micLabel.textContent = `Listening (${words.length}w)`;
+
+    const snippet = text.length > 50 ? text.slice(0, 50) + '…' : text;
+    if (/(\bdo you\b|\bwould you\b|\bcan you\b|\bwhat\b|\bhow\b|\bdid you\b)/i.test(text) || text.includes('?'))
+      setStatus(`💬 "${snippet}"`);
+    else
+      setStatus(`🎤 "${snippet}"`);
+  }
+
+  function compressTranscript(text) {
+    const stop = new Set(['the','a','an','is','are','was','were','and','or','but','in','on','at','to','for','of','with','it','this','that','i','you','he','she','they','we','so','just','like','very','really','um','uh','yeah']);
+    return [...new Set(text.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !stop.has(w)))].slice(0, 100).join(' ');
+  }
+
+  function updateMicUI(active) {
+    document.getElementById('micDot').className     = 'mic-dot' + (active ? '' : ' off');
+    document.getElementById('micLabel').textContent = active ? 'Listening' : 'Mic Off';
+    document.body.classList.toggle('mic-active', active);
+  }
+
+  // ─────────────────────────────────────────────
+  // API
+  // ─────────────────────────────────────────────
+  // Extract proper nouns (uppercase-starting words, ≥4 chars) from a list of shown phrases.
+  // Used to catch "Peter" as a repeat of "Peter Griffin" without false-positives on shared
+  // surnames like "Griffin" blocking all Griffin family members.
+  function buildProperNounSet(shownItems) {
+    const set = new Set();
+    shownItems.forEach(phrase => {
+      phrase.split(/\s+/).forEach(word => {
+        const clean = word.replace(/[^a-zA-Z]/g, '');
+        if (clean.length >= 4 && clean[0] === clean[0].toUpperCase() && /[A-Z]/.test(clean[0])) {
+          set.add(clean.toLowerCase());
+        }
+      });
+    });
+    return set;
+  }
+  // Returns true only when the suggestion is a single word that is already a known proper noun
+  // from previous suggestions — catches "Peter" after "Peter Griffin" was shown.
+  function isSingleWordRepeat(suggestion, properNounSet) {
+    if (!properNounSet.size) return false;
+    const words = suggestion.trim().split(/\s+/);
+    if (words.length !== 1) return false; // only catch bare single-word repeats
+    return properNounSet.has(words[0].toLowerCase().replace(/[^a-z]/g, ''));
+  }
+
+  function profanityInstruction() {
+    return settings.allowProfanity
+      ? '\nThis user is comfortable with casual profanity in suggestions. Include light, natural profanity (f-bomb, shit, shut up, etc.) when contextually appropriate — never gratuitous, always conversational. Default to clean language but don\'t sanitize if it fits the user\'s voice.'
+      : '';
+  }
+
+  function detectProvider(key) {
+    if (!key) return null;
+    if (key.startsWith('sk-ant-')) return 'anthropic';
+    if (key.startsWith('sk-'))     return 'openai';
+    if (key.startsWith('AIza'))    return 'google';
+    return 'anthropic';
+  }
+  function getModel(p) {
+    return { anthropic:'claude-haiku-4-5-20251001', openai:'gpt-4o-mini', google:'gemini-2.0-flash' }[p] || 'claude-haiku-4-5-20251001';
+  }
+  function getPhraseCount() {
+    const { rows, cols } = settings.boardSize;
+    const cc = cols - 1; // 1 slot per row taken by refresh button
+    if (rows >= 6) {
+      return { shorts: cc, starters: cc, completions: cc * 3 };
+    }
+    const contentRows = rows - 1;
+    return { shorts: 0, starters: cc, completions: cc * Math.min(contentRows - 1, 3) };
+  }
+
+  async function fetchSuggestions() { setTextBuffer(''); await callAPI(); }
+
+  function repeatLastContext() {
+    if (!lastSentContext || !lastSentContext.trim()) {
+      scanSpeak('Nothing to repeat yet. No conversation has been heard.');
+      return;
+    }
+    scanSpeak(lastSentContext);
+  }
+
+  // ── Shared low-level AI caller — routes through hub local server to bypass CSP ──
+  async function callAI(systemPrompt, userContent, maxTokens) {
+    const apiKey = LS.get('conv_apiKey', '');
+    if (!apiKey) throw new Error('No API key — add one in Settings');
+    const provider = detectProvider(apiKey);
+    const model    = getModel(provider);
+
+    let targetUrl, targetHeaders, targetBody;
+    if (provider === 'anthropic') {
+      targetUrl     = 'https://api.anthropic.com/v1/messages';
+      targetHeaders = { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' };
+      targetBody    = JSON.stringify({ model, max_tokens: maxTokens, system: systemPrompt, messages: [{ role: 'user', content: userContent }] });
+    } else if (provider === 'openai') {
+      targetUrl     = 'https://api.openai.com/v1/chat/completions';
+      targetHeaders = { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey };
+      targetBody    = JSON.stringify({ model, max_tokens: maxTokens, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userContent }] });
+    } else {
+      targetUrl     = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      targetHeaders = { 'Content-Type': 'application/json' };
+      targetBody    = JSON.stringify({ contents: [{ parts: [{ text: systemPrompt + '\n\n' + userContent }] }], generationConfig: { maxOutputTokens: maxTokens } });
+    }
+
+    let data;
+    if (window.electronAPI?.aiCall) {
+      // IPC path — direct Node.js HTTPS from main process, no HTTP proxy needed
+      const result = await window.electronAPI.aiCall({ url: targetUrl, headers: targetHeaders, body: targetBody });
+      if (!result.ok) throw new Error(result.error || 'API request failed');
+      data = result.data;
+    } else {
+      // Fallback: HTTP proxy (non-Electron / iframe context)
+      const proxy = window.location.origin + '/api/ai-call';
+      const r = await fetch(proxy, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: targetUrl, headers: targetHeaders, body: targetBody })
+      });
+      if (!r.ok) { const e = await r.json().catch(() => ({})); const msg = typeof e?.error === 'string' ? e.error : (e?.error?.message || e?.message || r.statusText); throw new Error(msg); }
+      data = await r.json();
+    }
+
+    let raw = '';
+    if (provider === 'anthropic') raw = data?.content?.[0]?.text || '{}';
+    else if (provider === 'openai') raw = data?.choices?.[0]?.message?.content || '{}';
+    else raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+
+    const m = raw.match(/\{[\s\S]*\}/);
+    return m ? JSON.parse(m[0]) : {};
+  }
+
+  // ── Main board refresh ───────────────────────────────────────────
+  async function callAPI() {
+    const apiKey = LS.get('conv_apiKey', '');
+    if (!apiKey) { setStatus('No API key — add one in Settings.'); openSettings(); return; }
+    isLoading = true;
+    setStatus('Getting suggestions…');
+    scanSpeak('Getting suggestions');
+
+    const { shorts: sc, starters: stc, completions: cc } = getPhraseCount();
+    const perRow = stc; // cc = cols-1, items per row
+
+    const allWords   = transcriptWindow.trim().split(/\s+/).filter(Boolean);
+    const newSince   = Math.min(lastFetchedTranscriptWordCount, allWords.length);
+    const newWords   = allWords.slice(newSince);
+    const olderWords = allWords.slice(0, newSince);
+    const olderPart  = olderWords.slice(-80).join(' ');
+    lastFetchedTranscriptWordCount = allWords.length;
+
+    // Track whether this is a fresh topic or a refresh of the same context
+    const hasNewSpeech = newWords.length > 0;
+    if (hasNewSpeech) {
+      topicRefreshCount     = 0;
+      topicAnchorContext    = newWords.join(' ');
+      topicShownSuggestions = [];
+      rowTypeRefreshCounts      = {};
+      rowTypeShownItems         = {};
+      typingShownPredictions    = [];
+    } else {
+      topicRefreshCount++;
+    }
+    const recentPart = hasNewSpeech ? topicAnchorContext : (topicAnchorContext || allWords.slice(-20).join(' '));
+    lastSentContext = recentPart || '';
+
+    // After 3 same-context refreshes (i.e., 4th call), allow topic steering
+    const MAX_ON_TOPIC = 3;
+    const lockTopic    = topicRefreshCount <= MAX_ON_TOPIC && topicAnchorContext;
+    const avoidList    = topicShownSuggestions.slice(0, 16);
+
+    const sys =
+`You are a communication assistant for a nonspeaking AAC user.
+${getProfileBlurb()}${bioText ? `\n\nPERSONAL BACKGROUND (treat these facts as ground truth when answering personal questions):\n${bioText}` : ''}
+Return ONLY valid JSON — no markdown, no explanation:
+{"shorts":[],"starters":[],"completions":[]}
+Rules:
+- shorts: exactly ${sc} complete sentences (2–6 words) predicting what the user would naturally say NEXT in this conversation — each must be a distinct, logical follow-up, not variations of the same idea; think sequential conversation flow, not alternatives
+- starters: exactly ${stc} sentence-opening fragments, 1–3 words (e.g. "I think", "What about", "I don't", "Can you", "I feel")
+- completions: exactly ${cc} items in three tiers: first ${perRow} are 1-2 words, next ${perRow} are 2-3 words, last ${perRow} are 3-4 words — all should naturally follow any of the starters, varied in tone
+- The MOST RECENT statement/question is the ONLY thing you are responding to — ignore all earlier context if the topic changed
+- For list or "favorite" questions, generate DIVERSE specific answers (different characters, movies, songs, etc.) — never cluster around one answer
+- If "User is building:" text is present, shorts and completions should naturally complete or extend that exact text
+${lockTopic
+  ? `- TOPIC LOCK: Stay strictly on the topic of "${topicAnchorContext}". Do NOT introduce new subjects, activities, or conversation threads — only generate responses that directly address this exact topic. Find new angles, specific examples, or follow-up statements within this topic.`
+  : `- The current topic has been covered across several suggestion rounds. You may now gently steer toward a related or new topic.`}
+${avoidList.length ? `- AVOID these exact phrases already shown — generate fresh ones on the SAME topic: ${JSON.stringify(avoidList)}` : ''}
+- When a personal question is asked (favorites, opinions, preferences, experiences), look in PERSONAL BACKGROUND above for specific facts and use them directly in your suggestions${profanityInstruction()}`;
+    const ctx = [
+      transcriptSummary ? 'Background: ' + transcriptSummary                                          : '',
+      olderPart         ? 'Earlier this session: ' + olderPart                                        : '',
+      recentPart        ? 'MOST RECENT — respond to THIS: ' + recentPart                              : 'No conversation yet — generate friendly openers.',
+      textBuffer        ? 'User is building: ' + textBuffer                                           : ''
+    ].filter(Boolean).join('\n');
+
+    try {
+      const parsed = await callAI(sys, ctx, 1000);
+      lastCallAPISuggestions = currentSuggestions; // save before overwriting so next call can avoid repeats
+      topicShownSuggestions.push(...(parsed.shorts || [])); // accumulate all shown shorts for this topic
+      currentSuggestions = parsed;
+      boardMode = 'convo';
+      buildControlBar(); buildGrid();
+      currentRowIndex = 2; currentItemIndex = 0; scanMode = 'row';
+      setStatus('Suggestions updated ✓');
+      highlightRow(); // highlightRow reads the row — don't call scanSpeak after or it cancels the read
+    } catch (err) {
+      const errMsg = err.message || 'unknown error';
+      setStatus('API error: ' + errMsg);
+      const shortMsg = errMsg.length > 60 ? errMsg.slice(0, 57) + '…' : errMsg;
+      scanSpeak('Error getting suggestions. ' + shortMsg);
+    } finally { isLoading = false; }
+  }
+
+  // ── Single-row completion refresh — only updates the clicked row ────
+  // Detects which tier the row is (1-2 / 2-3 / 3-4 words) and requests
+  // enough items to fill all cells even after filtering.
+  async function fetchSingleCompletionRow(rowIdx, topicHint, prevShown) {
+    const apiKey = LS.get('conv_apiKey', '');
+    if (!apiKey) return [];
+    const cc = settings.boardSize.cols - 1;
+
+    // Determine which tier (0/1/2) this row is among the completion rows
+    const compRowIndices = [];
+    allRows.forEach((row, idx) => {
+      if (row.slice(1).some(btn => completionTiles.includes(btn))) compRowIndices.push(idx);
+    });
+    const tierIndex = Math.max(0, compRowIndices.indexOf(rowIdx));
+    const tierLabels = [
+      `${cc} very short endings, 1-2 words each (punchy, immediate)`,
+      `${cc} moderate endings, 2-3 words each`,
+      `${cc} fuller endings, 3-4 words each`
+    ];
+    const tierDesc = tierLabels[tierIndex] || tierLabels[0];
+
+    // Request extra items as overflow buffer so filtered cells don't go blank
+    const requestCount = cc + Math.min(Math.ceil(prevShown.length / 2) + 2, 8);
+    const starter = textBuffer.trim() || topicAnchorContext || 'continuing a conversation';
+
+    const avoidNorm    = new Set(prevShown.map(s => s.toLowerCase()));
+    const properNouns  = buildProperNounSet(prevShown);
+
+    const sys =
+`Communication assistant for a nonspeaking AAC user.
+Return ONLY valid JSON: {"completions":[]}
+Generate ${requestCount} sentence endings that follow: "${starter}"
+Tier: ${tierDesc}
+Every completion MUST form a natural sentence when appended to "${starter} ".
+Vary tone: confident, uncertain, emotional, humorous.
+${topicHint ? `TOPIC LOCK: Stay on the topic of "${topicHint}" — dig deep, go beyond the obvious first answers.` : ''}
+${prevShown.length ? `ALREADY SHOWN — do not repeat these or first-name-only versions: ${JSON.stringify(prevShown)}` : ''}
+${profanityInstruction()}`;
+
+    try {
+      const parsed = await callAI(sys, `What ${tierDesc} comes after "${starter} "?`, 300);
+      const items  = parsed.completions || [];
+
+      // Filter: exact dedup + single-word proper noun check. Take first cc that pass.
+      const accepted = [];
+      const seenExact = new Set(avoidNorm);
+      for (const c of items) {
+        if (accepted.length >= cc) break;
+        if (!c || !c.trim()) continue;
+        if (seenExact.has(c.toLowerCase())) continue;
+        if (isSingleWordRepeat(c, properNouns)) continue;
+        seenExact.add(c.toLowerCase());
+        accepted.push(c);
+      }
+
+      // Update ONLY this row's tiles
+      const targetBtns = allRows[rowIdx]?.slice(1) || [];
+      targetBtns.forEach((btn, i) => {
+        const t = accepted[i] || '';
+        btn.textContent = t;
+        btn.dataset.tts = t;
+        btn.style.opacity = t ? '' : '0.18';
+      });
+
+      return accepted;
+    } catch {
+      return [];
+    }
+  }
+
+  // ── Completion fetch when a starter is selected ──────────────────
+  async function fetchCompletions(starter, topicHint = '', avoidList = []) {
+    const apiKey = LS.get('conv_apiKey', '');
+    if (!apiKey || !completionTiles.length) return [];
+    const cc = settings.boardSize.cols - 1;
+    const count = cc * 3;
+    const avoidNorm      = new Set(avoidList.map(s => s.toLowerCase()));
+    const properNounSet  = buildProperNounSet(avoidList);
+    const sys =
+`You generate sentence completions for a nonspeaking AAC user building a message.
+${getProfileBlurb()}
+Sentence starter: "${starter}"
+Recent conversation: ${transcriptWindow ? transcriptWindow.split(' ').slice(-60).join(' ') : 'general conversation'}
+Return ONLY valid JSON: {"completions":[]}
+Rules:
+- Provide exactly ${count} completions in three tiers: first ${cc} are 1-2 words, next ${cc} are 2-3 words, last ${cc} are 3-4 words
+- Every completion MUST form a natural-sounding sentence when appended to "${starter} "
+- Tier 1 (1-2 words): very short, punchy endings. Tier 2 (2-3 words): moderate detail. Tier 3 (3-4 words): fuller, more expressive endings
+- Vary tone: confident, uncertain, emotional, humorous
+- Example: starter "I want" → tier1: "that", "to go" / tier2: "more time", "to know" / tier3: "to talk about it", "a break from this"
+- Do NOT return single words that don't complete the sentence${topicHint ? `\n- TOPIC LOCK: The conversation topic is "${topicHint}" — completions must relate to this topic. Dig deeper than the obvious answers.` : ''}${avoidList.length ? `\n- ALREADY SHOWN — do not repeat these or any abbreviated/first-name-only version (e.g. if "Peter Griffin" was shown, "Peter" alone is also banned): ${JSON.stringify(avoidList)}` : ''}${profanityInstruction()}`;
+    try {
+      const parsed = await callAI(sys, `What comes after "${starter} "?`, 400);
+      const completions = parsed.completions || [];
+      // Client-side safety net: exact dedup + catch bare single-word proper noun repeats
+      const seenExact = new Set(avoidNorm);
+      const filtered = completions.map(c => {
+        if (!c || !c.trim()) return '';
+        const key = c.toLowerCase();
+        if (seenExact.has(key)) return '';
+        if (isSingleWordRepeat(c, properNounSet)) return '';
+        seenExact.add(key);
+        return c;
+      });
+      updateCompletionTiles(filtered);
+      return filtered;
+    } catch {
+      setStatus('Completions update failed');
+      return [];
+    }
+  }
+
+  // ── Update completion rows D + E + F tiles in-place ─────────────
+  function updateCompletionTiles(comps) {
+    const cc = settings.boardSize.cols - 1;
+    completionTiles.forEach((btn, i) => {
+      const text        = comps[i] || '';
+      btn.textContent   = text;
+      btn.dataset.tts   = text;
+      btn.style.opacity = text ? '' : '0.18';
+    });
+    if (rowLabels.length > 3 && comps[0])       rowLabels[3] = `Completions: ${comps[0]}`;
+    if (rowLabels.length > 4 && comps[cc])      rowLabels[4] = `More completions: ${comps[cc]}`;
+    if (rowLabels.length > 5 && comps[cc * 2])  rowLabels[5] = `Longer completions: ${comps[cc * 2]}`;
+  }
+
+  // ── Per-row refresh — called by each row's ↺ button ─────────────
+  async function refreshRowByType(type, rowIdx) {
+    const apiKey = LS.get('conv_apiKey', '');
+    if (!apiKey) {
+      setStatus('Add API key in Settings to refresh');
+      scanSpeak('Add A P I key in Settings');
+      return;
+    }
+
+    // Block any row read that might fire while we're loading
+    rowReadCooldown = true;
+
+    // Blank the tiles immediately so old content isn't read during load
+    const contentBtns = allRows[rowIdx]?.slice(1) || [];
+    contentBtns.forEach(btn => { btn.textContent = '…'; btn.dataset.tts = ''; btn.style.opacity = '0.35'; });
+
+    const { cols } = settings.boardSize;
+    const cc  = cols - 1; // content items per row
+    const ctx = (transcriptSummary ? 'Earlier: ' + transcriptSummary.split(' ').slice(-40).join(' ') + '\n' : '') +
+                'Recent: ' + (transcriptWindow ? transcriptWindow.split(' ').slice(-80).join(' ') : 'general conversation') +
+                (textBuffer ? '\nBuilding: ' + textBuffer : '');
+
+    setStatus('Refreshing…');
+    scanSpeak('Refreshing');
+
+    // Helper: cancel speech then read the row after a gap so "Refreshing" doesn't overlap
+    const readRowAfterGap = () => {
+      if (window.NarbeVoiceManager?.cancel) window.NarbeVoiceManager.cancel();
+      else speechSynthesis.cancel();
+      rowReadCooldown = false;
+      if (currentRowIndex === rowIdx && allRows[rowIdx]) {
+        setTimeout(() => startRowRead(rowIdx, allRows[rowIdx]), 350);
+      }
+    };
+
+    // Per-type refresh tracking (independent per row type, reset when new speech arrives)
+    const MAX_ROW_ON_TOPIC = 4;
+    rowTypeRefreshCounts[type] = (rowTypeRefreshCounts[type] || 0) + 1;
+    const rowRefreshNum = rowTypeRefreshCounts[type];
+    const prevShown     = rowTypeShownItems[type] || [];
+    // Topic lock: stay on current topic for first N refreshes regardless of whether text bar has content
+    const rowLockTopic  = topicAnchorContext && rowRefreshNum <= MAX_ROW_ON_TOPIC;
+
+    const topicInstruction = rowLockTopic
+      ? `TOPIC LOCK (refresh ${rowRefreshNum}/${MAX_ROW_ON_TOPIC}): The conversation topic is: "${topicAnchorContext}". Stay strictly on this topic.${textBuffer ? ` The user is building the phrase "${textBuffer}" — generate responses that both complete this phrase AND stay on topic.` : ' Find new angles, specific examples, or related opinions — but do NOT introduce unrelated subjects.'}`
+      : `The current topic has been covered — you may now gently introduce a related or new conversation topic.`;
+
+    const prevProperNouns  = buildProperNounSet(prevShown);
+    const avoidInstruction = prevShown.length
+      ? `ALREADY SHOWN — do not repeat these or any abbreviated/first-name-only version (e.g. if "Peter Griffin" was shown, "Peter" alone is also banned): ${JSON.stringify(prevShown)}`
+      : '';
+
+    try {
+      if (type === 'completion') {
+        const newComps = await fetchSingleCompletionRow(rowIdx, rowLockTopic ? topicAnchorContext : '', prevShown);
+        rowTypeShownItems['completion'] = [...prevShown, ...newComps];
+        setStatus('Refreshed ✓');
+        readRowAfterGap();
+        return;
+      }
+
+      const prof = getProfileBlurb();
+      const keys = { phrase: 'phrases', short: 'shorts', starter: 'starters' };
+      // Request extra overflow items so filtering never leaves cells blank
+      const requestCount = cc + Math.min(Math.ceil(prevShown.length / 2) + 2, 8);
+      const prompts = {
+        phrase:
+`Communication assistant for nonspeaking AAC user.
+${prof}
+Return ONLY valid JSON: {"phrases":[]}
+Generate ${requestCount} complete sentences usable immediately in this conversation. I will take the best ${cc}.
+${topicInstruction}
+${avoidInstruction}${profanityInstruction()}`,
+        short:
+`Communication assistant for nonspeaking AAC user.
+${prof}
+Return ONLY valid JSON: {"shorts":[]}
+Generate ${requestCount} short ready-to-use phrases, 2-5 words each. I will take the best ${cc}.
+${topicInstruction}
+${avoidInstruction}${profanityInstruction()}`,
+        starter:
+`Communication assistant for nonspeaking AAC user.
+Return ONLY valid JSON: {"starters":[]}
+Generate ${requestCount} sentence-opening fragments, 1-3 words each. I will take the best ${cc}.
+${topicInstruction}
+${avoidInstruction}${profanityInstruction()}`
+      };
+
+      const parsed   = await callAI(prompts[type], ctx, 500);
+      const rawItems = parsed[keys[type]] || [];
+
+      // Client-side dedup: exact case-insensitive + bare single-word proper noun repeat check
+      // Use first `cc` that pass — overflow buffer means we rarely run out
+      const seenExact = new Set(prevShown.map(s => s.toLowerCase()));
+      const accepted  = [];
+      for (const c of rawItems) {
+        if (accepted.length >= cc) break;
+        if (!c || !c.trim()) continue;
+        if (seenExact.has(c.toLowerCase())) continue;
+        if (isSingleWordRepeat(c, prevProperNouns)) continue;
+        seenExact.add(c.toLowerCase());
+        accepted.push(c);
+      }
+      // Pad with empty strings to fill cc slots (shouldn't happen with overflow buffer)
+      const newItems = [...accepted, ...Array(Math.max(0, cc - accepted.length)).fill('')];
+
+      // Accumulate shown items for this row type so future refreshes avoid them
+      rowTypeShownItems[type] = [...prevShown, ...accepted];
+
+      // Apply new content to tiles
+      contentBtns.forEach((btn, i) => {
+        const text = newItems[i] || '';
+        btn.textContent = text;
+        btn.dataset.tts = text;
+        btn.style.opacity = text ? '' : '0.18';
+      });
+      currentSuggestions[keys[type]] = newItems;
+      if (newItems[0]) {
+        const labels = { phrase: 'Phrases', short: 'Short phrases', starter: 'Starters' };
+        rowLabels[rowIdx] = `${labels[type]}: ${newItems[0]}`;
+      }
+
+      setStatus('Refreshed ✓');
+      readRowAfterGap();
+    } catch (err) {
+      rowReadCooldown = false;
+      setStatus('Refresh failed');
+      scanSpeak('Refresh failed');
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // SMART TYPING MODE
+  // ─────────────────────────────────────────────
+  // Alphabetical 6-per-row layout — matches Ben's existing keyboard app
+  const KB_ROWS = [
+    ['A','B','C','D','E','F'],
+    ['G','H','I','J','K','L'],
+    ['M','N','O','P','Q','R'],
+    ['S','T','U','V','W','X'],
+    ['Y','Z','0','1','2','3'],
+    ['4','5','6','7','8','9'],
+  ];
+
+  function switchToTypingMode(target) {
+    typingTarget     = target || 'buffer';
+    typingBuffer     = '';
+    typingPredWordsRowIdx  = -1; // will be set during buildTypingGrid
+    typingPredPhrasesRowIdx = -1;
+    if (typingTarget === 'bio') {
+      preBioTextBuffer = textBuffer;
+      setTextBuffer(bioText); // show bio content in text bar for editing
+    }
+    boardMode = 'typing';
+    buildControlBar(); buildGrid();
+    currentRowIndex  = 1; currentItemIndex = 0; scanMode = 'row';
+    highlightRow();
+    const lbl = typingTarget === 'bio' ? 'Editing background bio' : 'Smart Typing — scan to a letter row';
+    setStatus(lbl);
+    scanSpeak(lbl);
+    fetchTypingPredictions();
+  }
+
+  function finishTyping() {
+    typingBuffer = '';
+    if (typingTarget === 'bio') {
+      bioText = textBuffer.trim();
+      LS.set('conv_bio', bioText);
+      apiContextCache = { bioHash: '', personalityHash: '', cachedProfile: '' }; // invalidate cache
+      const el = document.getElementById('bioInput');
+      if (el) el.value = bioText;
+      setTextBuffer(preBioTextBuffer);
+      typingTarget = 'buffer';
+      boardMode    = 'convo';
+      buildControlBar(); buildGrid();
+      currentRowIndex = 1; currentItemIndex = 0; scanMode = 'row';
+      highlightRow();
+      openSettings();
+      setStatus('Bio saved ✓');
+    } else {
+      switchToConvoMode();
+    }
+  }
+
+  function buildTypingGrid(container) {
+    // ── Keyboard rows first (A–Z, 0–9) — matches keyboard app, 6 per row ──
+    KB_ROWS.forEach(keys => {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'board-row';
+      rowEl.style.gridTemplateColumns = 'repeat(6, 1fr)';
+      const btns = keys.map(ch => {
+        const btn = document.createElement('button');
+        btn.className   = 'tile key';
+        btn.textContent = ch;  // already uppercase in KB_ROWS
+        btn.dataset.tts = ch;
+        btn.addEventListener('click', () => handleKeyTile(ch));
+        rowEl.appendChild(btn);
+        return btn;
+      });
+      container.appendChild(rowEl);
+      allRows.push(btns);
+      rowLabels.push(keys.join(' '));
+    });
+
+    // ── Two separate prediction rows — words row and phrases row ─────────
+    // Words row: refresh button + 5 word tiles
+    const wordsRowEl = document.createElement('div');
+    wordsRowEl.className = 'board-row';
+    wordsRowEl.style.gridTemplateColumns = 'repeat(6, 1fr)';
+
+    const refreshWordsBtn = document.createElement('button');
+    refreshWordsBtn.className        = 'tile refresh-btn';
+    refreshWordsBtn.textContent      = '↺';
+    refreshWordsBtn.dataset.tts      = 'Refresh';
+    refreshWordsBtn.dataset.skipRead = 'true';
+    refreshWordsBtn.addEventListener('click', () => { typingBuffer = ''; fetchTypingPredictions(); });
+    wordsRowEl.appendChild(refreshWordsBtn);
+
+    typingPredTiles.words = [];
+    for (let i = 0; i < 5; i++) {
+      const btn = document.createElement('button');
+      btn.className   = 'tile pred-word';
+      btn.textContent = '';
+      btn.dataset.tts = '';
+      btn.addEventListener('click', () => { if (btn.dataset.tts) selectTypingPrediction(btn.dataset.tts); });
+      wordsRowEl.appendChild(btn);
+      typingPredTiles.words.push(btn);
+    }
+    container.appendChild(wordsRowEl);
+    typingPredWordsRowIdx = allRows.length;
+    allRows.push([refreshWordsBtn, ...typingPredTiles.words]);
+    rowLabels.push('Predictions — type to get new ones');
+
+    // Phrases row: refresh button + 5 phrase tiles
+    const phrasesRowEl = document.createElement('div');
+    phrasesRowEl.className = 'board-row';
+    phrasesRowEl.style.gridTemplateColumns = 'repeat(6, 1fr)';
+
+    const refreshPhrasesBtn = document.createElement('button');
+    refreshPhrasesBtn.className        = 'tile refresh-btn';
+    refreshPhrasesBtn.textContent      = '↺';
+    refreshPhrasesBtn.dataset.tts      = 'Refresh';
+    refreshPhrasesBtn.dataset.skipRead = 'true';
+    refreshPhrasesBtn.addEventListener('click', () => { typingBuffer = ''; fetchTypingPredictions(); });
+    phrasesRowEl.appendChild(refreshPhrasesBtn);
+
+    typingPredTiles.phrases = [];
+    for (let i = 0; i < 5; i++) {
+      const btn = document.createElement('button');
+      btn.className   = 'tile pred-phrase';
+      btn.textContent = '';
+      btn.dataset.tts = '';
+      btn.addEventListener('click', () => { if (btn.dataset.tts) selectTypingPrediction(btn.dataset.tts); });
+      phrasesRowEl.appendChild(btn);
+      typingPredTiles.phrases.push(btn);
+    }
+    container.appendChild(phrasesRowEl);
+    typingPredPhrasesRowIdx = allRows.length;
+    allRows.push([refreshPhrasesBtn, ...typingPredTiles.phrases]);
+    rowLabels.push('Phrases — type to get more');
+  }
+
+  function handleKeyTile(ch) {
+    const charToAdd = !textBuffer ? ch.toUpperCase() : ch.toLowerCase();
+    setTextBuffer(textBuffer + charToAdd);
+    typingBuffer = (typingBuffer || '') + ch;
+    if (typingPredWordsRowIdx !== -1) {
+      currentRowIndex  = typingPredWordsRowIdx;
+      currentItemIndex = 0;
+      scanMode = 'row';
+      clearHighlights();
+      allRows[typingPredWordsRowIdx]?.forEach(el => el.classList.add('row-highlight'));
+      // Silence old predictions immediately — new ones will read when they load
+      rowReadCooldown = true;
+      if (window.NarbeVoiceManager?.cancel) window.NarbeVoiceManager.cancel();
+      else speechSynthesis.cancel();
+    }
+    schedulePredictionFetch();
+  }
+
+  function deleteTypedChar() {
+    if (!textBuffer) return;
+    setTextBuffer(textBuffer.slice(0, -1));
+    if (typingBuffer) typingBuffer = typingBuffer.slice(0, -1);
+    if (typingPredWordsRowIdx !== -1 && (currentRowIndex === typingPredWordsRowIdx || currentRowIndex === typingPredPhrasesRowIdx)) {
+      rowReadCooldown = true;
+      if (window.NarbeVoiceManager?.cancel) window.NarbeVoiceManager.cancel();
+      else speechSynthesis.cancel();
+    }
+    schedulePredictionFetch();
+  }
+
+  function typeSpace() {
+    // Capitalize standalone "i" → "I" before the space lands
+    if (/(?:^| )i$/.test(textBuffer)) setTextBuffer(textBuffer.slice(0, -1) + 'I');
+    // Double-space: trim trailing space and append context-aware punctuation + space
+    if (textBuffer.endsWith(' ') && textBuffer.trim().length > 0) {
+      const sentence = textBuffer.trim().toLowerCase();
+      const questionWords = /^(who|what|where|when|why|how|is|are|was|were|do|does|did|can|could|would|will|should|have|has|had|am)\b/;
+      const punct = questionWords.test(sentence) ? '? ' : '. ';
+      setTextBuffer(textBuffer.trimEnd() + punct);
+    } else {
+      setTextBuffer(textBuffer + ' ');
+    }
+    clearTimeout(typingFetchTimer);  // cancel any pending fragment-based fetch
+    typingBuffer = '';
+    // Silence stale predictions immediately; new ones will speak when they load
+    rowReadCooldown = true;
+    if (window.NarbeVoiceManager?.cancel) window.NarbeVoiceManager.cancel();
+    else speechSynthesis.cancel();
+    [...typingPredTiles.words, ...typingPredTiles.phrases].forEach(b => {
+      b.textContent = ''; b.dataset.tts = '';
+    });
+    fetchTypingPredictions();
+  }
+
+  function selectTypingPrediction(text) {
+    const partial  = typingBuffer.toLowerCase();
+    const trimmed  = textBuffer.trimEnd();
+    let base;
+    if (partial && trimmed.toLowerCase().endsWith(partial)) {
+      // Strip the partial fragment from the end (case-insensitive match)
+      base = trimmed.slice(0, trimmed.length - partial.length);
+    } else {
+      base = trimmed;
+    }
+    // Capitalize prediction if it lands at the start of the text
+    const word = (!base || base.endsWith(' '))
+      ? text.charAt(0).toUpperCase() + text.slice(1)
+      : text;
+    const next = base + (base && !base.endsWith(' ') ? ' ' : '') + withTrailingSpace(word);
+    setTextBuffer(next);
+    if (typingTarget !== 'bio') {
+      logSelection(text);
+      setStatus(`"${text}" added`);
+    } else {
+      setStatus(`Bio: …${textBuffer.slice(-30)}`);
+    }
+    typingBuffer = ''; // reset fragment — the prediction was the full word/phrase
+    typingShownPredictions = []; // reset dedup — now completing a sentence, not picking from a category
+
+    // Clear stale tiles and silence immediately so old predictions aren't read
+    [...typingPredTiles.words, ...typingPredTiles.phrases].forEach(b => {
+      b.textContent = ''; b.dataset.tts = '';
+    });
+    rowReadCooldown = true;
+    if (window.NarbeVoiceManager?.cancel) window.NarbeVoiceManager.cancel();
+    else speechSynthesis.cancel();
+
+    // Stay on words row — new predictions will read when they load
+    if (typingPredWordsRowIdx !== -1) {
+      currentRowIndex  = typingPredWordsRowIdx;
+      currentItemIndex = 0;
+      scanMode = 'row';
+      clearHighlights();
+      allRows[typingPredWordsRowIdx]?.forEach(el => el.classList.add('row-highlight'));
+    }
+
+    fetchTypingPredictions();
+  }
+
+  function schedulePredictionFetch() {
+    clearTimeout(typingFetchTimer);
+    typingFetchTimer = setTimeout(fetchTypingPredictions, 420);
+  }
+
+  async function fetchTypingPredictions() {
+    const apiKey = LS.get('conv_apiKey', '');
+    if (!apiKey) return;
+    const typed   = typingBuffer.trim().toLowerCase();
+    // Keep trailing space so AI sees "I " not "I" — signals the word is done, predict NEXT word
+    const context = textBuffer.trimStart();
+
+    const predAvoidNorm    = new Set(typingShownPredictions.map(s => s.toLowerCase()));
+    const predProperNouns  = buildProperNounSet(typingShownPredictions);
+    const avoidInstruction = typingShownPredictions.length
+      ? `ALREADY SHOWN — do not repeat these or abbreviated/first-name-only versions: ${JSON.stringify(typingShownPredictions)}`
+      : '';
+
+    // Two distinct modes based on whether the text box has content:
+    // 1. EMPTY text box → suggest what to say about the topic (character names, opinions, etc.)
+    // 2. TEXT in progress → complete the sentence already being built
+    const isMidSentence = context.trim().length > 0;
+
+    const topicInstruction = topicAnchorContext
+      ? isMidSentence
+        ? `SENTENCE COMPLETION MODE: The user is building the sentence "${context}". Predict words/phrases that naturally CONTINUE and complete this sentence. The conversation topic is "${topicAnchorContext}" — use it for flavor, but the sentence itself is the guide. Do NOT suggest new topic names; suggest words that finish the sentence (verbs, adjectives, short completions).`
+        : `TOPIC SUGGESTION MODE: The text box is empty. The conversation topic is "${topicAnchorContext}". Suggest what the user might want to say — relevant names, opinions, reactions. If it's a list/character question, suggest specific items from that category.`
+      : isMidSentence
+        ? `SENTENCE COMPLETION MODE: Predict words/phrases that naturally continue the sentence "${context}".`
+        : '';
+
+    const fragmentRule = typed
+      ? `SPELLING FILTER: Every word in "words" and the first word of every phrase must start with "${typed}". Apply on top of the mode above — e.g. topic is Spider-Man villains, fragment "s" → "Sandman", "Scorpion", not generic "s" words.`
+      : '';
+
+    const sysLines = [
+`You generate predictive completions for a nonspeaking AAC user typing character by character.
+Return ONLY valid JSON, no markdown:
+{"words":["w1","w2","w3","w4","w5"],"phrases":["phrase1","phrase2","phrase3","phrase4","phrase5"]}
+- words: exactly 5 single words most likely to come next
+- phrases: exactly 5 short phrases (2-4 words) most likely to come next
+${topicInstruction}
+${fragmentRule}
+${avoidInstruction}`
+    ];
+
+    if (typingTarget === 'bio') {
+      sysLines.push('The user is composing background notes about themselves for a caregiver record.');
+    } else {
+      const prof = getProfileBlurb();
+      if (prof) sysLines.push(prof);
+      if (bioText) sysLines.push(`PERSONAL BACKGROUND (use these facts when predicting what they want to say):\n${bioText}`);
+    }
+
+    const userMsg = [
+      `Typed so far (current word fragment): "${typed || '(nothing yet)'}"`,
+      `Full text so far: "${context || '(empty)'}"`,
+      typingTarget !== 'bio' && transcriptWindow
+        ? `Conversation context: ${transcriptWindow.split(' ').slice(-80).join(' ')}`
+        : ''
+    ].filter(Boolean).join('\n');
+
+    try {
+      const parsed = await callAI(sysLines.join('\n'), userMsg, 300);
+      const words   = Array.isArray(parsed.words)   ? parsed.words   : [];
+      const phrases = Array.isArray(parsed.phrases) ? parsed.phrases : [];
+
+      // Client-side dedup: exact + bare single-word proper noun repeat check
+      const predSeenExact = new Set(predAvoidNorm);
+      const filterPred = (arr) => arr.map(s => {
+        if (!s || !s.trim()) return '';
+        if (predSeenExact.has(s.toLowerCase())) return '';
+        if (isSingleWordRepeat(s, predProperNouns)) return '';
+        predSeenExact.add(s.toLowerCase());
+        return s;
+      });
+      const filteredWords   = filterPred(words);
+      const filteredPhrases = filterPred(phrases);
+
+      // Accumulate all shown predictions for future dedup
+      [...filteredWords, ...filteredPhrases].filter(Boolean).forEach(s => {
+        if (!predAvoidNorm.has(s.toLowerCase())) typingShownPredictions.push(s);
+      });
+
+      typingPredTiles.words.forEach((btn, i) => {
+        const t = filteredWords[i] || '';
+        btn.textContent = t; btn.dataset.tts = t;
+      });
+      typingPredTiles.phrases.forEach((btn, i) => {
+        const t = filteredPhrases[i] || '';
+        btn.textContent = t; btn.dataset.tts = t;
+      });
+      if (typingPredWordsRowIdx !== -1 && rowLabels.length > typingPredWordsRowIdx && filteredWords.find(Boolean)) {
+        rowLabels[typingPredWordsRowIdx] = `Predictions: ${filteredWords.find(Boolean)}`;
+      }
+      if (typingPredPhrasesRowIdx !== -1 && rowLabels.length > typingPredPhrasesRowIdx && filteredPhrases.find(Boolean)) {
+        rowLabels[typingPredPhrasesRowIdx] = `Phrases: ${filteredPhrases.find(Boolean)}`;
+      }
+      // Predictions just loaded — always read them if we're on either pred row
+      if (scanMode === 'row') {
+        if (currentRowIndex === typingPredWordsRowIdx && typingPredWordsRowIdx !== -1) {
+          rowReadCooldown = false;
+          startRowRead(typingPredWordsRowIdx, allRows[typingPredWordsRowIdx]);
+        } else if (currentRowIndex === typingPredPhrasesRowIdx && typingPredPhrasesRowIdx !== -1) {
+          rowReadCooldown = false;
+          startRowRead(typingPredPhrasesRowIdx, allRows[typingPredPhrasesRowIdx]);
+        }
+      }
+    } catch {
+      // silently ignore — predictions just stay stale
+    }
+  }
+
+  // ── Selection history + personality drift ────────────────────────
+  function logSelection(text) {
+    if (!text || typeof text !== 'string') return;
+    text.toLowerCase().split(/\s+/).filter(w => w.length > 2).forEach(w => {
+      selectionHistory.counts[w] = Math.min((selectionHistory.counts[w] || 0) + 1, 25);
+    });
+    selectionHistory.topWords = Object.entries(selectionHistory.counts)
+      .sort((a, b) => b[1] - a[1]).slice(0, 60).map(([w]) => w);
+    LS.set('conv_selectionHistory', selectionHistory);
+    apiContextCache.personalityHash = ''; // invalidate so next call includes updated drift
+    driftPersonality(text);
+  }
+
+  function driftPersonality(text) {
+    const t = text.toLowerCase();
+    const D = 0.015, MIN = 0.3, MAX = 0.8;
+    const clamp = v => Math.max(MIN, Math.min(MAX, v));
+    const nudge = (key, up) => {
+      personality.communicationStyle[key] = clamp(personality.communicationStyle[key] + (up ? D : -D));
+    };
+    const wc = t.split(/\s+/).length;
+
+    if (/lol|lmao|haha|funny|hilarious|joke|ridiculous/.test(t))      nudge('humor', true);
+    if (/serious|important|actually|unfortunately|need to/.test(t))   nudge('humor', false);
+    if (wc <= 3 || /^(yes|no|sure|fine|ok|nope|yeah|exactly|right)/.test(t)) nudge('directness', true);
+    if (/maybe|i think|i guess|probably|sort of|kind of|might|perhaps/.test(t)) nudge('directness', false);
+    if (/oh great|sure\.|right\.|obviously|clearly|totally|as if/.test(t)) nudge('sarcasm', true);
+    if (wc >= 6) nudge('wordiness', true);
+    if (wc <= 2) nudge('wordiness', false);
+
+    LS.set('conv_personality', personality);
+  }
+
+  // ─────────────────────────────────────────────
+  // HIGHLIGHT HELPERS
+  // ─────────────────────────────────────────────
+  function clearHighlights() {
+    document.querySelectorAll('.row-highlight,.scan-highlight')
+      .forEach(el => el.classList.remove('row-highlight','scan-highlight'));
+  }
+
+  function highlightRow() {
+    clearHighlights();
+    const row = allRows[currentRowIndex];
+    if (!row) return;
+    row.forEach(el => el.classList.add('row-highlight'));
+
+    // Mic: open only on the dedicated Listen Mode row
+    if (currentRowIndex === listenRowIndex) {
+      enterListenMode();
+    } else {
+      exitListenMode();
+    }
+
+    if (row[0]?.classList.contains('ctrl-btn')) {
+      scanSpeak(rowLabels[currentRowIndex] || 'Controls');
+    } else {
+      startRowRead(currentRowIndex, row);
+    }
+  }
+
+  function highlightItem() {
+    clearHighlights();
+    const item = allRows[currentRowIndex]?.[currentItemIndex];
+    item?.classList.add('scan-highlight');
+    exitListenMode();  // Column mode: mic off
+    scanSpeak(getCellText(currentRowIndex, item));
+  }
+
+  // ─────────────────────────────────────────────
+  // SCAN ACTIONS
+  // ─────────────────────────────────────────────
+  function advanceScan() {
+    if (inWarning) {
+      const btns = [document.getElementById('warningBackBtn'), document.getElementById('warningProceedBtn')];
+      btns[warningBtnIdx]?.classList.remove('scan-highlight');
+      warningBtnIdx = (warningBtnIdx + 1) % btns.length;
+      btns[warningBtnIdx]?.classList.add('scan-highlight');
+      scanSpeak(btns[warningBtnIdx]?.textContent?.trim() || '');
+      return;
+    }
+    if (inConsent) {
+      const btns = [document.getElementById('consentRepeatBtn'), document.getElementById('consentBtn')];
+      btns[consentBtnIdx]?.classList.remove('scan-highlight');
+      consentBtnIdx = (consentBtnIdx + 1) % btns.length;
+      btns[consentBtnIdx]?.classList.add('scan-highlight');
+      scanSpeak(btns[consentBtnIdx]?.textContent?.trim() || '');
+      return;
+    }
+    if (inSettings) {
+      const items = [...document.querySelectorAll('#settingsGrid .settings-item')];
+      settingsIdx = (settingsIdx + 1) % items.length;
+      clearHighlights();
+      items[settingsIdx]?.classList.add('scan-highlight');
+      const heading = items[settingsIdx]?.querySelector('.label')?.textContent?.trim() || '';
+      const value   = items[settingsIdx]?.querySelector('.value')?.textContent?.trim() || '';
+      scanSpeak(heading ? `${heading}: ${value}` : value);
+      return;
+    }
+    if (inQuiz) {
+      const opts = [
+        ...document.querySelectorAll('#quizOpts .quiz-option'),
+        document.getElementById('quizReadBtn'),
+        document.getElementById('quizSkipBtn'),
+        document.getElementById('quizDoneBtn')
+      ].filter(Boolean);
+      if (!opts.length) return;
+      quizOptIdx = (quizOptIdx + 1) % opts.length;
+      clearHighlights();
+      opts[quizOptIdx]?.classList.add('scan-highlight');
+      scanSpeak(opts[quizOptIdx]?.textContent?.trim() || '');
+      return;
+    }
+    if (scanMode === 'row') {
+      currentRowIndex = (currentRowIndex + 1) % allRows.length;
+      highlightRow();
+    } else {
+      const row = allRows[currentRowIndex];
+      if (row?.length) {
+        currentItemIndex = (currentItemIndex + 1) % row.length;
+        highlightItem();
+      }
+    }
+  }
+
+  function retreatScan() {
+    if (inWarning) {
+      const btns = [document.getElementById('warningBackBtn'), document.getElementById('warningProceedBtn')];
+      btns[warningBtnIdx]?.classList.remove('scan-highlight');
+      warningBtnIdx = (warningBtnIdx - 1 + btns.length) % btns.length;
+      btns[warningBtnIdx]?.classList.add('scan-highlight');
+      scanSpeak(btns[warningBtnIdx]?.textContent?.trim() || '');
+      return;
+    }
+    if (inConsent) {
+      const btns = [document.getElementById('consentRepeatBtn'), document.getElementById('consentBtn')];
+      btns[consentBtnIdx]?.classList.remove('scan-highlight');
+      consentBtnIdx = (consentBtnIdx - 1 + btns.length) % btns.length;
+      btns[consentBtnIdx]?.classList.add('scan-highlight');
+      scanSpeak(btns[consentBtnIdx]?.textContent?.trim() || '');
+      return;
+    }
+    if (inSettings) {
+      const items = [...document.querySelectorAll('#settingsGrid .settings-item')];
+      settingsIdx = (settingsIdx - 1 + items.length) % items.length;
+      clearHighlights();
+      items[settingsIdx]?.classList.add('scan-highlight');
+      const heading = items[settingsIdx]?.querySelector('.label')?.textContent?.trim() || '';
+      const value   = items[settingsIdx]?.querySelector('.value')?.textContent?.trim() || '';
+      scanSpeak(heading ? `${heading}: ${value}` : value);
+      return;
+    }
+    if (inQuiz) {
+      const opts = [
+        ...document.querySelectorAll('#quizOpts .quiz-option'),
+        document.getElementById('quizReadBtn'),
+        document.getElementById('quizSkipBtn'),
+        document.getElementById('quizDoneBtn')
+      ].filter(Boolean);
+      if (!opts.length) return;
+      quizOptIdx = (quizOptIdx - 1 + opts.length) % opts.length;
+      clearHighlights();
+      opts[quizOptIdx]?.classList.add('scan-highlight');
+      scanSpeak(opts[quizOptIdx]?.textContent?.trim() || '');
+      return;
+    }
+    if (scanMode === 'row') {
+      currentRowIndex = (currentRowIndex - 1 + allRows.length) % allRows.length;
+      highlightRow();
+    } else {
+      const row = allRows[currentRowIndex];
+      if (row?.length) {
+        currentItemIndex = (currentItemIndex - 1 + row.length) % row.length;
+        highlightItem();
+      }
+    }
+  }
+
+  function selectCurrent() {
+    if (inWarning) {
+      const proceed = warningBtnIdx === 1;
+      const action  = pendingWarningAction;
+      dismissWarning();
+      if (proceed && action) action();
+      return;
+    }
+    if (inConsent) {
+      const btns = [document.getElementById('consentRepeatBtn'), document.getElementById('consentBtn')];
+      btns[consentBtnIdx]?.click();
+      return;
+    }
+    if (inSettings) {
+      [...document.querySelectorAll('#settingsGrid .settings-item')][settingsIdx]?.click();
+      return;
+    }
+    if (inQuiz) {
+      const opts = [
+        ...document.querySelectorAll('#quizOpts .quiz-option'),
+        document.getElementById('quizReadBtn'),
+        document.getElementById('quizSkipBtn'),
+        document.getElementById('quizDoneBtn')
+      ].filter(Boolean);
+      opts[quizOptIdx]?.click();
+      return;
+    }
+    const row = allRows[currentRowIndex];
+    if (!row) return;
+    if (scanMode === 'row') {
+      if (row.length === 1) {
+        // Single-item row: activate directly
+        // Listen row uses toggleListenMode() to prevent accidental mic-open via .click()
+        if (currentRowIndex === listenRowIndex) toggleListenMode();
+        else row[0].click();
+      } else {
+        scanMode = 'column';
+        currentItemIndex = 0;
+        highlightItem();
+      }
+    } else {
+      row[currentItemIndex]?.click();
+      scanMode = 'row';
+      highlightRow();
+    }
+  }
+
+  function toggleScanMode() {
+    if (inSettings || inQuiz || inConsent) return;
+    const row = allRows[currentRowIndex];
+    if (!row || row.length <= 1) return;
+    scanMode = scanMode === 'row' ? 'column' : 'row';
+    if (scanMode === 'row') highlightRow();
+    else { currentItemIndex = 0; highlightItem(); }
+  }
+
+  // ─────────────────────────────────────────────
+  // KEY HANDLING
+  // Text bar (row 0): short Enter = speak, hold 3s = warn, hold 6s = clear+refresh
+  // Other rows:       short Enter = select, hold 3s = toggle row/col mode
+  // Space short = forward scan, hold 3s = backward scan (continuous)
+  // ─────────────────────────────────────────────
+  let spacePressed = false, spaceStartTime = 0;
+  let backwardScanningOccurred = false;
+  let backwardScanTimer = null, backwardScanInterval = null;
+
+  let enterPressed = false;
+  let enterLongOccurred = false;
+  let enterLongTimer = null;
+  let enterClearTimer = null;
+
+  let lastKeyPressTime = 0;
+
+  document.addEventListener('keydown', (e) => {
+    // ── Space ──
+    if (e.code === 'Space' && !spacePressed) {
+      e.preventDefault();
+      // Blur any focused element so it can't be accidentally re-clicked by Space
+      if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+      const now = Date.now();
+      if (now - lastKeyPressTime < inputSensitivity) return;
+      spacePressed = true; spaceStartTime = now;
+      backwardScanningOccurred = false;
+      backwardScanTimer = setTimeout(() => {
+        if (!spacePressed || inConsent) return; // no backward scan on consent
+        backwardScanningOccurred = true;
+        retreatScan();
+        backwardScanInterval = setInterval(() => { if (spacePressed) retreatScan(); }, scanInterval);
+      }, 3000);
+    }
+
+    // ── Enter ──
+    if (e.code === 'Enter' && !enterPressed) {
+      e.preventDefault();
+      // Blur any focused element so it can't be accidentally re-clicked by Enter
+      if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur();
+      const now = Date.now();
+      if (now - lastKeyPressTime < inputSensitivity) return;
+      enterPressed = true;
+      enterLongOccurred = false;
+      const onTextBar = (currentRowIndex === 0 && !inSettings && !inQuiz && !inConsent);
+
+      if (boardMode === 'typing') {
+        // Keyboard mode: 5s hold → jump to text row. No intermediate actions.
+        enterLongTimer = setTimeout(() => {
+          if (!enterPressed || inConsent) return;
+          enterLongOccurred = true;
+          currentRowIndex  = 0;
+          currentItemIndex = 0;
+          scanMode = 'row';
+          clearHighlights();
+          allRows[0]?.forEach(el => el.classList.add('row-highlight'));
+          startRowRead(0, allRows[0]);
+          setStatus('Text bar');
+        }, 5000);
+      } else {
+        // Normal mode: 3s long-press actions
+        enterLongTimer = setTimeout(() => {
+          if (!enterPressed || inConsent) return;
+          enterLongOccurred = true;
+          if (onTextBar) {
+            // Silent at 3s — 6s timer will fire and clear+refresh
+          } else if (scanMode === 'row') {
+            if (textBuffer.trim()) {
+              currentRowIndex  = 0;
+              currentItemIndex = 0;
+              highlightRow();
+            } else {
+              currentRowIndex  = allRows.length - 1;
+              currentItemIndex = 0;
+              highlightRow();
+              setStatus('Quick responses');
+            }
+          } else {
+            toggleScanMode();
+          }
+        }, 3000);
+
+        // 6s: text bar → clear buffer + refresh AI suggestions
+        if (onTextBar) {
+          enterClearTimer = setTimeout(() => {
+            if (!enterPressed) return;
+            setTextBuffer('');
+            setStatus('Cleared — refreshing suggestions…');
+            scanSpeak('Cleared. Getting new suggestions.');
+            if (boardMode === 'convo') fetchSuggestions();
+          }, 6000);
+        // 6s: listen row → refresh suggestions based on transcript, then jump to starters
+        } else if (currentRowIndex === listenRowIndex && !inSettings && !inQuiz && !inConsent) {
+          enterClearTimer = setTimeout(() => {
+            if (!enterPressed) return;
+            setStatus('Getting suggestions from conversation…');
+            scanSpeak('Getting suggestions');
+            if (boardMode === 'convo') {
+              rowReadCooldown = true;
+              callAPI().then(() => {
+                rowReadCooldown = false;
+                if (allRows.length > 2) {
+                  currentRowIndex  = 2;
+                  currentItemIndex = 0;
+                  scanMode = 'row';
+                  highlightRow();
+                }
+              }).catch(() => { rowReadCooldown = false; });
+            }
+          }, 6000);
+        }
+      }
+    }
+  });
+
+  document.addEventListener('keyup', (e) => {
+    if (e.code === 'Space' && spacePressed) {
+      spacePressed = false;
+      clearTimeout(backwardScanTimer); clearInterval(backwardScanInterval);
+      backwardScanTimer = backwardScanInterval = null;
+      lastKeyPressTime = Date.now();
+      if (!backwardScanningOccurred) advanceScan();
+    }
+    if (e.code === 'Enter' && enterPressed) {
+      enterPressed = false;
+      clearTimeout(enterLongTimer); clearTimeout(enterClearTimer);
+      enterLongTimer = enterClearTimer = null;
+      lastKeyPressTime = Date.now();
+      if (!enterLongOccurred) selectCurrent();
+    }
+  });
+
+  // Anti-tremor: reset state only, do NOT act
+  document.addEventListener('narbe-input-cancelled', (e) => {
+    if (e.detail?.code === 'Space') {
+      spacePressed = false;
+      clearTimeout(backwardScanTimer); clearInterval(backwardScanInterval);
+      backwardScanTimer = backwardScanInterval = null;
+    }
+    if (e.detail?.code === 'Enter') {
+      enterPressed = false;
+      clearTimeout(enterLongTimer); clearTimeout(enterClearTimer);
+      enterLongTimer = enterClearTimer = null;
+    }
+  });
+
+  // ─────────────────────────────────────────────
+  // SETTINGS
+  // ─────────────────────────────────────────────
+  function openSettings() {
+    inSettings = true; settingsIdx = 0;
+    document.getElementById('settingsOverlay').classList.add('active');
+    clearHighlights();
+    const first = document.querySelectorAll('#settingsGrid .settings-item')[0];
+    if (first) {
+      first.classList.add('scan-highlight');
+      const h = first.querySelector('.label')?.textContent || '';
+      const v = first.querySelector('.value')?.textContent || '';
+      scanSpeak(`Settings. ${h}: ${v}`);
+    }
+  }
+  function closeSettings() {
+    inSettings = false;
+    document.getElementById('settingsOverlay').classList.remove('active');
+    clearHighlights(); highlightRow();
+  }
+
+  function handleSettingAction(action) {
+    if (action === 'scanSpeed') {
+      if (window.NarbeScanManager) { window.NarbeScanManager.cycleScanSpeed(); syncScanSettings(); syncSpeedDisplay(); }
+    } else if (action === 'toggleMic') {
+      settings.listeningEnabled = !settings.listeningEnabled;
+      LS.set('conv_settings', settings);
+      document.getElementById('micToggleDisplay').textContent = settings.listeningEnabled ? 'On' : 'Off';
+      if (settings.listeningEnabled) {
+        micReady = false;
+        setupMicHandlers();
+      } else {
+        exitListenMode();
+        micReady = false;
+        teardownGoogleSTTMic();
+        if (window.electronAPI?.speech) window.electronAPI.speech.stop();
+      }
+    } else if (action === 'quizAdd') { closeSettings(); startQuiz('add'); }
+    else if (action === 'quizClear') {
+      showWarning(
+        'This will clear your personality quiz answers. Your bio and conversation history will be kept.',
+        () => {
+          personality.interests = {};
+          personality.communicationStyle = { directness: 0.5, humor: 0.5, sarcasm: 0.3, wordiness: 0.4 };
+          LS.set('conv_personality', personality);
+          LS.set('conv_quizDone', false);
+          quizAllShownOptions = [];
+          setStatus('Profile answers cleared ✓');
+        }
+      );
+    }
+    else if (action === 'exportProfile') {
+      showWarning(
+        'Exporting JSON will open a download dialog and requires mouse input. You will not be able to use scanning to return.',
+        () => {
+          const payload = { personality, bioText, selectionHistory, topicBoard };
+          const a = Object.assign(document.createElement('a'), {
+            href: URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })),
+            download: 'conversation_context.json'
+          });
+          a.click();
+        }
+      );
+    } else if (action === 'importProfile') {
+      showWarning(
+        'Importing JSON requires mouse input to select a file. You will not be able to use scanning to return.',
+        () => {
+          const inp = Object.assign(document.createElement('input'), { type: 'file', accept: '.json' });
+          inp.onchange = ev => {
+            const r = new FileReader();
+            r.onload = le => {
+              try {
+                const parsed = JSON.parse(le.target.result);
+                if (parsed.personality)      { personality      = parsed.personality;      LS.set('conv_personality',      personality); }
+                if (parsed.bioText != null)  { bioText          = parsed.bioText;          LS.set('conv_bio',              bioText); }
+                if (parsed.selectionHistory) { selectionHistory = parsed.selectionHistory; LS.set('conv_selectionHistory', selectionHistory); }
+                if (parsed.topicBoard)       { topicBoard       = parsed.topicBoard;       LS.set('conv_topicBoard',       topicBoard); }
+                // Legacy: file is just a personality object directly
+                if (!parsed.personality && parsed.communicationStyle) {
+                  personality = parsed; LS.set('conv_personality', personality);
+                }
+                apiContextCache = { bioHash: '', personalityHash: '', cachedProfile: '' };
+                saveContextToServer();
+                setStatus('Profile imported ✓');
+              } catch { setStatus('Invalid file.'); }
+            };
+            r.readAsText(ev.target.files[0]);
+          };
+          inp.click();
+        }
+      );
+    } else if (action === 'toggleProfanity') {
+      settings.allowProfanity = !settings.allowProfanity;
+      LS.set('conv_settings', settings);
+      document.getElementById('profanityDisplay').textContent = settings.allowProfanity ? 'Casual' : 'Clean';
+      scanSpeak(settings.allowProfanity ? 'Casual' : 'Clean');
+    } else if (action === 'closeSettings') { closeSettings(); }
+  }
+
+  function loadApiKeyStatus() {
+    const key    = LS.get('conv_apiKey', '');
+    const el     = document.getElementById('apiKeyStatus');
+    const notice = document.getElementById('setupNotice');
+    if (key) {
+      el.textContent  = `✓ Saved (${detectProvider(key)})`;
+      el.style.color  = 'var(--ok)';
+      notice?.classList.add('hidden');
+    } else {
+      el.textContent = 'No key saved yet.';
+      el.style.color = '';
+      notice?.classList.remove('hidden');
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // PERSONALITY QUIZ
+  // ─────────────────────────────────────────────
+  let quizHistory        = [];
+  let quizDepth          = 0;
+  let quizTopic          = '';
+  let currentQuizQuestion = '';
+  let currentQuizOptions  = [];
+  let quizAllShownOptions = []; // accumulates ALL options ever shown to ensure uniqueness
+
+  // Full pool — rotates each session so the quiz feels fresh and builds a complete picture
+  const QUIZ_POOL = [
+    // Interests & topics
+    'Comedy & Humor', 'Gaming', 'Sports', 'Music', 'Animals',
+    'Movies & TV', 'Superheroes', 'Food', 'Technology', 'Art',
+    'Books & Podcasts', 'News & Current Events', 'Nature & Outdoors',
+    // Personality & communication style
+    'How I communicate', 'My sense of humor', 'My personality',
+    'What I care about', 'How I feel in groups', 'My opinions',
+    'What makes me laugh', 'How I handle disagreement',
+    'My energy in conversations', 'Things that annoy me',
+  ];
+
+  function pickQuizOptions() {
+    // Always include at least 2 personality/comm options alongside topic options
+    const personality = QUIZ_POOL.filter(o => !['Comedy & Humor','Gaming','Sports','Music','Animals','Movies & TV','Superheroes','Food','Technology','Art','Books & Podcasts','News & Current Events','Nature & Outdoors'].includes(o));
+    const topics = QUIZ_POOL.filter(o => !personality.includes(o));
+    const shuffle = arr => [...arr].sort(() => Math.random() - 0.5);
+    return [...shuffle(topics).slice(0, 5), ...shuffle(personality).slice(0, 3)].sort(() => Math.random() - 0.5);
+  }
+
+  async function startQuiz(mode) {
+    quizHistory = []; quizOptIdx = -1; quizDepth = 0; quizTopic = ''; quizAllShownOptions = [];
+    inQuiz = true;
+    document.getElementById('quizTitle').textContent = '🧠 Getting to Know You';
+    document.getElementById('quizOverlay').classList.add('active');
+    await loadQuizQ('What would you like to tell me about yourself?', [...pickQuizOptions(), 'More suggestions']);
+  }
+
+  async function loadQuizQ(question, options) {
+    currentQuizQuestion = question;
+    currentQuizOptions  = [...options];
+    // Track all options ever shown so "More suggestions" always gives truly new ones
+    const newOpts = options.filter(o => o !== 'More suggestions' && o !== 'Change topic');
+    newOpts.forEach(o => { if (!quizAllShownOptions.includes(o)) quizAllShownOptions.push(o); });
+    document.getElementById('quizQ').textContent = question;
+    quizOptIdx = -1;  // -1 = nothing highlighted; first scan advance lands on index 0
+    const container = document.getElementById('quizOpts');
+    container.innerHTML = '';
+    options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'quiz-option';
+      btn.textContent = opt;
+      btn.addEventListener('click', () => handleQuizAnswer(opt));
+      container.appendChild(btn);
+    });
+    // Read question then all selectable options so user knows every choice
+    const optList = newOpts.join('. ');
+    scanSpeak(question + (optList ? '. Options: ' + optList : ''));
+  }
+
+  async function fetchMoreQuizOptions() {
+    const prev    = currentQuizOptions.filter(o => o !== 'More suggestions' && o !== 'Change topic');
+    const apiKey  = LS.get('conv_apiKey', '');
+    if (!apiKey || quizDepth === 0) {
+      // No API or still at root — just re-randomise
+      const fresh = quizDepth === 0
+        ? [...pickQuizOptions(), 'More suggestions']
+        : [...prev].sort(() => Math.random() - 0.5).concat('More suggestions');
+      await loadQuizQ(currentQuizQuestion, fresh);
+      return;
+    }
+    const sys =
+`Generate fresh answer options for this personality quiz question.
+Question: "${currentQuizQuestion}"
+ALL options already shown — return COMPLETELY DIFFERENT ones: ${JSON.stringify(quizAllShownOptions)}
+Rules:
+- 4-5 new options, each 2-5 words
+- Relevant to the question, distinct from ALL previously shown options — no repeats at all
+- For list questions (favorite character, best movie, etc.) suggest DIFFERENT specific items than before
+- Keep a natural, conversational tone
+Return ONLY valid JSON, no markdown: {"options":["..."]}`;
+    try {
+      setStatus('Getting more options…');
+      const parsed = await callAI(sys, `Question: "${currentQuizQuestion}"`, 300);
+      if (!Array.isArray(parsed.options) || !parsed.options.length) throw new Error('bad shape');
+      await loadQuizQ(currentQuizQuestion, [...parsed.options, 'More suggestions']);
+      setStatus('');
+    } catch {
+      const shuffled = [...prev].sort(() => Math.random() - 0.5);
+      await loadQuizQ(currentQuizQuestion, [...shuffled, 'More suggestions']);
+      setStatus('');
+    }
+  }
+
+  async function handleQuizAnswer(answer) {
+    if (answer === 'More suggestions') {
+      await fetchMoreQuizOptions();
+      return;
+    }
+    if (answer === 'Change topic') {
+      quizDepth = 0; quizTopic = '';
+      await loadQuizQ('What else would you like to tell me?', [...pickQuizOptions(), 'More suggestions']);
+      return;
+    }
+
+    quizHistory.push(answer);
+
+    if (quizDepth === 0) {
+      // First pick — establishes the top-level topic
+      quizTopic = answer.split('/')[0].trim();
+      if (!personality.interests[quizTopic]) personality.interests[quizTopic] = [];
+      quizDepth = 1;
+    } else {
+      // Deeper pick — store it under the current topic
+      if (!personality.interests[quizTopic]) personality.interests[quizTopic] = [];
+      personality.interests[quizTopic] = [...new Set([...personality.interests[quizTopic], answer])];
+      quizDepth++;
+    }
+    LS.set('conv_personality', personality);
+
+    const apiKey = LS.get('conv_apiKey', '');
+    if (!apiKey) {
+      scanSpeak('Add an A P I key in Settings for deeper questions. Tap Done for now to save what you have.');
+      setStatus('Add API key in Settings for the full quiz');
+      return; // Stay open — user can still tap Done
+    }
+
+    const offerPivot = quizDepth >= 4;
+    const isPersonalityTopic = ['How I communicate','My sense of humor','My personality','What I care about','How I feel in groups','My opinions','What makes me laugh','How I handle disagreement','My energy in conversations','Things that annoy me'].includes(quizTopic);
+    const sys =
+`You are building a rich personality and communication profile for a nonspeaking AAC user.
+Their answers are used to personalise AI-generated conversation suggestions.
+They select answers by scanning with a single switch — ALL options MUST be 2-5 words max.
+
+Topic being explored: "${quizTopic}"
+Profile so far: ${Object.entries(personality.interests).slice(0,8).map(([k,v])=>`${k}: ${Array.isArray(v)?v.slice(0,4).join(', '):v}`).join('; ') || 'none yet'}
+${bioText ? 'Background: ' + bioText.slice(0, 200) : ''}
+Answer history this session: ${JSON.stringify(quizHistory.slice(-6))}
+
+Generate ONE follow-up question with 4-6 short, scannable answer options.
+Rules:
+${isPersonalityTopic
+  ? `- This is a personality/communication topic — ask about their style, preferences, and how they engage in conversation\n- Options should reflect real personality differences (e.g. "Very direct", "Depends on who", "I use humor")`
+  : `- Dig into "${answer}": ask about specific favorites, what they enjoy, memorable moments`}
+- Make it feel like a curious conversation, not a form
+- Keep every option to 2-5 words
+- Always include "More suggestions" as the second-to-last option
+${offerPivot ? '- Include "Change topic" as the last option so they can pivot to something new' : '- Omit "Change topic"'}
+- Return ONLY valid JSON, no markdown: {"question":"...","options":["..."]}`;
+
+    try {
+      setStatus('Getting next question…');
+      const parsed = await callAI(sys, `Last answer: "${answer}"`, 400);
+      if (!parsed.question || !Array.isArray(parsed.options) || !parsed.options.length)
+        throw new Error('bad shape');
+      await loadQuizQ(parsed.question, parsed.options);
+      setStatus('');
+    } catch {
+      // Don't close — show a simple fallback so the user can keep going
+      setStatus('Tap Done to save, or keep scanning');
+      const short = answer.split(' ').slice(0, 3).join(' ');
+      await loadQuizQ(`What do you enjoy most about ${short}?`, [
+        "It's my favorite", "Love the humor", "Great memories", "It's relaxing",
+        "More suggestions", ...(offerPivot ? ["Change topic"] : [])
+      ]);
+    }
+  }
+
+  function closeQuiz() {
+    inQuiz = false;
+    document.getElementById('quizOverlay').classList.remove('active');
+    clearHighlights(); highlightRow();
+  }
+
+  // ─────────────────────────────────────────────
+  // WARNING MODAL (mouse-required operations)
+  // ─────────────────────────────────────────────
+  function showWarning(message, onProceed) {
+    pendingWarningAction = onProceed;
+    warningBtnIdx = 0;
+    inWarning = true;
+    document.getElementById('warningMessage').textContent = message;
+    document.getElementById('warningModal').classList.add('active');
+    clearHighlights();
+    document.getElementById('warningBackBtn').classList.add('scan-highlight');
+    document.getElementById('warningProceedBtn').classList.remove('scan-highlight');
+    scanSpeak('Warning. ' + message + '. Go Back or Proceed.');
+  }
+
+  function dismissWarning() {
+    inWarning = false;
+    pendingWarningAction = null;
+    document.getElementById('warningModal').classList.remove('active');
+    clearHighlights();
+    if (inSettings) {
+      const items = [...document.querySelectorAll('#settingsGrid .settings-item')];
+      items[settingsIdx]?.classList.add('scan-highlight');
+      const heading = items[settingsIdx]?.querySelector('.label')?.textContent?.trim() || '';
+      const value   = items[settingsIdx]?.querySelector('.value')?.textContent?.trim() || '';
+      scanSpeak(heading ? `${heading}: ${value}` : value);
+    } else {
+      highlightRow();
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // EDIT TOPICS
+  // ─────────────────────────────────────────────
+  function openEditTopics() {
+    renderEditTopics();
+    document.getElementById('editTopicsOverlay').classList.add('active');
+  }
+  function renderEditTopics() {
+    const content = document.getElementById('editTopicsContent');
+    content.innerHTML = '';
+    Object.keys(topicBoard).forEach(cat => {
+      const section = document.createElement('div');
+      section.className = 'edit-cat';
+      section.innerHTML = `<h3>${cat}</h3>`;
+      const list = document.createElement('div');
+      list.className = 'edit-phrase-list';
+      topicBoard[cat].forEach((phrase, idx) => {
+        const row = document.createElement('div'); row.className = 'edit-phrase-row';
+        row.innerHTML = `<span>${phrase}</span>`;
+        const rm = document.createElement('button'); rm.className = 'edit-rm'; rm.textContent = '✕';
+        rm.onclick = () => { topicBoard[cat].splice(idx, 1); LS.set('conv_topicBoard', topicBoard); renderEditTopics(); };
+        row.appendChild(rm); list.appendChild(row);
+      });
+      section.appendChild(list);
+      const addRow = document.createElement('div'); addRow.className = 'edit-add-row';
+      const inp = Object.assign(document.createElement('input'), { type:'text', placeholder:`Add to ${cat}…` });
+      const addBtn = Object.assign(document.createElement('button'), { className:'edit-add-btn', textContent:'Add' });
+      addBtn.onclick = () => {
+        const v = inp.value.trim(); if (!v) return;
+        topicBoard[cat].push(v); LS.set('conv_topicBoard', topicBoard); inp.value = ''; renderEditTopics();
+      };
+      addRow.appendChild(inp); addRow.appendChild(addBtn);
+      section.appendChild(addRow); content.appendChild(section);
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // STATIC BINDINGS
+  // ─────────────────────────────────────────────
+  function bindStaticActions() {
+    document.getElementById('quizDoneBtn').addEventListener('click', () => {
+      LS.set('conv_personality', personality); LS.set('conv_quizDone', true); closeQuiz(); setStatus('Profile saved ✓');
+      saveContextToServer();
+    });
+    document.getElementById('quizReadBtn').addEventListener('click', () => scanSpeak(currentQuizQuestion));
+    document.getElementById('quizSkipBtn').addEventListener('click', closeQuiz);
+    document.getElementById('editTopicsCloseBtn').addEventListener('click', () => {
+      document.getElementById('editTopicsOverlay').classList.remove('active');
+      if (boardMode === 'phrases') buildGrid();
+    });
+    document.getElementById('apiSaveBtn').addEventListener('click', () => {
+      const key = document.getElementById('apiKeyInput').value.trim();
+      if (key) { LS.set('conv_apiKey', key); document.getElementById('apiKeyInput').value = ''; loadApiKeyStatus(); setStatus('API key saved ✓'); }
+    });
+    document.getElementById('bioSaveBtn').addEventListener('click', () => {
+      bioText = (document.getElementById('bioInput').value || '').trim();
+      LS.set('conv_bio', bioText);
+      apiContextCache = { bioHash: '', personalityHash: '', cachedProfile: '' }; // invalidate cache
+      document.getElementById('bioStatus').textContent = 'Saved ✓';
+      setTimeout(() => { document.getElementById('bioStatus').textContent = ''; }, 2000);
+      setStatus('Bio saved ✓');
+      saveContextToServer();
+    });
+    document.getElementById('warningBackBtn').addEventListener('click', dismissWarning);
+    document.getElementById('warningProceedBtn').addEventListener('click', () => {
+      const action = pendingWarningAction;
+      dismissWarning();
+      if (action) action();
+    });
+    document.getElementById('bioKeyboardBtn').addEventListener('click', () => {
+      closeSettings();
+      switchToTypingMode('bio');
+    });
+    document.querySelectorAll('#settingsGrid .settings-item').forEach(btn => {
+      btn.addEventListener('click', () => handleSettingAction(btn.dataset.action));
+    });
+  }
+
+  // ─────────────────────────────────────────────
+  // STATUS
+  // ─────────────────────────────────────────────
+  function setStatus(msg) { document.getElementById('statusLeft').textContent = msg; }
+
+})();
+</script>
+</body>
+</html>

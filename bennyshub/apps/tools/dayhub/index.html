@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Day Hub</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="../../../shared/electron-bridge.js"></script>
+  <script src="../../../shared/ios-audio-fix.js"></script>
+  <script src="../../../shared/scan-manager.js"></script>
+  <script src="../../../shared/voice-manager.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header class="title-row">
+      <div class="title-block">
+        <h1 class="title">Day Hub</h1>
+        <p class="weather-loc" id="weatherLocationLine" aria-live="polite">Weather: East Greenwich, RI</p>
+      </div>
+      <button type="button" class="btn-settings-only" id="btnSettings" tabindex="-1" title="Settings — click only, not on switch scan">
+        Settings
+      </button>
+    </header>
+    <p class="scan-hint" aria-hidden="true">Short space: next · Long space: back · Enter: choose</p>
+
+    <section class="panel" aria-labelledby="main-heading">
+      <h2 id="main-heading" class="panel-title">Choose</h2>
+      <div class="actions" role="group" aria-label="Day hub options">
+        <button type="button" class="btn scan-target btn-rich" id="btnTime">
+          <span class="btn-kicker">Date &amp; time</span>
+          <span class="btn-label" id="btnTimeDateLine">—</span>
+          <span class="btn-hero" id="btnTimeClockLine">—</span>
+        </button>
+        <button type="button" class="btn scan-target btn-rich" id="btnTodayWeather">
+          <span class="btn-kicker">Today's weather</span>
+          <div class="btn-weather-hero">
+            <span class="wx-emoji" id="btnTodayWxEmoji" aria-hidden="true">🌡️</span>
+            <div class="wx-temps">
+              <span class="wx-now" id="btnTodayWxNow">—°</span>
+              <span class="wx-hilo" id="btnTodayWxHiLo">↑—° ↓—°</span>
+            </div>
+          </div>
+          <span class="btn-subline" id="btnTodayWxDesc">Loading…</span>
+        </button>
+        <button type="button" class="btn scan-target btn-rich" id="btnWeekWeather">
+          <span class="btn-kicker">Weekly forecast</span>
+          <div class="week-strip" id="btnWeekStrip" aria-hidden="true"></div>
+          <span class="btn-subline muted" id="btnWeekSub">7 days · hear details</span>
+        </button>
+        <button type="button" class="btn scan-target btn-rich" id="btnCalendar" data-scan-label="Weekly schedule. Hear calendar events for the week.">
+          <span class="btn-kicker">Weekly schedule</span>
+          <span class="btn-label">📅 Calendar</span>
+          <span class="btn-subline muted" id="btnCalendarSub">Google Calendar · spoken</span>
+        </button>
+        <button type="button" class="btn scan-target btn-rich" id="btnNews" data-scan-label="News highlights. Hear local, national, and world headlines.">
+          <span class="btn-kicker">News</span>
+          <span class="btn-label">Headlines</span>
+          <span class="btn-subline muted">Local · NPR · BBC · spoken</span>
+        </button>
+        <button type="button" class="btn scan-target btn-exit" id="btnExit" data-scan-label="Exit. Back to hub.">
+          <span class="btn-label">Exit — back to hub</span>
+        </button>
+      </div>
+    </section>
+  </div>
+
+  <div class="settings-overlay" id="settingsOverlay" role="dialog" aria-modal="true" aria-labelledby="settingsTitle" aria-hidden="true">
+    <div class="settings-card">
+      <h2 id="settingsTitle">Settings</h2>
+      <p class="settings-note">Mouse or touch only — these controls are not in the switch scan list.</p>
+
+      <section class="settings-section">
+        <h3 class="settings-heading">Weather location</h3>
+        <p class="settings-line" id="settingsWeatherCurrent">—</p>
+        <label class="settings-label" for="settingsLocationQuery">Search city or town (US)</label>
+        <input type="text" class="settings-input" id="settingsLocationQuery" placeholder="e.g. Warwick RI" autocomplete="off" />
+        <div class="settings-row-btns">
+          <button type="button" class="btn-inline" id="settingsLookupBtn">Look up</button>
+        </div>
+        <p class="settings-hint">Or set coordinates manually:</p>
+        <div class="settings-grid-2">
+          <div>
+            <label class="settings-label" for="settingsLat">Latitude</label>
+            <input type="text" class="settings-input" id="settingsLat" inputmode="decimal" />
+          </div>
+          <div>
+            <label class="settings-label" for="settingsLon">Longitude</label>
+            <input type="text" class="settings-input" id="settingsLon" inputmode="decimal" />
+          </div>
+        </div>
+        <label class="settings-label" for="settingsLabel">Label (spoken / shown)</label>
+        <input type="text" class="settings-input" id="settingsLabel" placeholder="City, State" />
+        <div class="settings-row-btns">
+          <button type="button" class="btn-inline primary" id="settingsSaveWeatherBtn">Save weather location</button>
+          <button type="button" class="btn-inline" id="settingsDefaultWeatherBtn">Use East Greenwich, RI</button>
+        </div>
+        <p class="settings-msg" id="settingsWeatherMsg" role="status"></p>
+        <p class="settings-hint settings-news-hint">
+          Local news uses your location label above (Google News). National: NPR. World: BBC. Every outlet has limits—verify big stories elsewhere too.
+        </p>
+      </section>
+
+      <section class="settings-section">
+        <h3 class="settings-heading">Google Calendar</h3>
+        <p class="settings-hint">To get your calendar link: Google Calendar → Settings → Your calendar → Integrate → "Secret address in iCal format"</p>
+        <label class="settings-label" for="settingsCalendarUrl">iCal URL (secret address)</label>
+        <input type="text" class="settings-input" id="settingsCalendarUrl" placeholder="https://calendar.google.com/calendar/ical/..." autocomplete="off" />
+        <div class="settings-row-btns">
+          <button type="button" class="btn-inline primary" id="settingsSaveCalendarBtn">Save calendar URL</button>
+          <button type="button" class="btn-inline" id="settingsTestCalendarBtn">Test calendar</button>
+        </div>
+        <p class="settings-msg" id="settingsCalendarMsg" role="status"></p>
+      </section>
+
+      <button type="button" class="btn-close-settings" id="settingsCloseBtn">Close settings</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

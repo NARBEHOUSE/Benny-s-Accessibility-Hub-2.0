@@ -1,0 +1,9 @@
+YOUR_API_KEY_HERE
+
+Paste your API key above. Supported providers (auto-detected by key format):
+  Anthropic Claude:  sk-ant-...
+  OpenAI GPT:        sk-...
+  Google Gemini:     AIza...
+
+Rename this file to api.txt and paste your key on line 1.
+RT Convo reads this file on first load and stores the key in localStorage.

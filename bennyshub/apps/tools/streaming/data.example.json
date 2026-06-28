@@ -1,0 +1,47 @@
+[
+  {
+    "id": "example-movie-id",
+    "title": "Example Movie",
+    "url": "https://app.plex.tv/desktop/#!/server/YOUR_PLEX_SERVER_ID/details?key=%2Flibrary%2Fmetadata%2F12345",
+    "type": "movies",
+    "genre": "Comedy",
+    "director": "Director Name",
+    "actors": "Actor 1, Actor 2",
+    "year": "2024",
+    "image": "https://image.tmdb.org/t/p/w780/example.jpg",
+    "description": "Example movie description",
+    "service": "Plex",
+    "service_icon": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Plex_logo_2022.svg",
+    "trailer": "https://www.youtube.com/watch?v=example"
+  },
+  {
+    "id": "example-show-id",
+    "title": "Example TV Show",
+    "url": "https://app.plex.tv/desktop/#!/server/YOUR_PLEX_SERVER_ID/details?key=%2Flibrary%2Fmetadata%2F67890",
+    "type": "shows",
+    "genre": "Drama",
+    "director": "Creator Name",
+    "actors": "Actor 1, Actor 2",
+    "year": "2020",
+    "image": "https://image.tmdb.org/t/p/w780/example.jpg",
+    "description": "Example TV show description",
+    "service": "Plex",
+    "service_icon": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Plex_logo_2022.svg",
+    "trailer": "https://www.youtube.com/watch?v=example"
+  },
+  {
+    "id": "example-netflix-id",
+    "title": "Netflix Show Example",
+    "url": "https://www.netflix.com/title/12345678",
+    "type": "shows",
+    "genre": "Comedy",
+    "director": "Creator Name",
+    "actors": "Actor 1, Actor 2",
+    "year": "2022",
+    "image": "https://image.tmdb.org/t/p/w780/example.jpg",
+    "description": "Example Netflix show",
+    "service": "Netflix",
+    "service_icon": "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg",
+    "trailer": ""
+  }
+]

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Launching Search...</title>
+    <style>
+        body { background: #0b0f14; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        h1 { color: #ff5c00; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #ff5c00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="loader"></div>
+    <h1>Launching Search Tool...</h1>
+    <p>Please wait while the application starts.</p>
+    <button onclick="window.history.back()" style="margin-top:20px; padding:10px 20px; border:1px solid #333; background:transparent; color:#888; cursor:pointer;">Go Back</button>
+
+    <script>
+        fetch('/launch/search')
+            .then(response => {
+                if (response.ok) console.log("Launch command sent.");
+                else document.querySelector('p').innerText = "Request failed.";
+            })
+            .catch(err => document.querySelector('p').innerText = "Service unreachable.");
+    </script>
+</body>
+</html>

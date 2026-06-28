@@ -1,0 +1,13 @@
+{
+  "Example TV Show": {
+    "seasons": {
+      "1": {
+        "1": "https://app.plex.tv/desktop/#!/server/YOUR_PLEX_SERVER_ID/details?key=%2Flibrary%2Fmetadata%2F12345",
+        "2": "https://app.plex.tv/desktop/#!/server/YOUR_PLEX_SERVER_ID/details?key=%2Flibrary%2Fmetadata%2F12346"
+      },
+      "2": {
+        "1": "https://app.plex.tv/desktop/#!/server/YOUR_PLEX_SERVER_ID/details?key=%2Flibrary%2Fmetadata%2F12400"
+      }
+    }
+  }
+}

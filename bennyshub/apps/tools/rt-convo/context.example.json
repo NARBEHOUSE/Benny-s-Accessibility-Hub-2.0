@@ -1,0 +1,10 @@
+{
+  "name": "Your Name",
+  "age": 25,
+  "interests": ["music", "sports", "movies"],
+  "communication_style": "casual",
+  "humor": "moderate",
+  "topics_to_avoid": [],
+  "preferred_response_length": "short",
+  "notes": "Add any additional context about the user here."
+}

@@ -1,0 +1,70 @@
+{
+  "tools": [
+    {
+      "id": "keyboard",
+      "title": "Keyboard",
+      "description": "Predictive, simple input mapped for two-button access.",
+      "path": "apps/tools/keyboard/index.html",
+      "image": "images/tools/keyboard.png",
+      "genres": ["Communication", "Accessibility"]
+    },
+    {
+      "id": "search",
+      "title": "Web Search",
+      "description": "Accessible web browsing and search using Chrome.",
+      "launchExternal": "search",
+      "image": "images/tools/searchtool.jpg",
+      "genres": ["Productivity", "Web"]
+    },
+    {
+      "id": "messenger",
+      "title": "Messenger",
+      "description": "Chat and messaging application.",
+      "launchExternal": "messenger",
+      "image": "images/tools/discord.png",
+      "genres": ["Communication", "Social"]
+    },
+    {
+      "id": "streaming",
+      "title": "Streaming",
+      "description": "Watch shows and movies.",
+      "path": "apps/tools/streaming/index.html",
+      "image": "images/tools/streaming.png",
+      "genres": ["Entertainment", "Media"]
+    },
+    {
+      "id": "phraseboard",
+      "title": "Phrase & Media Board",
+      "description": "Editable phrase & media tiles with scanning and speak-out.",
+      "path": "apps/tools/phraseboard/index.html",
+      "image": "images/tools/phraseboard.png",
+      "genres": ["Communication", "Accessibility"],
+      "needsServer": true
+    },
+    {
+      "id": "journal",
+      "title": "Journal",
+      "description": "Ben's personal journal.",
+      "path": "apps/tools/journal/index.html",
+      "image": "images/tools/journal.png",
+      "genres": ["Communication", "Writing"]
+    },
+    {
+      "id": "dayhub",
+      "title": "Day Hub",
+      "description": "Date, time, weather, and spoken news (local / NPR / BBC). Settings (click) for location.",
+      "path": "apps/tools/dayhub/index.html",
+      "image": "images/tools/dayhub.png",
+      "genres": ["Productivity", "Daily"]
+    },
+    {
+      "id": "rt-convo",
+      "title": "RT Convo",
+      "description": "Real-time AAC conversation board. Listens to ambient speech and suggests phrases to scan and select.",
+      "path": "apps/tools/rt-convo/index.html",
+      "launchWindow": true,
+      "image": "images/tools/rt-convo.png",
+      "genres": ["Communication", "Accessibility"]
+    }
+  ]
+}

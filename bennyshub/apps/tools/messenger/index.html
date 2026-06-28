@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ben's Messenger</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Status bar -->
+    <div id="statusbar">
+      <span id="status-dot" class="off"></span>
+      <span id="status-text">Connecting…</span>
+    </div>
+
+    <!-- ============ CHANNEL LIST PAGE ============ -->
+    <section id="page-channels" class="page active">
+      <div id="block-channels" class="scan-block" data-block="0">
+        <div class="block-title">Channels</div>
+        <ul id="thread-list"></ul>
+      </div>
+      <div id="block-exit" class="scan-block btn-block" data-block="1">
+        <span class="big-btn-label">✕ Exit</span>
+      </div>
+    </section>
+
+    <!-- ============ MESSAGE VIEW PAGE ============ -->
+    <section id="page-messages" class="page">
+      <div id="thread-header"></div>
+      <div id="block-messages" class="scan-block" data-block="0">
+        <div id="message-scroll"></div>
+      </div>
+      <div id="message-controls">
+        <div id="block-send" class="scan-block btn-block" data-block="1">
+          <span class="big-btn-label">⌨ Send</span>
+        </div>
+        <div id="block-back" class="scan-block btn-block" data-block="2">
+          <span class="big-btn-label">‹ Back</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ACTIONS OVERLAY ============ -->
+    <div id="actions-overlay" class="overlay">
+      <div class="overlay-card" id="actions-card">
+        <div class="overlay-title">Actions</div>
+        <div id="actions-buttons"></div>
+      </div>
+    </div>
+
+    <!-- ============ REACTION OVERLAY ============ -->
+    <div id="react-overlay" class="overlay">
+      <div class="overlay-card" id="react-card">
+        <div class="overlay-title">Reactions</div>
+        <div id="react-buttons"></div>
+      </div>
+    </div>
+
+    <!-- ============ MEDIA OVERLAY ============ -->
+    <div id="media-overlay" class="overlay">
+      <div class="overlay-card media-card" id="media-card">
+        <div id="media-content"></div>
+        <div id="media-counter"></div>
+        <div id="media-nav"></div>
+        <div class="overlay-hint">Space = Next Button · Enter = Select · Hold Enter to close</div>
+      </div>
+    </div>
+
+    <!-- ============ KEYBOARD COMPOSER OVERLAY ============ -->
+    <div id="kb-overlay" class="overlay">
+      <div id="kb-app">
+        <div id="kb-text-area">|</div>
+        <!-- rows injected by keyboard.js -->
+      </div>
+    </div>
+  </div>
+
+  <script src="../../../shared/scan-manager.js"></script>
+  <script src="keyboard.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

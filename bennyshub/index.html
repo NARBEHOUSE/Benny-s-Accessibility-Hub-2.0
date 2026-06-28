@@ -1,0 +1,2370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-N0MEEN7YP4"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-N0MEEN7YP4');
+  </script>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NARBE Benny's Access Hub</title>
+  <meta name="description" content="NARBE House Hub for 2-button switch access." />
+  <style>
+    :root{
+      --narbe-orange:#ff5c00;
+      --narbe-blue:#5bb0ff;
+      --bg:#0b0f14;
+      --card:#121822;
+      --text:#e8f0ff;
+      --muted:#b6c6dd;
+      --focus:#ffffff;
+      --ring: 0 0 0 4px rgba(91,176,255,.55), 0 10px 25px rgba(0,0,0,.35);
+      --radius: 18px;
+    }
+
+    /* Text Color variations */
+    body.text-green {
+      --narbe-orange: #00ff88;
+      --narbe-blue: #00cc99;
+    }
+    body.text-purple {
+      --narbe-orange: #9d4edd;
+      --narbe-blue: #c77dff;
+    }
+    body.text-red {
+      --narbe-orange: #ff006e;
+      --narbe-blue: #ff5a8d;
+    }
+    body.text-gold {
+      --narbe-orange: #ffb703;
+      --narbe-blue: #fb8500;
+    }
+    body.text-black {
+      --narbe-orange: #333333;
+      --narbe-blue: #666666;
+    }
+    body.text-white {
+      --narbe-orange: #ffffff;
+      --narbe-blue: #f0f0f0;
+    }
+
+    /* Highlight Color variations */
+    body.highlight-blue .card-btn:focus,
+    body.highlight-blue .backbtn:focus,
+    body.highlight-blue .modal-btn:focus,
+    body.highlight-blue .iframe-back:focus,
+    body.highlight-blue .nav-btn:focus {
+      box-shadow: 0 0 0 4px rgba(91,176,255,.55), 0 10px 25px rgba(0,0,0,.35);
+    }
+    body.highlight-green .card-btn:focus,
+    body.highlight-green .backbtn:focus,
+    body.highlight-green .modal-btn:focus,
+    body.highlight-green .iframe-back:focus,
+    body.highlight-green .nav-btn:focus {
+      box-shadow: 0 0 0 4px rgba(0,255,136,.55), 0 10px 25px rgba(0,0,0,.35);
+    }
+    body.highlight-purple .card-btn:focus,
+    body.highlight-purple .backbtn:focus,
+    body.highlight-purple .modal-btn:focus,
+    body.highlight-purple .iframe-back:focus,
+    body.highlight-purple .nav-btn:focus {
+      box-shadow: 0 0 0 4px rgba(157,78,221,.55), 0 10px 25px rgba(0,0,0,.35);
+    }
+    body.highlight-red .card-btn:focus,
+    body.highlight-red .backbtn:focus,
+    body.highlight-red .modal-btn:focus,
+    body.highlight-red .iframe-back:focus,
+    body.highlight-red .nav-btn:focus {
+      box-shadow: 0 0 0 4px rgba(255,0,110,.55), 0 10px 25px rgba(0,0,0,.35);
+    }
+    body.highlight-yellow .card-btn:focus,
+    body.highlight-yellow .backbtn:focus,
+    body.highlight-yellow .modal-btn:focus,
+    body.highlight-yellow .iframe-back:focus,
+    body.highlight-yellow .nav-btn:focus {
+      box-shadow: 0 0 0 4px rgba(255,183,3,.65), 0 10px 25px rgba(0,0,0,.35);
+    }
+    body.highlight-white .card-btn:focus,
+    body.highlight-white .backbtn:focus,
+    body.highlight-white .modal-btn:focus,
+    body.highlight-white .iframe-back:focus,
+    body.highlight-white .nav-btn:focus {
+      box-shadow: 0 0 0 4px rgba(255,255,255,.75), 0 10px 25px rgba(0,0,0,.35);
+    }
+
+    /* Highlight Style - Full Cell variations */
+    body.highlight-style-full.highlight-blue .card-btn:focus,
+    body.highlight-style-full.highlight-blue .backbtn:focus,
+    body.highlight-style-full.highlight-blue .modal-btn:focus,
+    body.highlight-style-full.highlight-blue .iframe-back:focus,
+    body.highlight-style-full.highlight-blue .nav-btn:focus {
+      background: linear-gradient(180deg, rgba(91,176,255,.3), rgba(91,176,255,.1)) !important;
+    }
+    body.highlight-style-full.highlight-green .card-btn:focus,
+    body.highlight-style-full.highlight-green .backbtn:focus,
+    body.highlight-style-full.highlight-green .modal-btn:focus,
+    body.highlight-style-full.highlight-green .iframe-back:focus,
+    body.highlight-style-full.highlight-green .nav-btn:focus {
+      background: linear-gradient(180deg, rgba(0,255,136,.3), rgba(0,255,136,.1)) !important;
+    }
+    body.highlight-style-full.highlight-purple .card-btn:focus,
+    body.highlight-style-full.highlight-purple .backbtn:focus,
+    body.highlight-style-full.highlight-purple .modal-btn:focus,
+    body.highlight-style-full.highlight-purple .iframe-back:focus,
+    body.highlight-style-full.highlight-purple .nav-btn:focus {
+      background: linear-gradient(180deg, rgba(157,78,221,.3), rgba(157,78,221,.1)) !important;
+    }
+    body.highlight-style-full.highlight-red .card-btn:focus,
+    body.highlight-style-full.highlight-red .backbtn:focus,
+    body.highlight-style-full.highlight-red .modal-btn:focus,
+    body.highlight-style-full.highlight-red .iframe-back:focus,
+    body.highlight-style-full.highlight-red .nav-btn:focus {
+      background: linear-gradient(180deg, rgba(255,0,110,.3), rgba(255,0,110,.1)) !important;
+    }
+    body.highlight-style-full.highlight-yellow .card-btn:focus,
+    body.highlight-style-full.highlight-yellow .backbtn:focus,
+    body.highlight-style-full.highlight-yellow .modal-btn:focus,
+    body.highlight-style-full.highlight-yellow .iframe-back:focus,
+    body.highlight-style-full.highlight-yellow .nav-btn:focus {
+      background: linear-gradient(180deg, rgba(255,183,3,.3), rgba(255,183,3,.1)) !important;
+    }
+    body.highlight-style-full.highlight-white .card-btn:focus,
+    body.highlight-style-full.highlight-white .backbtn:focus,
+    body.highlight-style-full.highlight-white .modal-btn:focus,
+    body.highlight-style-full.highlight-white .iframe-back:focus,
+    body.highlight-style-full.highlight-white .nav-btn:focus {
+      background: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,.1)) !important;
+      color: #000; /* Ensure text is readable on white */
+    }
+
+    /* Background Theme variations - Dark modes */
+    body.bg-ocean {
+      background: #001a2e;
+    }
+    body.bg-forest {
+      background: #0a1f0a;
+    }
+    body.bg-sunset {
+      background: #1a0f0a;
+    }
+    body.bg-midnight {
+      background: #0a0515;
+    }
+    body.bg-rose {
+      background: #1a0a14;
+    }
+
+    /* Background Theme variations - Light modes */
+    body.bg-sky {
+      --text: #0a2540;
+      --muted: #4a5f7a;
+      background: #e0f2ff;
+    }
+    body.bg-sky .card-btn,
+    body.bg-sky .backbtn,
+    body.bg-sky .modal-content,
+    body.bg-sky .nav-btn {
+      background: linear-gradient(180deg, rgba(255,255,255,.8), rgba(255,255,255,.6));
+      border-color: rgba(0,0,0,.15);
+      box-shadow: 0 4px 16px rgba(0,0,0,.1);
+    }
+    body.bg-sky .notice {
+      background: linear-gradient(135deg, rgba(255,92,0,.15), rgba(91,176,255,.15));
+      border-color: rgba(0,0,0,.12);
+    }
+
+    body.bg-cream {
+      --text: #2d1b00;
+      --muted: #6b5d48;
+      background: #fef9f0;
+    }
+    body.bg-cream .card-btn,
+    body.bg-cream .backbtn,
+    body.bg-cream .modal-content,
+    body.bg-cream .nav-btn {
+      background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,250,235,.7));
+      border-color: rgba(101,67,33,.15);
+      box-shadow: 0 4px 16px rgba(101,67,33,.12);
+    }
+    body.bg-cream .notice {
+      background: linear-gradient(135deg, rgba(255,140,0,.12), rgba(210,180,140,.12));
+      border-color: rgba(101,67,33,.12);
+    }
+
+    body.bg-mint {
+      --text: #0d3d2d;
+      --muted: #446854;
+      background: #e8f8f5;
+    }
+    body.bg-mint .card-btn,
+    body.bg-mint .backbtn,
+    body.bg-mint .modal-content,
+    body.bg-mint .nav-btn {
+      background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(240,255,250,.7));
+      border-color: rgba(0,100,80,.15);
+      box-shadow: 0 4px 16px rgba(0,100,80,.1);
+    }
+    body.bg-mint .notice {
+      background: linear-gradient(135deg, rgba(0,200,150,.1), rgba(100,220,200,.1));
+      border-color: rgba(0,100,80,.12);
+    }
+
+    body.bg-lavender {
+      --text: #2d1a40;
+      --muted: #5c4a6b;
+      background: #f5f0ff;
+    }
+    body.bg-lavender .card-btn,
+    body.bg-lavender .backbtn,
+    body.bg-lavender .modal-content,
+    body.bg-lavender .nav-btn {
+      background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(250,245,255,.7));
+      border-color: rgba(75,0,130,.15);
+      box-shadow: 0 4px 16px rgba(75,0,130,.1);
+    }
+    body.bg-lavender .notice {
+      background: linear-gradient(135deg, rgba(138,43,226,.1), rgba(186,85,211,.1));
+      border-color: rgba(75,0,130,.12);
+    }
+
+    body.bg-peach {
+      --text: #3d1a0d;
+      --muted: #6b4a3d;
+      background: #fff5eb;
+    }
+    body.bg-peach .card-btn,
+    body.bg-peach .backbtn,
+    body.bg-peach .modal-content,
+    body.bg-peach .nav-btn {
+      background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(255,250,240,.7));
+      border-color: rgba(139,69,19,.15);
+      box-shadow: 0 4px 16px rgba(139,69,19,.1);
+    }
+    body.bg-peach .notice {
+      background: linear-gradient(135deg, rgba(255,140,0,.12), rgba(255,160,122,.12));
+      border-color: rgba(139,69,19,.12);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background: var(--bg);
+      display:flex;
+      align-items: stretch;
+      justify-content: center;
+    }
+
+    .container{
+      width: min(1100px, 100%);
+      padding: 24px clamp(16px, 3vw, 32px) 40px;
+    }
+
+    header{
+      display:grid;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .brand{
+      display:flex; align-items:center; gap:20px; flex-wrap:wrap; justify-content: space-between;
+    }
+    .brand-left{
+      display:flex; align-items:center; gap:12px; flex-wrap:wrap; flex: 1;
+    }
+    .logo{
+      width:56px; height:56px; object-fit: contain;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,.4));
+    }
+    .benny-logo{
+      width: 80px; height: 80px; object-fit: contain;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,.4));
+      display: block;
+      flex-shrink: 0;
+    }
+    .title {
+      font-weight:800; letter-spacing:.3px; line-height:1.1; font-size: clamp(26px, 4vw, 40px);
+    }
+    .subtitle{ color:var(--muted); font-size: clamp(14px, 2.4vw, 16px); }
+
+    .notice{
+      padding: 16px 20px; border-radius: var(--radius);
+      background: linear-gradient(135deg, rgba(255,92,0,.08), rgba(91,176,255,.08));
+      border: 1px solid rgba(255,255,255,.1);
+      font-size: 14px; line-height: 1.5;
+    }
+
+    .screen{ 
+      display:none; 
+      outline: none;
+    }
+    .screen.active{ 
+      display:block; 
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+    @media (max-width: 900px){
+      .grid{ grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 600px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
+    /* Home screen layout */
+    #screen-home .grid {
+      grid-template-columns: repeat(2, 1fr);
+      max-width: 100%;
+      height: 75vh;  /* Fill most of the screen height */
+      align-content: stretch;
+    }
+
+    #screen-home .card-btn {
+        height: 100%;
+        justify-content: center;
+        align-items: center; /* Center content */
+        text-align: center;
+    }
+
+    #screen-home .card-btn .btn-title {
+        font-size: clamp(32px, 5vw, 48px); /* Larger text */
+        margin-bottom: 12px;
+    }
+
+    #screen-home .card-btn .row {
+        justify-content: center;
+    }
+
+    #screen-home .card-btn .pill {
+        font-size: 16px; 
+        padding: 8px 16px;
+    }
+
+    @media (max-width: 900px){
+      #screen-home .grid{ grid-template-columns: 1fr; height: auto; }
+      #screen-home .card-btn { height: 160px; }
+    }
+
+    /* Settings screen layout */
+    #screen-settings .grid{
+      grid-template-columns: repeat(3, 1fr);
+      max-width: 100%;
+    }
+    @media (max-width: 900px){
+      #screen-settings .grid{ grid-template-columns: 1fr; }
+    }
+
+    .card-btn{
+      display:flex; flex-direction:column; justify-content:space-between; gap:12px;
+      padding:22px; width:100%; text-align:left; cursor:pointer;
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow: 0 8px 24px rgba(0,0,0,.25);
+      outline: none;
+      transition: transform .08s ease, box-shadow .08s ease, background .2s ease;
+      color: var(--text);
+    }
+    .card-btn:hover{
+      transform: translateY(-2px);
+      box-shadow: 0 14px 34px rgba(0,0,0,.35);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    }
+    .card-btn:focus{
+      box-shadow: var(--ring);
+    }
+
+    /* Card Content Structure: Seamless Image & Action */
+    .card-btn.has-img {
+      padding: 0;
+      gap: 0;
+      /* Inherits base gradient background */
+    }
+
+    .card-content {
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .card-image-section {
+      width: 100%;
+      height: 220px; /* Increased height to fill space */
+      position: relative;
+      margin-top: auto; 
+    }
+    
+    .card-image-section img {
+      width: 100%; 
+      height: 100%; 
+      object-fit: cover;
+      display: block;
+      /* Dynamic slash cut: leaves space bottom-right for the button */
+      clip-path: polygon(0 0, 100% 0, 100% 40%, 65% 100%, 0 100%);
+      /* Seamless fade gradient from top */
+      mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 30%);
+    }
+
+    .card-action-overlay {
+      position: absolute;
+      bottom: 12px; 
+      right: 12px;
+      z-index: 5;
+    }
+
+    /* Adjust to be a circular play button icon */
+    .card-action-overlay .play-icon {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--narbe-blue), var(--narbe-orange));
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.6);
+      color: #082032;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    
+    .card-btn:hover .play-icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+    
+    .play-icon svg {
+      width: 36px; height: 36px;
+      fill: currentColor;
+      display: block;
+      margin-left: 4px; /* Optical center adjustment */
+    }
+    
+    .card-btn.has-img .desc {
+      /* Reset constraints */
+      max-width: 100%;
+      text-shadow: none;
+      display: block;
+      color: var(--muted);
+    }
+    
+    .card-btn.has-img .btn-title {
+      text-shadow: none;
+    }
+
+    .kicker{
+      font-size:12px; letter-spacing: .14em; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .btn-title{
+      font-size: clamp(18px, 3vw, 24px); font-weight:800; line-height:1.2; padding-bottom: 2px;
+      background: linear-gradient(90deg, var(--narbe-orange), var(--narbe-blue));
+      -webkit-background-clip:text; background-clip:text; color: transparent;
+    }
+    .desc{ color: var(--muted); font-size: 14px; }
+
+    .row{
+      display:flex; align-items:center; gap:12px; justify-content:space-between;
+    }
+    .pill{
+      padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700;
+      color:#082032; background: linear-gradient(90deg, var(--narbe-blue), var(--narbe-orange));
+      border:1px solid rgba(255,255,255,.2);
+    }
+
+    .footer-note{ margin-top:22px; color: var(--muted); font-size:13px; }
+    .kbd{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background:#0f1724; border:1px solid rgba(255,255,255,.18); padding:2px 6px; border-radius:6px; color:#d3e3ff; }
+
+    .controls-bar{
+      display:flex; gap:10px; margin: 8px 0 16px 0; align-items:center; flex-wrap:wrap;
+      justify-content: space-between;
+    }
+    .controls-left{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    }
+    .controls-right{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+    }
+
+    .nav-btn{
+      appearance:none; border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.03); color:var(--text);
+      padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer;
+      transition: all .2s ease; outline: none;
+    }
+    .nav-btn:hover{
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.05);
+    }
+    .nav-btn:focus{ box-shadow: var(--ring); }
+    .nav-btn:disabled{
+      opacity: .5; cursor: not-allowed;
+    }
+
+    .backbtn{ 
+      appearance:none; border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.03); color:var(--text);
+      padding:10px 14px; border-radius:12px; font-weight:700; cursor:pointer;
+    }
+    .backbtn:focus{ box-shadow: var(--ring); }
+
+    .page-info{
+      color: var(--muted); font-size: 14px; font-weight: 600;
+    }
+
+    .genre-filter{
+      color: var(--text); font-size: 14px; font-weight: 600;
+    }
+
+    /* Visually hidden, but screen-reader available */
+    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+    /* Fullscreen Modal */
+    .modal-overlay{
+      position: fixed; inset: 0; background: rgba(0,0,0,.85);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 9999; backdrop-filter: blur(8px);
+    }
+    .modal-overlay.hidden{ display: none; }
+    .modal-content{
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--radius);
+      padding: 32px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    }
+    .modal-title{
+      font-size: 28px; font-weight: 800; margin: 0 0 12px 0;
+      background: linear-gradient(90deg, var(--narbe-orange), var(--narbe-blue));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .modal-text{
+      color: var(--muted); margin: 0 0 24px 0; line-height: 1.5;
+    }
+    .modal-buttons{
+      display: flex; gap: 12px; justify-content: flex-end;
+    }
+    .modal-btn{
+      padding: 12px 24px; border-radius: 12px; font-weight: 700;
+      cursor: pointer; border: 1px solid rgba(255,255,255,.12);
+      transition: all .2s ease; outline: none;
+    }
+    .modal-btn.primary{
+      background: linear-gradient(90deg, var(--narbe-orange), var(--narbe-blue));
+      color: #0b0f14; border-color: transparent;
+    }
+    .modal-btn.secondary{
+      background: rgba(255,255,255,.03); color: var(--text);
+    }
+    .modal-btn:hover{ transform: translateY(-2px); }
+    .modal-btn:focus{ box-shadow: var(--ring); }
+
+    /* Iframe Container */
+    .iframe-container{
+      position: fixed; inset: 0; background: var(--bg);
+      z-index: 9000; display: none; flex-direction: column;
+    }
+    .iframe-container.active{ display: flex; }
+    .iframe-header{
+      display: flex; align-items: center; gap: 12px;
+      padding: 16px 24px; background: rgba(0,0,0,.3);
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .iframe-back{
+      appearance: none; border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.03); color: var(--text);
+      padding: 10px 14px; border-radius: 12px; font-weight: 700;
+      cursor: pointer; outline: none;
+    }
+    .iframe-back:focus{ box-shadow: var(--ring); }
+    .iframe-title{
+      font-weight: 800; font-size: 18px;
+      background: linear-gradient(90deg, var(--narbe-orange), var(--narbe-blue));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .iframe-wrapper{
+      flex: 1; position: relative; overflow: hidden;
+    }
+    .iframe-wrapper iframe{
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      border: none; background: white;
+    }
+
+    /* Settings specific styles */
+    /* Size Modifiers - Tweaked to ensure strictly larger than default */
+    body.size-large { font-size: 18px; }
+    body.size-larger { font-size: 22px; }
+    body.size-largest { font-size: 26px; }
+    
+    /* Title Scaling */
+    body.size-large .title { font-size: clamp(32px, 5vw, 48px); }
+    body.size-larger .title { font-size: clamp(38px, 6vw, 58px); }
+    body.size-largest .title { font-size: clamp(48px, 8vw, 72px); }
+
+    /* Button Title Scaling - Default max is 24px */
+    body.size-large .btn-title { font-size: clamp(22px, 3.5vw, 28px); }
+    body.size-larger .btn-title { font-size: clamp(26px, 4.5vw, 36px); }
+    body.size-largest .btn-title { font-size: clamp(32px, 6vw, 48px); }
+
+    /* Description and Text Scaling - Default is 14px */
+    body.size-large .desc, 
+    body.size-large .notice,
+    body.size-large .subtitle,
+    body.size-large .page-info,
+    body.size-large .genre-filter,
+    body.size-large .footer-note,
+    body.size-large .setting-value { font-size: 18px; }
+
+    body.size-larger .desc, 
+    body.size-larger .notice,
+    body.size-larger .subtitle,
+    body.size-larger .page-info,
+    body.size-larger .genre-filter,
+    body.size-larger .footer-note,
+    body.size-larger .setting-value { font-size: 22px; }
+
+    body.size-largest .desc, 
+    body.size-largest .notice,
+    body.size-largest .subtitle,
+    body.size-largest .page-info,
+    body.size-largest .genre-filter,
+    body.size-largest .footer-note,
+    body.size-largest .setting-value { font-size: 28px; }
+
+    /* Pill/Badge Scaling - Default 12px */
+    body.size-large .pill { font-size: 14px; padding: 7px 12px; }
+    body.size-larger .pill { font-size: 16px; padding: 8px 14px; }
+    body.size-largest .pill { font-size: 20px; padding: 10px 18px; }
+
+    /* Card Height Scaling */
+    body.size-large .card-btn { min-height: 160px; }
+    body.size-larger .card-btn { min-height: 200px; }
+    body.size-largest .card-btn { min-height: 240px; }
+    
+    /* Navigation Button Scaling */
+    body.size-large .nav-btn, body.size-large .backbtn { font-size: 18px; padding: 14px 20px; }
+    body.size-larger .nav-btn, body.size-larger .backbtn { font-size: 22px; padding: 16px 24px; }
+    body.size-largest .nav-btn, body.size-largest .backbtn { font-size: 26px; padding: 20px 30px; }
+
+    .setting-item {
+      display: flex; justify-content: space-between; align-items: center;
+        padding: 18px; background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+    }
+    .setting-label {
+      font-weight: 700; font-size: 16px;
+    }
+    .setting-value {
+      font-size: 14px; color: var(--muted);
+    }
+    .toggle-btn {
+      padding: 8px 16px; border-radius: 8px; font-weight: 600;
+      background: linear-gradient(90deg, var(--narbe-orange), var(--narbe-blue));
+      color: #0b0f14; border: none; cursor: pointer;
+    }
+
+    /* Genre filter screen */
+    #screen-genre-filter .grid{
+      max-width: 720px;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+  <!-- Iframe Container -->
+  <div class="iframe-container" id="iframe-container">
+    <div class="iframe-header">
+      <button class="iframe-back" id="iframe-back">← Back</button>
+      <div class="iframe-title" id="iframe-title">Tool</div>
+    </div>
+    <div class="iframe-wrapper">
+      <iframe id="app-iframe" title="Embedded tool" allow="fullscreen"></iframe>
+    </div>
+  </div>
+
+  <a class="sr-only" href="#main">Skip to main content</a>
+  <div class="container">
+
+    <header>
+      <div class="brand" aria-label="NARBE brand header">
+        <div class="brand-left">
+          <div>
+            <div class="title">NARBE HUB</div>
+          </div>
+        </div>
+        <img src="images/BeaminBenny.png" 
+             srcset="images/BeaminBenny.png 1x, ./images/BeaminBenny.png 2x"
+             onerror="console.error('Failed to load Benny logo. Trying alternative paths...'); 
+                      if(this.src.indexOf('./') !== 0) { 
+                        this.src = './images/BeaminBenny.png'; 
+                      } else if(window.location.hostname.includes('github')) { 
+                        this.src = '/bennyshub/images/BeaminBenny.png'; 
+                      } else { 
+                        this.style.border='2px dashed var(--narbe-orange)'; 
+                        this.alt='[Benny Logo Missing - Check images/BeaminBenny.png]'; 
+                        this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2280%22 height=%2280%22 viewBox=%220 0 80 80%22%3E%3Crect width=%2280%22 height=%2280%22 fill=%22%23ff5c00%22 opacity=%220.2%22 rx=%228%22/%3E%3Ctext x=%2240%22 y=%2245%22 text-anchor=%22middle%22 font-family=%22sans-serif%22 font-size=%2214%22 fill=%22%23ff5c00%22%3EBenny%3C/text%3E%3C/svg%3E';
+                      }" 
+             onload="console.log('Benny logo loaded successfully from:', this.src);"
+             alt="Beamin Benny" 
+             class="benny-logo" />
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <!-- HOME SCREEN -->
+      <section id="screen-home" class="screen active" aria-labelledby="home-heading" data-screen="home" tabindex="-1">
+        <h2 id="home-heading" class="sr-only">Main menu</h2>
+        <div class="grid" role="group" aria-label="Main menu buttons">
+          <button class="card-btn nav" data-target="tools">
+            <div class="btn-title">Tools</div>
+            <div class="row">
+              <span class="pill">Open</span>
+            </div>
+          </button>
+
+          <button class="card-btn nav" data-target="games">
+            <div class="btn-title">Games</div>
+            <div class="row">
+              <span class="pill">Open</span>
+            </div>
+          </button>
+
+          <button class="card-btn nav" data-target="settings">
+            <div class="btn-title">Settings</div>
+            <div class="row">
+              <span class="pill">Open</span>
+            </div>
+          </button>
+
+          <button class="card-btn nav" data-target="system">
+            <div class="btn-title">System Settings</div>
+            <div class="row">
+              <span class="pill">Configure</span>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      <!-- TOOLS SCREEN -->
+      <section id="screen-tools" class="screen" aria-labelledby="tools-heading" data-screen="tools" tabindex="-1">
+        <div class="controls-bar">
+          <div class="controls-left">
+            <button class="backbtn" data-target="home" aria-label="Back to main menu">← Back</button>
+            <button class="nav-btn" id="tools-genre-toggle">Filter: All</button>
+            <button class="nav-btn" id="tools-genre-reset">Reset</button>
+          </div>
+          <div class="controls-right">
+            <span class="page-info" id="tools-page-info">Page 1 of 1</span>
+            <button class="nav-btn" id="tools-prev" disabled aria-label="Previous page">← Previous</button>
+            <button class="nav-btn" id="tools-next" disabled aria-label="Next page">Next →</button>
+          </div>
+        </div>
+        <h2 id="tools-heading" class="sr-only">Tools</h2>
+        <div class="grid" role="group" aria-label="Tools list" id="tools-grid">
+          <!-- Tools will be populated by JavaScript -->
+        </div>
+        <p class="footer-note">Press <span class="kbd">spacebar</span> to move focus. Press <span class="kbd">return</span> to open a tool. Use the Back button to return here.</p>
+      </section>
+
+      <!-- GAMES SCREEN -->
+      <section id="screen-games" class="screen" aria-labelledby="games-heading" data-screen="games" tabindex="-1">
+        <div class="controls-bar">
+          <div class="controls-left">
+            <button class="backbtn" data-target="home" aria-label="Back to main menu">← Back</button>
+            <button class="nav-btn" id="games-genre-toggle">Filter: All</button>
+            <button class="nav-btn" id="games-genre-reset">Reset</button>
+          </div>
+          <div class="controls-right">
+            <span class="page-info" id="games-page-info">Page 1 of 1</span>
+            <button class="nav-btn" id="games-prev" disabled aria-label="Previous page">← Previous</button>
+            <button class="nav-btn" id="games-next" disabled aria-label="Next page">Next →</button>
+          </div>
+        </div>
+        <h2 id="games-heading" class="sr-only">Games</h2>
+        <div class="grid" role="group" aria-label="Games list" id="games-grid">
+          <!-- Games will be populated by JavaScript -->
+        </div>
+        <p class="footer-note">Press <span class="kbd">spacebar</span> to move focus. Press <span class="kbd">return</span> to launch the game. Use the Back button to return here.</p>
+      </section>
+
+      <!-- GENRE FILTER SCREEN -->
+      <section id="screen-genre-filter" class="screen" aria-labelledby="genre-filter-heading" data-screen="genre-filter" tabindex="-1">
+        <div class="controls-bar">
+          <div class="controls-left">
+            <button class="backbtn" id="genre-back-btn" aria-label="Back to previous menu">← Back</button>
+          </div>
+          <div class="controls-right">
+            <span class="genre-filter" id="current-filter">All Items</span>
+          </div>
+        </div>
+        <h2 id="genre-filter-heading" class="sr-only">Filter by Genre</h2>
+        <div class="grid" role="group" aria-label="Genre filter options" id="genre-grid">
+          <!-- Genre options will be populated by JavaScript -->
+        </div>
+        <p class="footer-note">Press <span class="kbd">spacebar</span> to move focus. Press <span class="kbd">return</span> to select a genre filter.</p>
+      </section>
+
+      <!-- SETTINGS SCREEN -->
+      <section id="screen-settings" class="screen" aria-labelledby="settings-heading" data-screen="settings" tabindex="-1">
+        <div class="controls-bar">
+          <div class="controls-left">
+            <button class="backbtn" data-target="home" aria-label="Back to main menu">← Back</button>
+          </div>
+        </div>
+        <h2 id="settings-heading" class="sr-only">Settings</h2>
+        <div class="grid" role="group" aria-label="Settings list">
+          <button class="card-btn" id="highlight-toggle">
+            <span class="kicker">Setting</span>
+            <div class="btn-title">Highlight Color</div>
+            <div class="row">
+              <p class="desc">Change focus highlight color</p>
+              <span class="pill" id="highlight-status">Blue</span>
+            </div>
+          </button>
+
+          <button class="card-btn" id="highlight-style-toggle">
+            <span class="kicker">Setting</span>
+            <div class="btn-title">Highlight Style</div>
+            <div class="row">
+              <p class="desc">Toggle outline or full cell highlight</p>
+              <span class="pill" id="highlight-style-status">Outline</span>
+            </div>
+          </button>
+
+          <button class="card-btn" id="textcolor-toggle">
+            <span class="kicker">Setting</span>
+            <div class="btn-title">Text Color</div>
+            <div class="row">
+              <p class="desc">Change text color scheme</p>
+              <span class="pill" id="textcolor-status">Default</span>
+            </div>
+          </button>
+
+          <button class="card-btn" id="bgtheme-toggle">
+            <span class="kicker">Setting</span>
+            <div class="btn-title">Background Theme</div>
+            <div class="row">
+              <p class="desc">Change background colors</p>
+              <span class="pill" id="bgtheme-status">Default</span>
+            </div>
+          </button>
+
+          <button class="card-btn" id="tts-toggle">
+            <span class="kicker">Setting</span>
+            <div class="btn-title">Text-to-Speech</div>
+            <div class="row">
+              <p class="desc">Enable spoken feedback</p>
+              <span class="pill" id="tts-status">On</span>
+            </div>
+          </button>
+
+          <button class="card-btn" id="voice-toggle">
+            <span class="kicker">Setting</span>
+            <div class="btn-title">Voice</div>
+            <div class="row">
+              <p class="desc">Change TTS voice</p>
+              <span class="pill" id="voice-status">Default</span>
+            </div>
+          </button>
+
+          <button class="card-btn" id="autoscan-toggle">
+            <span class="kicker">Setting</span>
+            <div class="btn-title">Auto Scan</div>
+            <div class="row">
+              <p class="desc">Automatically move focus every 2 seconds</p>
+              <span class="pill" id="autoscan-status">Off</span>
+            </div>
+          </button>
+
+          <button class="card-btn" id="scanspeed-toggle">
+            <span class="kicker">Setting</span>
+            <div class="btn-title">Scan Speed</div>
+            <div class="row">
+              <p class="desc">Change auto/backward scan speed</p>
+              <span class="pill" id="scanspeed-status">Medium</span>
+            </div>
+          </button>
+
+          <button class="card-btn" id="uisize-toggle">
+            <span class="kicker">Setting</span>
+            <div class="btn-title">Size</div>
+            <div class="row">
+              <p class="desc">Change text and tile size</p>
+              <span class="pill" id="uisize-status">Default</span>
+            </div>
+          </button>
+        </div>
+        <p class="footer-note">Press <span class="kbd">spacebar</span> to move focus. Press <span class="kbd">return</span> to toggle settings. Use the Back button to return home.</p>
+      </section>
+
+      <!-- SYSTEM SETTINGS SCREEN -->
+      <section id="screen-system" class="screen" aria-labelledby="system-heading" data-screen="system" tabindex="-1">
+        <div class="controls-bar">
+          <div class="controls-left">
+            <button class="backbtn" data-target="home">← Back</button>
+          </div>
+          <h2 id="system-heading" class="title">System Operations</h2>
+        </div>
+        
+        <div class="grid">
+          <button class="card-btn" onclick="sysCall('volume/up')">
+            <div class="btn-title">Volume Up</div>
+            <div class="row"><span class="pill">Louder</span></div>
+          </button>
+          <button class="card-btn" onclick="sysCall('volume/down')">
+            <div class="btn-title">Volume Down</div>
+             <div class="row"><span class="pill">Quieter</span></div>
+          </button>
+           <button class="card-btn" onclick="sysCall('volume/mute')">
+            <div class="btn-title">Mute / Unmute</div>
+             <div class="row"><span class="pill">Toggle</span></div>
+          </button>
+
+          <button class="card-btn" onclick="sysCall('timer/30')">
+            <div class="btn-title">Shutdown 30m</div>
+             <div class="row"><span class="pill">Timer</span></div>
+          </button>
+          <button class="card-btn" onclick="sysCall('timer/60')">
+            <div class="btn-title">Shutdown 60m</div>
+             <div class="row"><span class="pill">Timer</span></div>
+          </button>
+          <button class="card-btn" onclick="sysCall('timer/90')">
+            <div class="btn-title">Shutdown 90m</div>
+             <div class="row"><span class="pill">Timer</span></div>
+          </button>
+          <button class="card-btn" onclick="sysCall('power/cancel')">
+            <div class="btn-title">Cancel Timer</div>
+             <div class="row"><span class="pill">Action</span></div>
+          </button>
+
+          <button class="card-btn danger" onclick="sysCall('power/restart')">
+            <div class="btn-title">Restart</div>
+            <div class="row"><span class="pill" style="background:#ffb703;color:black">Reboot</span></div>
+          </button>
+          <button class="card-btn danger" onclick="sysCall('power/shutdown')">
+            <div class="btn-title">Shut Down Now</div>
+            <div class="row"><span class="pill" style="background:#ff0000;color:white">Power Off</span></div>
+          </button>
+
+          <button class="card-btn danger" onclick="sysCall('close_app')">
+            <div class="btn-title">Close App</div>
+            <div class="row"><span class="pill" style="background:#666">Exit Hub</span></div>
+          </button>
+
+          <button class="card-btn danger" onclick="sysCall('emergency')">
+            <div class="btn-title">EMERGENCY</div>
+            <div class="row"><span class="pill" style="background:red; font-weight:bold;">ALERT</span></div>
+          </button>
+        </div>
+      </section>
+
+      <!-- Live polite announcements for screen-reader users -->
+      <div aria-live="polite" aria-atomic="true" class="sr-only" id="live"></div>
+    </main>
+  </div>
+
+  <!-- Include shared voice manager -->
+  <script src="shared/voice-manager.js"></script>
+  <!-- Shared Scan Manager -->
+  <script src="shared/scan-manager.js"></script>
+  
+  <script>
+    /**
+     * NARBE Accessibility Hub
+     * JSON-based app management with pagination and genre filtering
+     */
+
+    const SCREENS = {
+      home: document.getElementById('screen-home'),
+      tools: document.getElementById('screen-tools'),
+      games: document.getElementById('screen-games'),
+      settings: document.getElementById('screen-settings'),
+      system: document.getElementById('screen-system'),
+      'genre-filter': document.getElementById('screen-genre-filter'),
+    };
+
+    const live = document.getElementById('live');
+    const iframeContainer = document.getElementById('iframe-container');
+    const iframeBack = document.getElementById('iframe-back');
+    const iframeTitle = document.getElementById('iframe-title');
+    const appIframe = document.getElementById('app-iframe');
+
+    // App data and state
+    let appsData = { tools: [], games: [] };
+    let currentScreen = 'home';
+    let filterState = {
+      tools: { genre: 'all', page: 0 },
+      games: { genre: 'all', page: 0 }
+    };
+    const ITEMS_PER_PAGE = 9;
+
+    // Settings state
+    let settings = {
+      highlightColor: 'blue',
+      highlightStyle: 'outline',
+      textColor: 'default',
+      bgTheme: 'default',
+      uiSize: 'default',
+      // Scan settings managed by NarbeScanManager
+    };
+
+    // Auto scan state
+    let autoScanInterval = null;
+    let spaceHoldTimeout = null;
+    let backwardsScanInterval = null;
+    let spaceHoldStartTime = 0;
+    
+    // BACKWARDS_SCAN_THRESHOLD stays constant as requested (3 seconds)
+    const BACKWARDS_SCAN_THRESHOLD = 3000; 
+    
+    // Helper to get current delay
+    function getScanDelay() {
+      // Use shared manager if available, else fallback default
+      if (window.NarbeScanManager) {
+          return window.NarbeScanManager.getScanInterval();
+      }
+      return 2000;
+    }
+
+    // Load JSON data for apps
+    async function loadAppsData() {
+      try {
+        console.log('Loading apps data...');
+        const [toolsResponse, gamesResponse] = await Promise.all([
+          fetch('apps/tools/tools.json'),
+          fetch('apps/games/games.json')
+        ]);
+        
+        if (!toolsResponse.ok) {
+          console.error('Failed to fetch tools.json:', toolsResponse.status);
+        }
+        if (!gamesResponse.ok) {
+          console.error('Failed to fetch games.json:', gamesResponse.status);
+        }
+        
+        const toolsData = await toolsResponse.json();
+        const gamesData = await gamesResponse.json();
+        
+        appsData.tools = toolsData.tools.sort((a, b) => a.title.localeCompare(b.title));
+        appsData.games = gamesData.games.sort((a, b) => a.title.localeCompare(b.title));
+        
+        console.log('Apps data loaded:', appsData);
+        console.log('Tools count:', appsData.tools.length);
+        console.log('Games count:', appsData.games.length);
+      } catch (error) {
+        console.error('Failed to load apps data:', error);
+        // Fallback to empty arrays
+        appsData = { tools: [], games: [] };
+      }
+    }
+
+    // Get unique genres for a category
+    function getGenres(category) {
+      const items = appsData[category] || [];
+      const genreSet = new Set();
+      items.forEach(item => {
+        if (item.genres) {
+          item.genres.forEach(genre => genreSet.add(genre));
+        }
+      });
+      return Array.from(genreSet).sort();
+    }
+
+    // Filter items by genre
+    function filterItemsByGenre(category, genre) {
+      const items = appsData[category] || [];
+      
+      if (genre === 'all' || !genre) {
+        return items.sort((a, b) => a.title.localeCompare(b.title));
+      }
+      return items.filter(item => item.genres && item.genres.includes(genre))
+                  .sort((a, b) => a.title.localeCompare(b.title));
+    }
+
+    // Paginate items
+    function paginateItems(items, page) {
+      const startIndex = page * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE;
+      return {
+        items: items.slice(startIndex, endIndex),
+        totalPages: Math.ceil(items.length / ITEMS_PER_PAGE),
+        currentPage: page + 1,
+        hasNext: endIndex < items.length,
+        hasPrevious: page > 0
+      };
+    }
+
+    // Create app card HTML
+    function createAppCard(app, category) {
+      const categoryLabel = category === 'tools' ? 'Tool' : 'Game';
+      const actionLabel = category === 'tools' ? 'Launch' : 'Play';
+      
+      const hasImage = !!app.image;
+      const hasImgClass = hasImage ? 'has-img' : '';
+      
+      // Support standalone apps with launchUrl instead of path
+      const pathAttr = app.path ? `data-path="${app.path}"` : '';
+      const launchAttr = app.launchUrl ? `data-launch-url="${app.launchUrl}"` : '';
+      // Support server-based apps (like streaming)
+      const serverAppAttr = app.serverApp ? `data-server-app='${JSON.stringify(app.serverApp)}'` : '';
+      // Support external URLs (for apps with their own servers)
+      const externalUrlAttr = app.externalUrl ? `data-external-url="${app.externalUrl}"` : '';
+      // Support Electron external app launches
+      const launchExternalAttr = app.launchExternal ? `data-launch-external="${app.launchExternal}"` : '';
+      // Support server port apps (like ytsearch) - needs localhost to work
+      const serverPortAttr = app.serverPort ? `data-server-port="${app.serverPort}"` : '';
+      
+      if (hasImage) {
+        return `
+          <button class="card-btn app-btn ${hasImgClass}" ${pathAttr} ${launchAttr} ${serverAppAttr} ${externalUrlAttr} ${launchExternalAttr} ${serverPortAttr} data-title="${app.title}">
+            <div class="card-content">
+              <div class="btn-title">${app.title}</div>
+            </div>
+            <div class="card-image-section">
+              <img src="${app.image}" alt="" loading="lazy">
+              <div class="card-action-overlay">
+                 <div class="play-icon">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                 </div>
+              </div>
+            </div>
+          </button>
+        `;
+      }
+
+      // Default card layout (no image)
+      return `
+        <button class="card-btn app-btn" ${pathAttr} ${launchAttr} ${serverAppAttr} ${externalUrlAttr} ${launchExternalAttr} ${serverPortAttr} data-title="${app.title}">
+          <div class="btn-title">${app.title}</div>
+          <div class="row">
+            <span class="pill">${actionLabel}</span>
+          </div>
+        </button>
+      `;
+    }
+
+    // Create genre filter card HTML
+    function createGenreCard(genre, isAll = false) {
+      return `
+        <button class="card-btn genre-btn" data-genre="${genre}">
+          <div class="btn-title">${genre}</div>
+          <div class="row">
+            <span class="pill">Select</span>
+          </div>
+        </button>
+      `;
+    }
+
+    // Render apps grid
+    function renderAppsGrid(category) {
+      const grid = document.getElementById(`${category}-grid`);
+      const pageInfo = document.getElementById(`${category}-page-info`);
+      const prevBtn = document.getElementById(`${category}-prev`);
+      const nextBtn = document.getElementById(`${category}-next`);
+      
+      const state = filterState[category];
+      const filteredItems = filterItemsByGenre(category, state.genre);
+      const paginatedData = paginateItems(filteredItems, state.page);
+      
+      // Update grid
+      const gridHTML = paginatedData.items.map(app => createAppCard(app, category)).join('');
+      grid.innerHTML = gridHTML;
+      
+      // Update page info
+      if (paginatedData.totalPages > 0) {
+        pageInfo.textContent = `Page ${paginatedData.currentPage} of ${paginatedData.totalPages}`;
+      } else {
+        pageInfo.textContent = 'No items found';
+      }
+      
+      // Update navigation buttons
+      prevBtn.disabled = !paginatedData.hasPrevious;
+      nextBtn.disabled = !paginatedData.hasNext;
+      
+      // Add event listeners to app buttons
+      grid.querySelectorAll('.app-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          // Prevent click-through during transitions
+          if (isTransitioning) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          
+          const path = btn.getAttribute('data-path');
+          const launchUrl = btn.getAttribute('data-launch-url');
+          const serverAppData = btn.getAttribute('data-server-app');
+          const externalUrl = btn.getAttribute('data-external-url');
+          const launchExternal = btn.getAttribute('data-launch-external');
+          const serverPort = btn.getAttribute('data-server-port');
+          const title = btn.getAttribute('data-title');
+          
+          // Check if running in Electron
+          const isElectron = typeof window !== 'undefined' && window.electronAPI;
+          
+          // Check if this is an Electron external app launch (messenger, search, streaming)
+          if (launchExternal && isElectron) {
+            try {
+              if (launchExternal === 'messenger') {
+                await window.electronAPI.launch.messenger();
+              } else if (launchExternal === 'search') {
+                await window.electronAPI.launch.search();
+              } else if (launchExternal === 'streaming') {
+                await window.electronAPI.launch.streaming();
+              }
+            } catch (err) {
+              console.error('External app launch failed:', err);
+              speak('Error launching app');
+            }
+            return;
+          }
+          
+          // Check if this is a server-port app (like ytsearch) - needs localhost for YouTube embed
+          if (serverPort && isElectron) {
+            try {
+              console.log(`[Hub] Starting server for ${title} on port ${serverPort}...`);
+              const result = await window.electronAPI.launch.ytsearchServer();
+              if (result.success) {
+                console.log(`[Hub] Server ready at ${result.url}`);
+                // Load from localhost instead of file://
+                showIframe(result.url, title, true);
+              } else {
+                console.error('Failed to start server:', result.error);
+                speak('Error starting server');
+                // Fallback to file:// path
+                if (path) showIframe(path, title);
+              }
+            } catch (err) {
+              console.error('Server launch failed:', err);
+              speak('Error starting server');
+              // Fallback to file:// path
+              if (path) showIframe(path, title);
+            }
+            return;
+          }
+          
+          // Check if this is an external URL (for apps with their own servers, like streaming)
+          if (externalUrl) {
+            showIframe(externalUrl, title);
+          }
+          // Check if this is a server-based app (like streaming)
+          else if (serverAppData) {
+            try {
+              const serverApp = JSON.parse(serverAppData);
+              // Start the server and wait for it to be ready
+              const response = await fetch('/api/start-server-app', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(serverApp)
+              });
+              if (response.ok) {
+                // Give the server a moment to start, then load the iframe
+                setTimeout(() => {
+                  showIframe(serverApp.url, title, true);  // true = is server app
+                }, 1000);
+              } else {
+                console.error('Failed to start server app');
+                speak('Error starting app');
+              }
+            } catch (err) {
+              console.error('Server app launch failed:', err);
+              speak('Error starting app');
+            }
+          }
+          // Check if this is a standalone app (has launchUrl instead of path)
+          else if (launchUrl) {
+            // Launch standalone app via server - this will close hub and run the app
+            fetch(launchUrl).catch(err => console.error('Launch failed:', err));
+          } else {
+            showIframe(path, title);
+          }
+        });
+      });
+      
+      // Reset focus when grid changes
+      // focusIndex = -1;  <-- Removed to keep focus position stable during updates
+    }
+
+    // Render genre filter screen
+    function renderGenreFilter(category, returnScreen) {
+      const grid = document.getElementById('genre-grid');
+      const currentFilter = document.getElementById('current-filter');
+      const backBtn = document.getElementById('genre-back-btn');
+      
+      const genres = getGenres(category);
+      const allGenres = ['All Items', ...genres];
+      
+      grid.innerHTML = allGenres.map((genre, index) => {
+        const genreValue = index === 0 ? 'all' : genre;
+        return `
+          <button class="card-btn genre-btn" data-genre="${genreValue}">
+            <span class="kicker">Filter</span>
+            <div class="btn-title">${genre}</div>
+            <div class="row">
+              <p class="desc">${index === 0 ? 'Show all items' : `Show ${genre.toLowerCase()} items only`}</p>
+              <span class="pill">Select</span>
+            </div>
+          </button>
+        `;
+      }).join('');
+      
+      currentFilter.textContent = filterState[category].genre === 'all' ? 'All Items' : filterState[category].genre;
+      
+      // Update back button target
+      backBtn.setAttribute('data-target', returnScreen);
+      backBtn.setAttribute('data-category', category);
+      
+      // Add event listeners to genre buttons
+      grid.querySelectorAll('.genre-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          // Prevent click-through during transitions
+          if (isTransitioning) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+          
+          const genre = btn.getAttribute('data-genre');
+          const genreName = genre === 'all' ? 'All Items' : genre;
+          
+          filterState[category].genre = genre;
+          filterState[category].page = 0; // Reset to first page
+          
+          speak(`Filter set to ${genreName}`);
+          renderAppsGrid(category);
+          showScreen(returnScreen);
+        });
+      });
+      
+      // Reset focus when screen changes
+      focusIndex = -1;
+    }
+
+    // Load settings from localStorage
+    function loadSettings() {
+      const saved = localStorage.getItem('narbe-hub-settings');
+      if (saved) {
+        settings = { ...settings, ...JSON.parse(saved) };
+        applySettings();
+      }
+    }
+
+    function saveSettings() {
+      localStorage.setItem('narbe-hub-settings', JSON.stringify(settings));
+    }
+
+    function applySettings() {
+      // Apply highlight color - use word boundary to avoid matching highlight-style-full
+      document.body.className = document.body.className.replace(/\bhighlight-(blue|green|purple|red|yellow|white)\b/g, '');
+      document.body.classList.add(`highlight-${settings.highlightColor}`);
+      const highlightNames = { blue: 'Blue', green: 'Green', purple: 'Purple', red: 'Red', yellow: 'Yellow', white: 'White' };
+      document.getElementById('highlight-status').textContent = highlightNames[settings.highlightColor];
+
+      // Apply highlight style
+      if (settings.highlightStyle === 'full') {
+        document.body.classList.add('highlight-style-full');
+      } else {
+        document.body.classList.remove('highlight-style-full');
+      }
+      const styleStatus = document.getElementById('highlight-style-status');
+      if(styleStatus) {
+        styleStatus.textContent = settings.highlightStyle === 'full' ? 'Full Cell' : 'Outline';
+      }
+
+      // Apply text color - be specific about which classes to remove
+      document.body.className = document.body.className.replace(/\btext-(default|green|purple|red|gold|black|white)\b/g, '');
+      if (settings.textColor !== 'default') {
+        document.body.classList.add(`text-${settings.textColor}`);
+      }
+      const textColorNames = { default: 'Default', green: 'Green', purple: 'Purple', red: 'Red', gold: 'Gold', black: 'Black', white: 'White' };
+      document.getElementById('textcolor-status').textContent = textColorNames[settings.textColor];
+
+      // Apply UI size - be specific about which classes to remove
+      document.body.className = document.body.className.replace(/\bsize-(default|large|larger|largest)\b/g, '');
+      if (settings.uiSize && settings.uiSize !== 'default') {
+        document.body.classList.add(`size-${settings.uiSize}`);
+      }
+      const sizeNames = { default: 'Default', large: 'Large', larger: 'Larger', largest: 'Largest' };
+      const sizeEl = document.getElementById('uisize-status');
+      if (sizeEl) sizeEl.textContent = sizeNames[settings.uiSize || 'default'];
+
+      // Apply background theme - be specific about which classes to remove
+      document.body.className = document.body.className.replace(/\bbg-(default|ocean|forest|sunset|midnight|rose|sky|cream|mint|lavender|peach)\b/g, '');
+      if (settings.bgTheme !== 'default') {
+        document.body.classList.add(`bg-${settings.bgTheme}`);
+      }
+      const bgThemeNames = { 
+        default: 'Default', 
+        ocean: 'Ocean', 
+        forest: 'Forest', 
+        sunset: 'Sunset', 
+        midnight: 'Midnight', 
+        rose: 'Rose',
+        sky: 'Sky',
+        cream: 'Cream',
+        mint: 'Mint',
+        lavender: 'Lavender',
+        peach: 'Peach'
+      };
+      document.getElementById('bgtheme-status').textContent = bgThemeNames[settings.bgTheme];
+
+      // Apply scan speed
+      let autoScan = false;
+      let scanSpeedName = 'Medium';
+      
+      if (window.NarbeScanManager) {
+          const scanSettings = window.NarbeScanManager.getSettings();
+          autoScan = scanSettings.autoScan;
+          
+          // Map index to name
+          const speedNames = ['Fast (1s)', 'Medium (2s)', 'Slow (3s)', 'Super Slow (4s)'];
+          scanSpeedName = speedNames[scanSettings.scanSpeedIndex] || 'Medium (2s)';
+      }
+
+      document.getElementById('scanspeed-status').textContent = scanSpeedName;
+
+      // Apply auto scan setting
+      document.getElementById('autoscan-status').textContent = autoScan ? 'On' : 'Off';
+      
+      // Update autoscan description
+      const speedSec = getScanDelay() / 1000;
+      const autoScanDesc = document.querySelector('#autoscan-toggle .desc');
+      if(autoScanDesc) autoScanDesc.textContent = `Automatically move focus every ${speedSec} seconds`;
+
+      if (autoScan) {
+        // Restart to apply new speed if changed
+        stopAutoScan();
+        startAutoScan();
+      } else {
+        stopAutoScan();
+      }
+
+      // Apply TTS status (from voice manager)
+      const voiceSettings = window.NarbeVoiceManager.getSettings();
+      document.getElementById('tts-status').textContent = voiceSettings.ttsEnabled ? 'On' : 'Off';
+
+      // Apply Voice display (from voice manager)
+      updateVoiceDisplay();
+    }
+
+    // Auto scan functions
+    function startAutoScan() {
+      stopAutoScan(); // Restart if running to catch speed changes
+      
+      autoScanInterval = setInterval(() => {
+        if (!isTransitioning && !iframeContainer.classList.contains('active')) {
+          focusNext();
+        }
+      }, getScanDelay());
+    }
+
+    function stopAutoScan() {
+      if (autoScanInterval) {
+        clearInterval(autoScanInterval);
+        autoScanInterval = null;
+      }
+    }
+
+    function focusPrevious() {
+      const list = getFocusables();
+      if(list.length === 0) return;
+      
+      if (focusIndex === -1) {
+        focusIndex = list.length - 1;
+        list[focusIndex].focus();
+        speakFocusedElement(list[focusIndex]);
+        return;
+      }
+      
+      const currentFocused = document.activeElement;
+      const currentIndex = list.indexOf(currentFocused);
+      
+      if (currentIndex >= 0) {
+        focusIndex = currentIndex;
+      }
+      
+      focusAt(focusIndex - 1);
+    }
+
+    // TTS functionality using unified voice manager
+    function speak(text) {
+      window.NarbeVoiceManager.speak(text);
+    }
+
+    function updateVoiceDisplay() {
+      const currentVoice = window.NarbeVoiceManager.getCurrentVoice();
+      const displayName = window.NarbeVoiceManager.getVoiceDisplayName(currentVoice);
+      document.getElementById('voice-status').textContent = displayName;
+    }
+
+    // Update voice display when voice manager settings change
+    window.NarbeVoiceManager.onSettingsChange(() => {
+      updateVoiceDisplay();
+      applySettings();
+    });
+
+    // Settings toggles
+    document.getElementById('highlight-toggle').addEventListener('click', () => {
+      const colors = ['blue', 'green', 'purple', 'red', 'yellow', 'white'];
+      const currentIndex = colors.indexOf(settings.highlightColor);
+      settings.highlightColor = colors[(currentIndex + 1) % colors.length];
+      applySettings();
+      saveSettings();
+      speak(`Highlight color changed to ${settings.highlightColor}`);
+    });
+
+    document.getElementById('highlight-style-toggle').addEventListener('click', () => {
+      settings.highlightStyle = settings.highlightStyle === 'outline' ? 'full' : 'outline';
+      applySettings();
+      saveSettings();
+      speak(`Highlight style changed to ${settings.highlightStyle === 'full' ? 'Full Cell' : 'Outline'}`);
+    });
+
+    document.getElementById('textcolor-toggle').addEventListener('click', () => {
+      const textColors = ['default', 'green', 'purple', 'red', 'gold', 'black', 'white'];
+      const currentIndex = textColors.indexOf(settings.textColor);
+      settings.textColor = textColors[(currentIndex + 1) % textColors.length];
+      applySettings();
+      saveSettings();
+      speak(`Text color changed to ${settings.textColor}`);
+    });
+
+    document.getElementById('bgtheme-toggle').addEventListener('click', () => {
+      const bgThemes = ['default', 'ocean', 'forest', 'sunset', 'midnight', 'rose', 'sky', 'cream', 'mint', 'lavender', 'peach'];
+      const currentIndex = bgThemes.indexOf(settings.bgTheme);
+      settings.bgTheme = bgThemes[(currentIndex + 1) % bgThemes.length];
+      applySettings();
+      saveSettings();
+      speak(`Background theme changed to ${settings.bgTheme}`);
+    });
+
+    document.getElementById('tts-toggle').addEventListener('click', () => {
+      const ttsEnabled = window.NarbeVoiceManager.toggleTTS();
+      applySettings();
+      if (ttsEnabled) {
+        speak('Text to speech enabled');
+      }
+    });
+
+    document.getElementById('voice-toggle').addEventListener('click', () => {
+      const voiceChanged = window.NarbeVoiceManager.cycleVoice();
+      applySettings();
+      // Announce the new voice using the new voice
+      const currentVoice = window.NarbeVoiceManager.getCurrentVoice();
+      const displayName = window.NarbeVoiceManager.getVoiceDisplayName(currentVoice);
+      speak(`Voice ${displayName}`);
+    });
+
+    document.getElementById('autoscan-toggle').addEventListener('click', () => {
+      if (window.NarbeScanManager) {
+        const current = window.NarbeScanManager.getSettings().autoScan;
+        window.NarbeScanManager.setAutoScan(!current);
+        applySettings();
+        speak(`Auto scan ${!current ? 'enabled' : 'disabled'}`);
+      }
+    });
+
+    document.getElementById('scanspeed-toggle').addEventListener('click', () => {
+      if (window.NarbeScanManager) {
+          const newIndex = window.NarbeScanManager.cycleScanSpeed();
+          const speedNames = ['Fast', 'Medium', 'Slow', 'Super Slow'];
+          const name = speedNames[newIndex] || 'Medium';
+          applySettings();
+          speak(`Scan speed changed to ${name}`);
+      }
+    });
+
+    document.getElementById('uisize-toggle').addEventListener('click', () => {
+      const sizes = ['default', 'large', 'larger', 'largest'];
+      const currentIndex = sizes.indexOf(settings.uiSize || 'default');
+      settings.uiSize = sizes[(currentIndex + 1) % sizes.length];
+      applySettings();
+      saveSettings();
+      speak(`Size changed to ${settings.uiSize}`);
+    });
+
+    // Fullscreen management
+    function enterFullscreen() {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+      }
+    }
+
+    // Track if current iframe is a server app
+    let currentServerApp = null;
+
+    // Show iframe with tool/game
+    function showIframe(src, title, isServerApp = false) {
+      currentServerApp = isServerApp ? src : null;
+      iframeTitle.textContent = title;
+      appIframe.src = src;
+      iframeContainer.classList.add('active');
+      iframeBack.focus();
+      announce(`${title} loaded`);
+      
+      setTimeout(() => {
+        try {
+          appIframe.contentWindow.focus();
+          
+          // Send voice settings to iframe
+          if (window.NarbeVoiceManager) {
+            const voiceSettings = window.NarbeVoiceManager.getSettings();
+            console.log('[Hub] Pushing voice settings to iframe:', voiceSettings);
+            appIframe.contentWindow.postMessage({
+              type: 'narbe-voice-settings-changed',
+              settings: voiceSettings
+            }, '*');
+          }
+          
+          // Send scan settings to iframe
+          if (window.NarbeScanManager) {
+            const scanSettings = window.NarbeScanManager.getSettings();
+            console.log('[Hub] Pushing scan settings to iframe:', scanSettings);
+            appIframe.contentWindow.postMessage({
+              type: 'narbe-scan-settings-changed',
+              settings: scanSettings
+            }, '*');
+          }
+        } catch (e) {
+          console.log('Unable to focus iframe content or send settings:', e);
+        }
+      }, 500);
+    }
+
+    function closeIframe() {
+      iframeContainer.classList.remove('active');
+      appIframe.src = '';
+      focusIndex = -1;
+      
+      // Note: Don't stop server apps here - they should persist while hub is running
+      // The streaming server is started at hub startup and remains running
+      currentServerApp = null;
+      
+      // Sync scan settings in case they changed in the app
+      if (window.NarbeScanManager) {
+          window.NarbeScanManager.reload();
+      }
+
+      const activeScreen = document.querySelector('.screen.active');
+      if (activeScreen) {
+        activeScreen.focus();
+        if (document.activeElement !== activeScreen) {
+          document.getElementById('main').focus();
+        }
+      }
+      
+      announce('Returned to menu');
+      speak('Returned to menu. Press spacebar to start scanning');
+    }
+
+    iframeBack.addEventListener('click', () => {
+      speak('Closing app');
+      closeIframe();
+    });
+
+    // Screen management
+    function showScreen(name) {
+      isTransitioning = true;
+      currentScreen = name;
+      
+      // Block pointer events during transition to prevent click-through
+      document.body.style.pointerEvents = 'none';
+      
+      // Safety: Always re-enable pointer events after max 500ms
+      setTimeout(() => {
+        document.body.style.pointerEvents = '';
+      }, 500);
+      
+      for(const id in SCREENS){
+        SCREENS[id].classList.toggle('active', id === name);
+      }
+      
+      // Render content for dynamic screens
+      if (name === 'tools') {
+        renderAppsGrid('tools');
+        updateGenreButtonText('tools', filterState['tools'].genre);
+      } else if (name === 'games') {
+        renderAppsGrid('games');
+        updateGenreButtonText('games', filterState['games'].genre);
+      }
+      
+      focusIndex = -1;
+      spacePressed = false;
+      enterPressed = false;
+      
+      setTimeout(() => {
+        const activeScreen = document.querySelector('.screen.active');
+        if (activeScreen) {
+          activeScreen.focus();
+          if (document.activeElement !== activeScreen) {
+            document.getElementById('main').focus();
+          }
+        }
+        
+        announce(`${name} menu`);
+        speak(`${name} menu. Press spacebar to start scanning`);
+        
+        // Re-enable pointer events after transition
+        document.body.style.pointerEvents = '';
+        isTransitioning = false;
+      }, 150); // Slightly longer delay to ensure DOM is settled
+    }
+
+    function announce(msg) {
+      live.textContent = '';
+      setTimeout(() => { live.textContent = msg; }, 10);
+    }
+
+    function getFocusables() {
+      if (iframeContainer.classList.contains('active')) {
+        return [iframeBack];
+      }
+      const active = document.querySelector('.screen.active');
+      if(!active) return [];
+      return Array.from(active.querySelectorAll('button:not([disabled])'))
+        .filter(el => !el.hasAttribute('disabled'));
+    }
+
+    function speakFocusedElement(el) {
+      if (!el) return;
+      const titleEl = el.querySelector('.btn-title');
+      const descEl = el.querySelector('.desc');
+      let text = '';
+      
+      // Check aria-label first for overrides
+      const ariaLabel = el.getAttribute('aria-label');
+      if (ariaLabel) {
+        text = ariaLabel;
+      } else if (titleEl) {
+        text = titleEl.textContent;
+        // Add description for context if available
+        if (descEl) {
+          text += `. ${descEl.textContent}`;
+        }
+      } else if (el.classList.contains('backbtn')) {
+        text = 'Back';
+      } else if (el.classList.contains('nav-btn')) {
+        text = el.textContent;
+      } else {
+        text = el.textContent.trim();
+      }
+      
+      if (text) {
+        speak(text);
+      }
+    }
+
+    // Navigation event listeners
+    document.querySelectorAll('.card-btn.nav').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        // Prevent click-through during transitions
+        if (isTransitioning) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        
+        const target = btn.getAttribute('data-target');
+        
+        // Reset filter state when entering games or tools from home
+        if (target === 'games' || target === 'tools') {
+          if(filterState[target]) {
+              filterState[target].page = 0;
+              // Optional: Reset genre too? User said "reset any filters"
+              filterState[target].genre = 'all';
+              // Re-render to reflect reset state
+              renderAppsGrid(target);
+          }
+        }
+        
+        showScreen(target);
+      });
+    });
+
+    document.querySelectorAll('.backbtn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        // Prevent click-through during transitions
+        if (isTransitioning) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+        
+        const target = btn.getAttribute('data-target') || 'home';
+        speak('Going back');
+        showScreen(target);
+      });
+    });
+
+    // Pagination event listeners
+    ['tools', 'games'].forEach(category => {
+      document.getElementById(`${category}-prev`).addEventListener('click', () => {
+        if (filterState[category].page > 0) {
+          filterState[category].page--;
+          renderAppsGrid(category);
+          speak('Previous page');
+        }
+      });
+
+      document.getElementById(`${category}-next`).addEventListener('click', () => {
+        const filteredItems = filterItemsByGenre(category, filterState[category].genre);
+        const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+        if (filterState[category].page < totalPages - 1) {
+          filterState[category].page++;
+          renderAppsGrid(category);
+          speak('Next page');
+        }
+      });
+    });
+
+    // Genre Toggle and Reset functions
+    function updateGenreButtonText(category, genre) {
+      const btn = document.getElementById(`${category}-genre-toggle`);
+      if (btn) {
+        const displayGenre = genre === 'all' ? 'All' : genre;
+        btn.textContent = `Filter: ${displayGenre}`;
+      }
+    }
+
+    function toggleGenre(category) {
+      const genres = getGenres(category);
+      const allGenres = ['all', ...genres];
+      
+      const currentGenre = filterState[category].genre;
+      let currentIndex = allGenres.indexOf(currentGenre);
+      const nextIndex = (currentIndex + 1) % allGenres.length;
+      const nextGenre = allGenres[nextIndex];
+      
+      filterState[category].genre = nextGenre;
+      filterState[category].page = 0;
+      
+      updateGenreButtonText(category, nextGenre);
+      renderAppsGrid(category);
+      
+      const displayGenre = nextGenre === 'all' ? 'All' : nextGenre;
+      speak(`Filter set to ${displayGenre}`);
+    }
+
+    function resetGenre(category) {
+      if (filterState[category].genre === 'all') {
+         speak('Already showing all items');
+         return;
+      }
+      filterState[category].genre = 'all';
+      filterState[category].page = 0;
+      
+      updateGenreButtonText(category, 'all');
+      renderAppsGrid(category);
+      speak('Filter reset to All');
+    }
+
+    // Filter button event listeners
+    document.getElementById('games-genre-toggle').addEventListener('click', () => {
+      toggleGenre('games');
+    });
+    
+    document.getElementById('games-genre-reset').addEventListener('click', () => {
+      resetGenre('games');
+    });
+
+    document.getElementById('tools-genre-toggle').addEventListener('click', () => {
+      toggleGenre('tools');
+    });
+
+    document.getElementById('tools-genre-reset').addEventListener('click', () => {
+      resetGenre('tools');
+    });
+
+    // Keyboard scanning functionality
+    let focusIndex = -1;
+    let spacePressed = false;
+    let enterPressed = false;
+    let isTransitioning = false;
+    let suppressEnterClick = false;
+    let lastActivationTime = 0;
+    const DEBOUNCE_DELAY = 600; // Increased to prevent click-through on menu changes
+
+    function focusAt(idx) {
+      const list = getFocusables();
+      if(list.length === 0) return;
+      focusIndex = ((idx % list.length) + list.length) % list.length;
+      list[focusIndex].focus();
+      speakFocusedElement(list[focusIndex]);
+    }
+
+    function focusNext() {
+      const list = getFocusables();
+      if(list.length === 0) return;
+      
+      if (focusIndex === -1) {
+        focusIndex = 0;
+        list[focusIndex].focus();
+        speakFocusedElement(list[focusIndex]);
+        return;
+      }
+      
+      const currentFocused = document.activeElement;
+      const currentIndex = list.indexOf(currentFocused);
+      
+      if (currentIndex >= 0) {
+        focusIndex = currentIndex;
+      }
+      
+      focusAt(focusIndex + 1);
+    }
+
+    function activateFocused() {
+      if (isTransitioning) return;
+      
+      const currentTime = Date.now();
+      if (currentTime - lastActivationTime < DEBOUNCE_DELAY) {
+        return;
+      }
+      lastActivationTime = currentTime;
+      
+      const list = getFocusables();
+      if(list.length === 0) return;
+      
+      if (focusIndex === -1) {
+        speak('Press spacebar first to select an item');
+        return;
+      }
+      
+      const currentFocused = document.activeElement;
+      const currentIndex = list.indexOf(currentFocused);
+      
+      if (currentIndex >= 0) {
+        focusIndex = currentIndex;
+      }
+      
+      const el = list[focusIndex];
+      el.click();
+
+      // Restart autoscan timer if active to allow consecutive clicks
+      if (autoScanInterval) {
+        startAutoScan();
+      }
+    }
+
+    // Keyboard event handlers
+    document.addEventListener('keydown', (e) => {
+      if (isTransitioning) {
+        if (e.key === ' ' || e.key === 'Enter' || e.keyCode === 13) {
+          e.preventDefault();
+        }
+        return;
+      }
+
+      const tag = document.activeElement?.tagName;
+      if(tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable){
+        return;
+      }
+
+      if(e.key === ' ' && !spacePressed){
+        e.preventDefault();
+        spacePressed = true;
+        spaceHoldStartTime = Date.now();
+        
+        // Set timeout for backwards scanning
+        spaceHoldTimeout = setTimeout(() => {
+          if (spacePressed && !iframeContainer.classList.contains('active')) {
+            speak('Backwards scanning');
+            focusPrevious();
+            
+            // Start backwards auto-scan
+            backwardsScanInterval = setInterval(() => {
+              if (spacePressed && !iframeContainer.classList.contains('active')) {
+                focusPrevious();
+              } else {
+                clearInterval(backwardsScanInterval);
+                backwardsScanInterval = null;
+              }
+            }, getScanDelay());
+          }
+        }, BACKWARDS_SCAN_THRESHOLD);
+        
+      } else if((e.key === 'Enter' || e.keyCode === 13) && !enterPressed){
+        e.preventDefault();
+        enterPressed = true;
+        suppressEnterClick = true;
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (suppressEnterClick) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      }
+    }, true);
+
+    document.addEventListener('keyup', (e) => {
+      if (isTransitioning) {
+        if (e.key === ' ') {
+          spacePressed = false;
+          // Clear timers
+          if (spaceHoldTimeout) {
+            clearTimeout(spaceHoldTimeout);
+            spaceHoldTimeout = null;
+          }
+          if (backwardsScanInterval) {
+            clearInterval(backwardsScanInterval);
+            backwardsScanInterval = null;
+          }
+        }
+        if (e.key === 'Enter' || e.keyCode === 13) {
+          enterPressed = false;
+          suppressEnterClick = false;
+        }
+        return;
+      }
+
+      const tag = document.activeElement?.tagName;
+      if(tag === 'INPUT' || tag === 'TEXTAREA' || document.activeElement?.isContentEditable){
+        return;
+      }
+
+      if(e.key === ' ' && spacePressed){
+        e.preventDefault();
+        spacePressed = false;
+        
+        // Clear backwards scanning timers
+        if (spaceHoldTimeout) {
+          clearTimeout(spaceHoldTimeout);
+          spaceHoldTimeout = null;
+        }
+        if (backwardsScanInterval) {
+          clearInterval(backwardsScanInterval);
+          backwardsScanInterval = null;
+        }
+        
+        // Check if this was a short press (normal forward scanning)
+        const holdDuration = Date.now() - spaceHoldStartTime;
+        if (holdDuration < BACKWARDS_SCAN_THRESHOLD) {
+          focusNext();
+        }
+        
+      } else if((e.key === 'Enter' || e.keyCode === 13) && enterPressed){
+        e.preventDefault();
+        enterPressed = false;
+        suppressEnterClick = false;
+        activateFocused();
+      }
+    });
+
+    // System Call Helper - Uses Electron IPC for system controls
+    window.sysCall = async function(path) {
+        const isElectron = typeof window !== 'undefined' && window.electronAPI;
+        
+        // Special case for emergency
+        if (path.includes('emergency')) {
+            if (isElectron) {
+                // Set volume to 100% via Electron
+                // Do not await to allow the 5s timer to run in parallel
+                window.electronAPI.system.volumeMax();
+            }
+            
+            // Say "HELP" rapidly 15x
+            // Start after a 5 second delay to ensure volume has fully increased
+            setTimeout(() => {
+                for (let i = 0; i < 15; i++) {
+                    setTimeout(() => speak("HELP"), i * 400); // 400ms spacing for rapid iteration
+                }
+            }, 5000);
+            return;
+        }
+
+        let msg = "Processing";
+        if (path.includes('volume/up')) msg = "Volume increased";
+        else if (path.includes('volume/down')) msg = "Volume decreased";
+        else if (path.includes('volume/mute')) msg = "Volume muted";
+        else if (path.includes('timer/30')) msg = "Computer will shut down in 30 minutes";
+        else if (path.includes('timer/60')) msg = "Computer will shut down in 60 minutes";
+        else if (path.includes('timer/90')) msg = "Computer will shut down in 90 minutes";
+        else if (path.includes('power/cancel')) msg = "Timer cancelled";
+        else if (path.includes('power/restart')) msg = "Restarting computer";
+        else if (path.includes('power/shutdown')) msg = "Shutting down computer";
+        else if (path.includes('close_app')) msg = "Closing application";
+        
+        if(msg) speak(msg);
+
+        if (isElectron) {
+            // Use Electron IPC
+            try {
+                if (path.includes('volume/up')) {
+                    await window.electronAPI.system.volumeUp();
+                } else if (path.includes('volume/down')) {
+                    await window.electronAPI.system.volumeDown();
+                } else if (path.includes('volume/mute')) {
+                    await window.electronAPI.system.volumeMute();
+                } else if (path.includes('timer/30')) {
+                    await window.electronAPI.system.shutdownTimer(30);
+                } else if (path.includes('timer/60')) {
+                    await window.electronAPI.system.shutdownTimer(60);
+                } else if (path.includes('timer/90')) {
+                    await window.electronAPI.system.shutdownTimer(90);
+                } else if (path.includes('power/cancel')) {
+                    await window.electronAPI.system.cancelShutdown();
+                } else if (path.includes('power/restart')) {
+                    await window.electronAPI.system.restart();
+                } else if (path.includes('power/shutdown')) {
+                    await window.electronAPI.system.shutdown();
+                } else if (path.includes('close_app')) {
+                    await window.electronAPI.system.closeApp();
+                }
+            } catch (err) {
+                console.error('System call error:', err);
+                speak("Error sending command");
+            }
+        } else {
+            // Fallback to HTTP fetch (for non-Electron testing)
+            fetch('/system/' + path, {method: 'POST'})
+            .then(res => res.json())
+            .then(data => {
+                if(data.error) speak("Error: " + data.error);
+            })
+            .catch(err => {
+                console.error(err);
+                speak("Error sending command");
+            });
+        }
+    };
+
+    // ============ IFRAME API BRIDGE ============
+    // This allows iframes (apps) to access electronAPI through postMessage
+    if (window.electronAPI) {
+        window.addEventListener('message', async (event) => {
+            // Only handle messages from our iframes
+            if (!event.data || !event.data.type || !event.data.type.startsWith('electronAPI:')) return;
+            
+            const { type, id, method, args } = event.data;
+            let result = null;
+            let error = null;
+            
+            try {
+                // Parse the method path (e.g., "keyboard.getPredictions")
+                const parts = method.split('.');
+                let fn = window.electronAPI;
+                for (const part of parts) {
+                    fn = fn[part];
+                }
+                
+                if (typeof fn === 'function') {
+                    result = await fn(...(args || []));
+                } else {
+                    error = `Method ${method} not found`;
+                }
+            } catch (e) {
+                error = e.message;
+                console.error('Iframe API bridge error:', e);
+            }
+            
+            // Send response back to iframe
+            if (event.source) {
+                event.source.postMessage({
+                    type: 'electronAPI:response',
+                    id: id,
+                    result: result,
+                    error: error
+                }, '*');
+            }
+        });
+        console.log('[Hub] Iframe API bridge initialized');
+    }
+
+    // Initialize application
+    window.addEventListener('load', async () => {
+      console.log('Hub initializing...');
+      
+      // Ensure pointer events are enabled from the start
+      document.body.style.pointerEvents = '';
+      
+      try {
+        loadSettings();
+      } catch(e) {
+        console.error('Error loading settings:', e);
+      }
+      
+      try {
+        await loadAppsData();
+      } catch(e) {
+        console.error('Error loading apps data:', e);
+      }
+
+      // Check URL parameters for auto-launch
+      const urlParams = new URLSearchParams(window.location.search);
+      const openApp = urlParams.get('open'); 
+      if (openApp) {
+         let targetApp;
+         const lowerOpen = openApp.toLowerCase();
+         // Search in tools
+         targetApp = appsData.tools.find(t => t.title && t.title.toLowerCase() === lowerOpen);
+         if(!targetApp) targetApp = appsData.tools.find(t => t.title && t.title.toLowerCase().includes(lowerOpen));
+         // Search in games if not found
+         if(!targetApp) targetApp = appsData.games.find(g => g.title && g.title.toLowerCase() === lowerOpen);
+         if(!targetApp) targetApp = appsData.games.find(g => g.title && g.title.toLowerCase().includes(lowerOpen));
+
+         if (targetApp) {
+             console.log("Auto-launching app:", targetApp.title);
+             // Ensure DOM is ready? We are in 'load' so yes.
+             showIframe(targetApp.path, targetApp.title);
+         }
+      }
+      
+      if (window.NarbeVoiceManager && window.NarbeVoiceManager.waitForVoices) {
+        window.NarbeVoiceManager.waitForVoices().then(() => {
+          updateVoiceDisplay();
+          applySettings();
+        }).catch(e => console.error('Voice init error:', e));
+      }
+
+      // Subscribe to Scan Manager changes
+      if (window.NarbeScanManager) {
+        window.NarbeScanManager.subscribe((newSettings) => {
+          if (newSettings.autoScan) {
+             startAutoScan();
+          } else {
+             stopAutoScan();
+          }
+          // Update UI to reflect external changes
+          applySettings();
+        });
+        
+        // Initial check
+        if (window.NarbeScanManager.getSettings().autoScan) {
+           startAutoScan();
+        }
+      }
+      
+      focusIndex = -1;
+      
+      document.body.focus();
+      if (document.activeElement !== document.body) {
+        document.getElementById('main').focus();
+      }
+      
+      speak('Press spacebar to start');
+      
+      // Start navigation signal handling (Electron IPC or HTTP polling)
+      startNavSignalPolling();
+      
+      // Listen for Electron navigation signals (from control_bar.py via main process)
+      if (window.electronAPI && window.electronAPI.onNavSignal) {
+        window.electronAPI.onNavSignal((signal) => {
+          console.log('[NAV-SIGNAL] Received from Electron:', signal);
+          handleNavSignal(signal);
+        });
+      }
+    });
+    
+    // Handle navigation signal (from Electron IPC or HTTP polling)
+    function handleNavSignal(signal) {
+      if (signal.action === 'navigate' && signal.screen) {
+        // Navigate to a specific screen (tools, games, home, etc.)
+        closeIframe();
+        showScreen(signal.screen);
+      } else if (signal.action === 'close' || signal.target === 'menu') {
+        // Close iframe and return to home screen
+        closeIframe();
+        showScreen('home');
+      } else if (signal.path) {
+        // Navigate to specific app
+        showIframe(signal.path, signal.title || 'App');
+      } else if (signal.target) {
+        // Navigate by app name
+        let targetApp;
+        const lowerTarget = signal.target.toLowerCase();
+        targetApp = appsData.tools.find(t => t.title && t.title.toLowerCase() === lowerTarget);
+        if (!targetApp) targetApp = appsData.tools.find(t => t.title && t.title.toLowerCase().includes(lowerTarget));
+        if (!targetApp) targetApp = appsData.games.find(g => g.title && g.title.toLowerCase() === lowerTarget);
+        if (!targetApp) targetApp = appsData.games.find(g => g.title && g.title.toLowerCase().includes(lowerTarget));
+        
+        if (targetApp) {
+          showIframe(targetApp.path, targetApp.title);
+        }
+      }
+    }
+    
+    // Poll for navigation signals from external apps (like control bar) - HTTP fallback for non-Electron
+    let lastNavTimestamp = 0;
+    function startNavSignalPolling() {
+      // Skip HTTP polling in Electron (we use IPC instead)
+      if (window.electronAPI && window.electronAPI.onNavSignal) {
+        console.log('[NAV] Using Electron IPC for navigation signals');
+        return;
+      }
+      
+      setInterval(async () => {
+        try {
+          const response = await fetch('/nav_signal.json?t=' + Date.now());
+          if (response.ok) {
+            const signal = await response.json();
+            if (signal.timestamp && signal.timestamp > lastNavTimestamp) {
+              lastNavTimestamp = signal.timestamp;
+              console.log('[NAV-SIGNAL] Received navigation signal:', signal);
+              handleNavSignal(signal);
+            }
+          }
+        } catch (e) {
+          // Signal file doesn't exist yet, that's fine
+        }
+      }, 500);  // Poll every 500ms
+    }
+
+    // Listen for messages from iframe content
+    window.addEventListener('message', (event) => {
+      if (!event.data) return;
+      
+      // Handle close/focus requests
+      if (event.data.action === 'focusBackButton' || event.data.action === 'closeApp') {
+        if (iframeContainer.classList.contains('active')) {
+          closeIframe();
+        }
+      }
+      
+      // Handle voice settings request from iframes
+      if (event.data.type === 'narbe-voice-settings-request') {
+        if (window.NarbeVoiceManager && event.source) {
+          const currentSettings = window.NarbeVoiceManager.getSettings();
+          console.log('[Hub] Sending voice settings to iframe:', currentSettings);
+          event.source.postMessage({
+            type: 'narbe-voice-settings-changed',
+            settings: currentSettings
+          }, '*');
+        }
+      }
+      
+      // Handle scan settings request from iframes
+      if (event.data.type === 'narbe-scan-settings-request') {
+        if (window.NarbeScanManager && event.source) {
+          const currentSettings = window.NarbeScanManager.getSettings();
+          console.log('[Hub] Sending scan settings to iframe:', currentSettings);
+          event.source.postMessage({
+            type: 'narbe-scan-settings-changed',
+            settings: currentSettings
+          }, '*');
+        }
+      }
+    });
+  </script>
+</body>
+</html>
+
