@@ -657,6 +657,7 @@
   let lastFetchedTranscriptWordCount = 0; // tracks words seen by last callAPI() call
   let lastCallAPISuggestions = null;      // previous suggestions — sent to AI to prevent repeats
   let lastSentContext = '';               // most-recent context spoken to the API — for Repeat button
+  let lastMicTranscript = '';            // text transcribed during the most recent listen session
   let topicRefreshCount      = 0;         // how many times callAPI has run on the same transcript
   let topicAnchorContext     = '';        // the "MOST RECENT" text from when new speech came in
   let topicShownSuggestions  = [];        // all shorts shown since last new speech (for dedup)
@@ -1287,7 +1288,13 @@ ${profanityInstruction()}`;
     setTextBuffer(next);
     setStatus('Loading completions…');
 
-    // Suppress row TTS while loading so the starters row doesn't re-read mid-fetch
+    // Cancel any active row read immediately so the starters row stops TTS-ing
+    rowReadGen++;
+    clearTimeout(rowReadTimer);
+    if (window.NarbeVoiceManager?.cancel) window.NarbeVoiceManager.cancel();
+    else speechSynthesis.cancel();
+
+    // Suppress row TTS while loading
     rowReadCooldown = true;
     completionTiles.forEach(btn => {
       btn.textContent = '…';
@@ -1295,15 +1302,20 @@ ${profanityInstruction()}`;
       btn.style.opacity = '0.5';
     });
 
+    // Move scan to completions row now so selectCurrent()'s highlightRow() lands there
+    if (allRows.length > 4) {
+      currentRowIndex  = 4;
+      currentItemIndex = 0;
+      scanMode = 'row';
+    }
+
     fetchCompletions(text).then(() => {
       rowReadCooldown = false;
-      if (allRows.length > 4) {
-        currentRowIndex  = 4;
-        currentItemIndex = 0;
-        scanMode = 'row';
-        highlightRow(); // reads the now-populated completion tiles
-      }
-    }).catch(() => { rowReadCooldown = false; });
+      if (allRows.length > 4) highlightRow(); // reads the now-populated completion tiles
+    }).catch(() => {
+      rowReadCooldown = false;
+      if (allRows.length > 4) highlightRow(); // still move there even on error
+    });
   }
 
   // ─────────────────────────────────────────────
@@ -1611,7 +1623,15 @@ ${profanityInstruction()}`;
     const duration = Date.now() - gstSpeechStart;
     const buf = gstSpeechBuf.slice();
     gstSpeechBuf = []; gstSpeaking = false;
-    if (!buf.length || duration < GST_MIN_SPEECH_MS || gstPending) return;
+    if (!buf.length || duration < GST_MIN_SPEECH_MS || gstPending) {
+      // Sound was too brief or STT is already pending — restart the silence timer
+      // so the mic still auto-closes after 3s of quiet even without an STT response
+      if (micActive) {
+        clearTimeout(listenSilenceTimer);
+        listenSilenceTimer = setTimeout(autoFetchOnSilence, 3000);
+      }
+      return;
+    }
     const totalLen = buf.reduce((a, b) => a + b.length, 0);
     const int16 = new Int16Array(totalLen);
     let off = 0;
@@ -1652,6 +1672,7 @@ ${profanityInstruction()}`;
   function openMic() {
     if (micActive || !settings.listeningEnabled) return;
     if (!micReady) { setStatus('Speech recognition loading, please wait…'); return; }
+    lastMicTranscript = ''; // clear per-session transcript so Repeat reflects only this session
     micActive = true;
     if (!window.electronAPI && recognition) { try { recognition.start(); } catch {} }
     updateMicUI(true);
@@ -1703,6 +1724,16 @@ ${profanityInstruction()}`;
 
   function autoFetchOnSilence() {
     if (!micActive) return;
+
+    // Save new transcript words for Repeat button BEFORE any early returns
+    const _allWords = transcriptWindow.trim().split(/\s+/).filter(Boolean);
+    const _newWords = _allWords.slice(lastFetchedTranscriptWordCount);
+    if (_newWords.length > 0) {
+      lastSentContext = _newWords.join(' ');
+    } else if (_allWords.length > 0 && !lastSentContext) {
+      lastSentContext = _allWords.slice(-60).join(' ');
+    }
+
     closeMic();
     if (isLoading) return;
 
@@ -1754,6 +1785,7 @@ ${profanityInstruction()}`;
   }
 
   function appendToTranscript(text) {
+    if (micActive) lastMicTranscript = (lastMicTranscript + ' ' + text).trim();
     transcriptWindow = (transcriptWindow + ' ' + text).trim();
     const words = transcriptWindow.split(/\s+/);
     if (words.length > 500) {
@@ -1764,6 +1796,13 @@ ${profanityInstruction()}`;
     // Show word count on mic indicator so it's clear audio is being captured
     const micLabel = document.getElementById('micLabel');
     if (micLabel) micLabel.textContent = `Listening (${words.length}w)`;
+
+    // Web Speech API path: reset 3s silence timer each time new speech arrives
+    // (Google STT manages its own timer in sendToGoogleSTT)
+    if (micActive && !window.electronAPI) {
+      clearTimeout(listenSilenceTimer);
+      listenSilenceTimer = setTimeout(autoFetchOnSilence, 3000);
+    }
 
     const snippet = text.length > 50 ? text.slice(0, 50) + '…' : text;
     if (/(\bdo you\b|\bwould you\b|\bcan you\b|\bwhat\b|\bhow\b|\bdid you\b)/i.test(text) || text.includes('?'))
@@ -1839,11 +1878,11 @@ ${profanityInstruction()}`;
   async function fetchSuggestions() { setTextBuffer(''); await callAPI(); }
 
   function repeatLastContext() {
-    if (!lastSentContext || !lastSentContext.trim()) {
-      scanSpeak('Nothing to repeat yet. No conversation has been heard.');
+    if (!lastMicTranscript || !lastMicTranscript.trim()) {
+      scanSpeak('No transcription');
       return;
     }
-    scanSpeak(lastSentContext);
+    scanSpeak(lastMicTranscript);
   }
 
   // ── Shared low-level AI caller — routes through hub local server to bypass CSP ──
