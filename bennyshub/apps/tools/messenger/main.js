@@ -13,6 +13,7 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const APP_DIR = __dirname;
 const WS_PORT = parseInt(process.env.NEW_MSG_WS_PORT || '8777', 10);
+const VOICE_SETTINGS_PATH = path.join(APP_DIR, '..', '..', '..', 'shared', 'voice-settings.json');
 // Window title must stay stable so the external control bar (control_bar.py)
 // can find and restore this window when the user closes Chrome.
 const APP_WINDOW_TITLE = 'Ben — Discord Mirror';
@@ -66,6 +67,7 @@ function createWindow() {
     height: windowed ? 800 : undefined,
     backgroundColor: '#0b0f14',
     title: APP_WINDOW_TITLE,
+    show: false,
     webPreferences: {
       preload: path.join(APP_DIR, 'preload.js'),
       nodeIntegration: false,
@@ -75,8 +77,28 @@ function createWindow() {
   // Keep the window title fixed (control_bar.py looks it up by exact title).
   win.on('page-title-updated', (e) => { e.preventDefault(); });
   win.setTitle(APP_WINDOW_TITLE);
+  // Show and grab focus once the page is rendered so the scan switches stay on this app.
+  win.once('ready-to-show', () => {
+    if (!windowed) win.setAlwaysOnTop(true, 'screen-saver');
+    win.show();
+    win.moveTop();
+    win.focus();
+    win.webContents.focus();
+  });
   win.loadFile(path.join(APP_DIR, 'index.html'));
-  if (!windowed) win.setAlwaysOnTop(true, 'screen-saver');
+  watchVoiceSettings();
+}
+
+// Watch voice-settings.json for changes made by the hub and push them live.
+function watchVoiceSettings() {
+  try {
+    fs.watch(VOICE_SETTINGS_PATH, { persistent: false }, () => {
+      try {
+        const settings = JSON.parse(fs.readFileSync(VOICE_SETTINGS_PATH, 'utf8'));
+        if (win && !win.isDestroyed()) win.webContents.send('voice-settings-changed', settings);
+      } catch (_) {}
+    });
+  } catch (_) {}
 }
 
 app.whenReady().then(() => {
@@ -86,6 +108,13 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => { stopBackend(); app.quit(); });
 app.on('before-quit', stopBackend);
+
+ipcMain.handle('voice:getSettings', () => {
+  try { return JSON.parse(fs.readFileSync(VOICE_SETTINGS_PATH, 'utf8')); } catch (_) { return null; }
+});
+ipcMain.handle('voice:saveSettings', (_, settings) => {
+  try { fs.writeFileSync(VOICE_SETTINGS_PATH, JSON.stringify(settings, null, 2), 'utf8'); return true; } catch (_) { return false; }
+});
 
 ipcMain.handle('msg-read-file', (_, filePath) => {
   try { return fs.readFileSync(filePath, 'utf8'); } catch (_) { return null; }

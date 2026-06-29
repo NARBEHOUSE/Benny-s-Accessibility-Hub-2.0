@@ -107,6 +107,16 @@
       editor: createBridgeMethod('launch.editor')
     },
     
+    // In-iframe Messenger API (backend + file IO for the messenger frontend)
+    messenger: {
+      startBackend: createBridgeMethod('messenger.startBackend'),
+      getConfig:    createBridgeMethod('messenger.getConfig'),
+      readFile:     createBridgeMethod('messenger.readFile'),
+      writeFile:    createBridgeMethod('messenger.writeFile'),
+      updateNgrams: createBridgeMethod('messenger.updateNgrams'),
+      openVideo:    createBridgeMethod('messenger.openVideo')
+    },
+    
     // Editor API
     editor: {
       list: createBridgeMethod('editor.list'),

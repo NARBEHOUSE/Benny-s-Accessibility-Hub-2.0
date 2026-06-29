@@ -51,6 +51,14 @@ const AI_BRIDGE_SCRIPT = path.join(APPS_DIR, 'ai-messenger', 'bridge.py');
 const MESSENGER_APP_MAIN = path.join(APPS_DIR, 'messenger', 'main.js');
 const ELECTRON_BIN = path.join(__dirname, 'node_modules', 'electron', 'dist', 'electron.exe');
 
+// Messenger run INSIDE the hub as an iframe (preferred). The hub spawns the
+// python WebSocket backend itself and the frontend (index.html) loads in the
+// hub's app iframe like every other tool, so the hub stops scanning in the
+// background and the iframe keeps focus.
+const MESSENGER_DIR = path.join(APPS_DIR, 'messenger');
+const MESSENGER_BACKEND_SCRIPT = path.join(MESSENGER_DIR, 'backend.py');
+const MESSENGER_WS_PORT = 8777;
+
 // Chrome path
 const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
@@ -68,6 +76,7 @@ let hubServerPort = 8765;
 let speechProcess = null;
 let speechBuffer = '';
 let toolWindows = {};  // BrowserWindows opened for specific tools (e.g. rt-convo)
+let messengerBackendProc = null;  // python WebSocket backend for the in-iframe messenger
 
 // Send a message to every frame in the main window AND to any open tool windows
 function broadcastToAllFrames(channel, ...args) {
@@ -815,6 +824,7 @@ app.on('window-all-closed', () => {
     startMenuCloserProcess.kill();
     startMenuCloserProcess = null;
   }
+  stopMessengerBackend();
   stopSpeechProcess();
   Object.values(toolWindows).forEach(win => { try { if (!win.isDestroyed()) win.close(); } catch {} });
   toolWindows = {};
@@ -1628,6 +1638,120 @@ ipcMain.handle('launch:messenger', async () => {
     return { success: false, error: 'Messenger app not found' };
   } catch (e) {
     return { success: false, error: e.message };
+  }
+});
+
+// ============ IN-IFRAME MESSENGER (preferred) ============
+// The messenger frontend runs inside the hub's app iframe. These handlers give
+// it the same capabilities its standalone Electron preload (benAPI) provided:
+// a python WebSocket backend, file IO for keyboard predictions, config, and
+// external video playback. The frontend reaches them via the electron bridge
+// (messenger.* namespace) which proxies postMessage to the hub.
+
+// Spawn the python WebSocket backend if it is not already running. Idempotent.
+function startMessengerBackend() {
+  if (messengerBackendProc && messengerBackendProc.exitCode === null) {
+    return true; // already running
+  }
+  if (!fs.existsSync(MESSENGER_BACKEND_SCRIPT)) {
+    console.error('[MESSENGER] backend.py not found:', MESSENGER_BACKEND_SCRIPT);
+    return false;
+  }
+  try {
+    messengerBackendProc = spawn('python', [MESSENGER_BACKEND_SCRIPT], {
+      cwd: MESSENGER_DIR,
+      env: Object.assign({}, process.env, { NEW_MSG_WS_PORT: String(MESSENGER_WS_PORT) }),
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+    messengerBackendProc.stdout.on('data', (d) => process.stdout.write('[msg-backend] ' + d));
+    messengerBackendProc.stderr.on('data', (d) => process.stderr.write('[msg-backend] ' + d));
+    messengerBackendProc.on('exit', (code) => {
+      console.log('[MESSENGER] backend exited with code', code);
+      messengerBackendProc = null;
+    });
+    console.log('[MESSENGER] backend started, PID', messengerBackendProc.pid);
+    return true;
+  } catch (e) {
+    console.error('[MESSENGER] failed to start backend:', e.message);
+    messengerBackendProc = null;
+    return false;
+  }
+}
+
+function stopMessengerBackend() {
+  if (messengerBackendProc) {
+    try { messengerBackendProc.kill(); } catch (_) {}
+    messengerBackendProc = null;
+  }
+}
+
+ipcMain.handle('messenger:start-backend', async () => {
+  const ok = startMessengerBackend();
+  return { success: ok, wsPort: MESSENGER_WS_PORT };
+});
+
+ipcMain.handle('messenger:get-config', () => ({ appDir: MESSENGER_DIR, wsPort: MESSENGER_WS_PORT }));
+
+ipcMain.handle('messenger:read-file', (_, filePath) => {
+  try { return fs.readFileSync(filePath, 'utf8'); } catch (_) { return null; }
+});
+
+ipcMain.handle('messenger:write-file', (_, filePath, data) => {
+  try {
+    const tmp = filePath + '.tmp';
+    fs.writeFileSync(tmp, data, 'utf8');
+    fs.renameSync(tmp, filePath);
+    return true;
+  } catch (_) { return false; }
+});
+
+// Read-merge-write handler for predictive_ngrams.json. Accepts a delta (only the
+// new entries from the current message) so it never clobbers concurrent writes
+// from the hub keyboard app. Writes atomically via temp file + rename.
+ipcMain.handle('messenger:update-ngrams', (_, filePath, delta) => {
+  try {
+    let data = { frequent_words: {}, bigrams: {}, trigrams: {} };
+    try { data = JSON.parse(fs.readFileSync(filePath, 'utf8')); } catch (_) {}
+    if (!data.frequent_words) data.frequent_words = {};
+    if (!data.bigrams)        data.bigrams        = {};
+    if (!data.trigrams)       data.trigrams       = {};
+
+    const ts = (delta && delta.timestamp) || new Date().toISOString();
+    function merge(target, src) {
+      if (!src) return;
+      for (const [k, v] of Object.entries(src)) {
+        if (!target[k]) target[k] = { count: 0 };
+        target[k].count += (v.count || 1);
+        target[k].last_used = ts;
+      }
+    }
+    merge(data.frequent_words, delta && delta.frequent_words);
+    merge(data.bigrams,        delta && delta.bigrams);
+    merge(data.trigrams,       delta && delta.trigrams);
+
+    const tmp = filePath + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
+    fs.renameSync(tmp, filePath);
+    return true;
+  } catch (_) { return false; }
+});
+
+// Open a video (e.g. YouTube) fullscreen in Chrome with the accessible control
+// bar via play_video.py, falling back to the default browser.
+ipcMain.handle('messenger:open-video', (_, url) => {
+  if (!url) return false;
+  try {
+    const launcher = path.join(MESSENGER_DIR, 'play_video.py');
+    if (fs.existsSync(launcher)) {
+      spawn('python', [launcher, url, '--app-title', 'NARBE Benny\u2019s Access Hub'],
+        { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+    } else {
+      try { shell.openExternal(url); } catch (_) {}
+    }
+    return true;
+  } catch (e) {
+    console.error('[MESSENGER] open-video failed:', e.message);
+    return false;
   }
 });
 

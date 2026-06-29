@@ -349,7 +349,7 @@ async def _forward_outgoing_dm_to_bridge(recipient: discord.User, display_name: 
         if not isinstance(ch, discord.TextChannel):
             return
         body = _bridge_body_from_message(message)
-        await ch.send(f"To {display_name} ({recipient.id}): {body}")
+        await ch.send(f"DM from {display_name} ({recipient.id}): (outgoing) {body}")
     except Exception:
         pass
 

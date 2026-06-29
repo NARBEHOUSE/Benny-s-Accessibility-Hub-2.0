@@ -832,12 +832,13 @@
   }
 
   // Returns the speakable text for a single cell (handles text bar specially).
-  // For suggestion tiles (rows 2+), prepends the current text buffer so Ben hears the full sentence.
+  // For suggestion tiles (rows 2+) in convo/phrases mode, prepends the current text buffer
+  // so Ben hears the full sentence. In typing mode, just read the tile text directly.
   function getCellText(rowIdx, item) {
     if (rowIdx === 0) return textBuffer || 'Text bar, empty';
     const tileText = item?.dataset.tts || item?.textContent?.trim() || '';
     const prefix = textBuffer.trim();
-    if (prefix && rowIdx >= 2 && tileText &&
+    if (prefix && boardMode !== 'typing' && rowIdx >= 2 && tileText &&
         !item?.classList.contains('refresh-btn') &&
         item?.id !== 'listenTile') {
       return prefix + ': ' + tileText;
@@ -1878,11 +1879,11 @@ ${profanityInstruction()}`;
   async function fetchSuggestions() { setTextBuffer(''); await callAPI(); }
 
   function repeatLastContext() {
-    if (!lastMicTranscript || !lastMicTranscript.trim()) {
+    if (!lastSentContext || !lastSentContext.trim()) {
       scanSpeak('No transcription');
       return;
     }
-    scanSpeak(lastMicTranscript);
+    scanSpeak(lastSentContext);
   }
 
   // ── Shared low-level AI caller — routes through hub local server to bypass CSP ──
@@ -2406,6 +2407,9 @@ ${avoidInstruction}${profanityInstruction()}`
     const charToAdd = !textBuffer ? ch.toUpperCase() : ch.toLowerCase();
     setTextBuffer(textBuffer + charToAdd);
     typingBuffer = (typingBuffer || '') + ch;
+    // Fragment changed — wipe the dedup accumulator so nothing from the previous
+    // fragment bleeds in and creates blank cells.
+    typingShownPredictions = [];
     if (typingPredWordsRowIdx !== -1) {
       currentRowIndex  = typingPredWordsRowIdx;
       currentItemIndex = 0;
@@ -2424,6 +2428,8 @@ ${avoidInstruction}${profanityInstruction()}`
     if (!textBuffer) return;
     setTextBuffer(textBuffer.slice(0, -1));
     if (typingBuffer) typingBuffer = typingBuffer.slice(0, -1);
+    // Fragment changed — reset dedup so the next fetch starts with a clean slate.
+    typingShownPredictions = [];
     if (typingPredWordsRowIdx !== -1 && (currentRowIndex === typingPredWordsRowIdx || currentRowIndex === typingPredPhrasesRowIdx)) {
       rowReadCooldown = true;
       if (window.NarbeVoiceManager?.cancel) window.NarbeVoiceManager.cancel();
@@ -2524,17 +2530,27 @@ ${avoidInstruction}${profanityInstruction()}`
     // 2. TEXT in progress → complete the sentence already being built
     const isMidSentence = context.trim().length > 0;
 
-    const topicInstruction = topicAnchorContext
-      ? isMidSentence
-        ? `SENTENCE COMPLETION MODE: The user is building the sentence "${context}". Predict words/phrases that naturally CONTINUE and complete this sentence. The conversation topic is "${topicAnchorContext}" — use it for flavor, but the sentence itself is the guide. Do NOT suggest new topic names; suggest words that finish the sentence (verbs, adjectives, short completions).`
-        : `TOPIC SUGGESTION MODE: The text box is empty. The conversation topic is "${topicAnchorContext}". Suggest what the user might want to say — relevant names, opinions, reactions. If it's a list/character question, suggest specific items from that category.`
-      : isMidSentence
-        ? `SENTENCE COMPLETION MODE: Predict words/phrases that naturally continue the sentence "${context}".`
-        : '';
-
-    const fragmentRule = typed
-      ? `SPELLING FILTER: Every word in "words" and the first word of every phrase must start with "${typed}". Apply on top of the mode above — e.g. topic is Spider-Man villains, fragment "s" → "Sandman", "Scorpion", not generic "s" words.`
-      : '';
+    // When the user is mid-word (typed fragment exists) the ONLY job is to
+    // complete the spelling into full words — sentence-continuation instructions
+    // would make the AI suggest suffixes ("ked","king") instead of whole words.
+    let topicInstruction, fragmentRule;
+    if (typed) {
+      topicInstruction = '';
+      fragmentRule =
+        `WORD COMPLETION MODE: The user has typed the letters "${typed}" and has NOT finished the word yet.\n` +
+        `- "words": exactly 5 COMPLETE words that START WITH "${typed}" — give the full word (e.g. typed "fuc" → ["fuck","fucker","fucking","fucked","fucks"]), NEVER suffixes like "ked" or "king"\n` +
+        `- "phrases": exactly 5 two-word phrases whose FIRST word starts with "${typed}" (full first word + a natural second word, e.g. "fucking hell", "fucker face")\n` +
+        `- Do NOT suggest sentence continuations — only suggest complete words beginning with "${typed}"`;
+    } else {
+      fragmentRule = '';
+      topicInstruction = topicAnchorContext
+        ? isMidSentence
+          ? `SENTENCE COMPLETION MODE: The user is building the sentence "${context}". Predict words/phrases that naturally CONTINUE and complete this sentence. The conversation topic is "${topicAnchorContext}" — use it for flavor, but the sentence itself is the guide. Do NOT suggest new topic names; suggest words that finish the sentence (verbs, adjectives, short completions).`
+          : `TOPIC SUGGESTION MODE: The text box is empty. The conversation topic is "${topicAnchorContext}". Suggest what the user might want to say — relevant names, opinions, reactions. If it's a list/character question, suggest specific items from that category.`
+        : isMidSentence
+          ? `SENTENCE COMPLETION MODE: Predict words/phrases that naturally continue the sentence "${context}".`
+          : '';
+    }
 
     const sysLines = [
 `You generate predictive completions for a nonspeaking AAC user typing character by character.
@@ -2655,7 +2671,7 @@ ${avoidInstruction}`
       .forEach(el => el.classList.remove('row-highlight','scan-highlight'));
   }
 
-  function highlightRow() {
+  function highlightRow(skipTTS = false) {
     clearHighlights();
     const row = allRows[currentRowIndex];
     if (!row) return;
@@ -2668,10 +2684,12 @@ ${avoidInstruction}`
       exitListenMode();
     }
 
-    if (row[0]?.classList.contains('ctrl-btn')) {
-      scanSpeak(rowLabels[currentRowIndex] || 'Controls');
-    } else {
-      startRowRead(currentRowIndex, row);
+    if (!skipTTS) {
+      if (row[0]?.classList.contains('ctrl-btn')) {
+        scanSpeak(rowLabels[currentRowIndex] || 'Controls');
+      } else {
+        startRowRead(currentRowIndex, row);
+      }
     }
   }
 
@@ -2835,7 +2853,7 @@ ${avoidInstruction}`
     } else {
       row[currentItemIndex]?.click();
       scanMode = 'row';
-      highlightRow();
+      highlightRow(true); // skip row-label TTS — the action already spoke
     }
   }
 
