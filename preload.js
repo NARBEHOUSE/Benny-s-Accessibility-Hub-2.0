@@ -54,6 +54,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     aiBridge: () => ipcRenderer.invoke('launch:ai-bridge')
   },
 
+  // ============ IN-IFRAME MESSENGER API ============
+  // Lets the messenger frontend (running in the hub's app iframe) reach the same
+  // capabilities its standalone preload (benAPI) provided.
+  messenger: {
+    startBackend: () => ipcRenderer.invoke('messenger:start-backend'),
+    getConfig:    () => ipcRenderer.invoke('messenger:get-config'),
+    readFile:     (p) => ipcRenderer.invoke('messenger:read-file', p),
+    writeFile:    (p, data) => ipcRenderer.invoke('messenger:write-file', p, data),
+    updateNgrams: (p, delta) => ipcRenderer.invoke('messenger:update-ngrams', p, delta),
+    openVideo:    (url) => ipcRenderer.invoke('messenger:open-video', url)
+  },
+
   // ============ TOOL WINDOW SELF-CLOSE ============
   closeToolWindow: () => ipcRenderer.invoke('toolWindow:close'),
   

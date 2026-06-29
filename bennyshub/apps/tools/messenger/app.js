@@ -111,43 +111,15 @@ window.BenApp = (function () {
   var pageChannels, pageMessages;
 
   /* ---------------- TTS ---------------- */
-  var ttsVoice = null, ttsRate = 1.0;
-  function loadVoice() {
-    var p = (window.benAPI && window.benAPI.getConfig) ? window.benAPI.getConfig() : Promise.resolve({ appDir: '' });
-    p.then(function (cfg) {
-      var dir = (cfg && cfg.appDir) || '';
-      return window.benAPI ? window.benAPI.readFile(dir + '\\..\\..\\..\\shared\\voice-settings.json') : null;
-    }).then(function (vj) {
-      if (!vj) return;
-      try {
-        var vs = JSON.parse(vj);
-        ttsRate = vs.rate || 1.0;
-        var pick = function () {
-          var voices = window.speechSynthesis.getVoices();
-          if (!voices || !voices.length) return;
-          var nm = (vs.voiceName || '').match(/microsoft\s+(\w+)/i);
-          var pn = nm ? nm[1].toLowerCase() : '';
-          if (pn) { for (var i = 0; i < voices.length; i++) { if (voices[i].name.toLowerCase().indexOf(pn) !== -1) { ttsVoice = voices[i]; return; } } }
-          ttsVoice = voices[Math.min(vs.voiceIndex || 0, voices.length - 1)] || voices[0];
-        };
-        var v = window.speechSynthesis.getVoices();
-        if (v && v.length) pick(); else window.speechSynthesis.onvoiceschanged = pick;
-      } catch (e) {}
-    }).catch(function () {});
-  }
   function ttsNormalize(t) {
     // Convert all-caps words of 2+ letters to lowercase so TTS reads "IT" as "it" not "I T".
     return String(t).replace(/\b([A-Z]{2,})\b/g, function (m) { return m.toLowerCase(); });
   }
   function speak(t) {
     if (!t) return;
-    try {
-      window.speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(ttsNormalize(t));
-      if (ttsVoice) u.voice = ttsVoice;
-      u.rate = ttsRate; u.volume = 1;
-      window.speechSynthesis.speak(u);
-    } catch (e) {}
+    if (window.NarbeVoiceManager) {
+      window.NarbeVoiceManager.speak(ttsNormalize(t));
+    }
   }
   function ttsStop() { try { window.speechSynthesis.cancel(); } catch (e) {} }
 
@@ -529,8 +501,7 @@ window.BenApp = (function () {
     scanMode = 'idle';
     msgIndex = -1;
     // ask backend for fresh DM history + write keyboard context
-    // (25 keeps the first load fast; older messages load on demand)
-    send({ type: 'select_thread', tid: tid, recent: 25 });
+    send({ type: 'select_thread', tid: tid, recent: 10 });
     elThreadHeader.textContent = t.label;
     renderMessages(tid);
     showPage('messages');
@@ -967,9 +938,7 @@ window.BenApp = (function () {
   var enterDown = false, enterAt = 0, enterHoldTimer = null, enterFired = false;
   var SHORT_MIN = 150;
 
-  // Backward scan timing follows the user's configured scan speed (NarbeScanManager).
-  // Hold the switch for one scan-interval to start scanning backward, then it
-  // steps back once per interval until released (e.g. 3s hold, then every 3s).
+  // Backward scan: hold 3s to trigger, then steps back once per NarbeScanManager interval.
   function scanInterval() {
     try {
       if (window.NarbeScanManager && window.NarbeScanManager.getScanInterval) {
@@ -986,12 +955,11 @@ window.BenApp = (function () {
       e.preventDefault();
       if (spaceDown) return;
       spaceDown = true; spaceAt = Date.now(); spaceFired = false;
-      var iv = scanInterval();
       spaceHoldTimer = setTimeout(function () {
         spaceFired = true;
         spaceBackward();
         spaceRepeat = setInterval(spaceBackward, scanInterval());
-      }, iv);
+      }, 3000);
     } else if (e.code === 'Enter' || e.code === 'NumpadEnter') {
       e.preventDefault();
       if (enterDown) return;
@@ -1056,7 +1024,6 @@ window.BenApp = (function () {
       window.benAPI.getConfig().then(function (cfg) { if (cfg && cfg.wsPort) WS_PORT = cfg.wsPort; connect(); }).catch(connect);
     } else { connect(); }
 
-    loadVoice();
     if (window.BenKeyboard) window.BenKeyboard.init();
 
     wireClicks();
@@ -1064,8 +1031,6 @@ window.BenApp = (function () {
     document.addEventListener('keydown', onKeyDown, true);
     document.addEventListener('keyup', onKeyUp, true);
     document.addEventListener('narbe-input-cancelled', onCancelled);
-
-    try { window.speechSynthesis.getVoices(); } catch (e) {}
   }
 
   document.addEventListener('DOMContentLoaded', init);

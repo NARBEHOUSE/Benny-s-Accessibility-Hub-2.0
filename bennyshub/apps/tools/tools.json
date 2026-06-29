@@ -20,7 +20,7 @@
       "id": "messenger",
       "title": "Messenger",
       "description": "Chat and messaging application.",
-      "launchExternal": "messenger",
+      "path": "apps/tools/messenger/index.html",
       "image": "images/tools/discord.png",
       "genres": ["Communication", "Social"]
     },

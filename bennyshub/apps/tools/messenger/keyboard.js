@@ -653,6 +653,27 @@ window.BenKeyboard = (function () {
       }).filter(function (w) { return w && /^[A-Z]/.test(w); });
     }).catch(function () { return []; });
   }
+  // Call the Anthropic API. Works in two contexts:
+  //  - standalone Electron app (file:// origin): browser does not send an Origin
+  //    header, so a direct cross-origin fetch is allowed.
+  //  - inside the hub iframe (http://127.0.0.1 origin): the browser enforces CORS
+  //    and Anthropic blocks the direct call, so we route through the hub's
+  //    same-origin /api/ai-call proxy which forwards the request server-side.
+  // Returns the same fetch Response in both cases (body is the raw Anthropic JSON).
+  function callAnthropic(bodyObj) {
+    var apiUrl = 'https://api.anthropic.com/v1/messages';
+    var apiHeaders = { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' };
+    var bodyStr = JSON.stringify(bodyObj);
+    var proto = (window.location && window.location.protocol) || 'file:';
+    if (proto === 'http:' || proto === 'https:') {
+      return fetch('/api/ai-call', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ url: apiUrl, headers: apiHeaders, body: bodyStr })
+      });
+    }
+    return fetch(apiUrl, { method: 'POST', headers: apiHeaders, body: bodyStr });
+  }
   function fetchClaude(txt, snapRefresh, partialWord) {
     return Promise.all([
       readFile(appDir + '\\keyboard_context.json').catch(function () { return null; }),
@@ -697,22 +718,18 @@ window.BenKeyboard = (function () {
         var compose = txt.trim() ? 'Text typed so far: "' + txt.trim() + '"' : '(Starting a new message)';
         sys = 'You are a word predictor for Ben, an AAC user who types in ALL CAPS.\n' +
           'Return ONLY valid JSON with two arrays:\n' +
-          '  "words": 5 SINGLE next words to say after the typed text (no spaces inside)\n' +
-          '  "phrases": 5 TWO-WORD phrases to say next (exactly one space each, e.g. "I AM")\n' +
-          'All uppercase. Be contextually relevant to the conversation and to Ben\'s\n' +
-          'personal context — use the names of people he is talking to and the\n' +
-          'topics/words he uses often when they fit.\n' +
-          'Example: {"words":["GOOD","FINE","WELL","HAPPY","OKAY"],"phrases":["I AM","FEEL GOOD","I THINK","NOT SURE","LOVE YOU"]}';
+          '  "words": 5 SINGLE words that, when appended to the typed text, make a natural and grammatically correct sentence\n' +
+          '  "phrases": 5 TWO-WORD phrases (exactly one space each) that, when appended to the typed text, complete the sentence naturally\n' +
+          'CRITICAL: Every suggestion must DIRECTLY CONTINUE and grammatically complete the sentence the user has already typed.\n' +
+          'If the user typed "MY DAD IS FORGETTING THINGS", correct continuations are words/phrases like ["LIKE","TOO","AND","A","ALL"] and ["LIKE NAMES","A LOT","AND FACES","MORE NOW","EACH DAY"] — NOT standalone phrases like "GETTING OLD".\n' +
+          'All uppercase. Be contextually relevant to the conversation and to Ben\'s personal context.\n' +
+          'Example for "MY DAD IS FORGETTING THINGS": {"words":["LIKE","TOO","AND","A","ALL"],"phrases":["LIKE NAMES","A LOT","AND FACES","MORE NOW","EACH DAY"]}';
         userMsg = 'Personal context:' + (personal || ' (none)') + '\n\n' +
-          'Conversation:\n' + (conversation || '(none)') + '\n\n' + compose + hint + '\n\nPredict the next 5 single words and 5 two-word phrases.';
+          'Conversation:\n' + (conversation || '(none)') + '\n\n' + compose + hint + '\n\nPredict the next 5 single words and 5 two-word phrases that CONTINUE and complete the sentence already typed.';
       }
-      return fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001', max_tokens: 220, temperature: 0.85,
-          system: sys, messages: [{ role: 'user', content: userMsg }]
-        })
+      return callAnthropic({
+        model: 'claude-haiku-4-5-20251001', max_tokens: 220, temperature: 0.85,
+        system: sys, messages: [{ role: 'user', content: userMsg }]
       }).then(function (r) { return r.ok ? r.json() : []; }).then(function (d) {
         var raw = (d.content && d.content[0] && d.content[0].text || '').trim();
         var match = raw.match(/\{[\s\S]*\}/);
@@ -801,7 +818,7 @@ window.BenKeyboard = (function () {
         spaceFired = true;
         mode === 'ROWS' ? rowPrev() : keyPrev();
         spaceInterval = setInterval(function () { mode === 'ROWS' ? rowPrev() : keyPrev(); }, scanInterval());
-      }, scanInterval());
+      }, 3000);
     }
     if (e.code === 'Enter' || e.code === 'NumpadEnter') {
       e.preventDefault();

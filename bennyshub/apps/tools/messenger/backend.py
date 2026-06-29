@@ -43,9 +43,9 @@ APP_DIR = os.path.dirname(os.path.abspath(__file__))
 # ---------------- Settings ----------------
 SETTINGS_PATH = os.path.join(APP_DIR, "messenger_settings.json")
 SETTINGS = {
-    "CHANNEL_INITIAL_LIMIT": 25,
+    "CHANNEL_INITIAL_LIMIT": 10,
     "DM_INITIAL_LIMIT": 10,
-    "CHANNEL_RENDER_LIMIT": 25,
+    "CHANNEL_RENDER_LIMIT": 10,
     "DM_RENDER_LIMIT": 10,
     "CHANNEL_BACKFILL_BATCH": 20,
     "DM_BACKFILL_BATCH": 10,
@@ -176,9 +176,9 @@ class DiscordBackend:
                         else:
                             tid = f"channel:{chan_id}"
                         try:
-                            limit = int(S("CHANNEL_INITIAL_LIMIT", 25))
+                            limit = int(S("CHANNEL_INITIAL_LIMIT", 10))
                         except Exception:
-                            limit = 25
+                            limit = 10
                         self.ui_messages[tid] = []
                         try:
                             msgs = [m async for m in ch.history(limit=limit, oldest_first=False)]
@@ -394,7 +394,7 @@ class DiscordBackend:
         except Exception:
             pass
 
-    async def _fetch_recent_dm(self, uid: int, recent: int = 75):
+    async def _fetch_recent_dm(self, uid: int, recent: int = 10):
         try:
             user = await self.client.fetch_user(uid)
             await user.create_dm()
@@ -601,6 +601,7 @@ class DiscordBackend:
                         return
                     await user.create_dm()
                     msg = await user.dm_channel.send(text)
+                    await self._mirror_outgoing_dm(user, text)
                     self.dm_threads[str(uid)] = user
                     try:
                         disp = await self._resolve_member_display(uid)
@@ -666,6 +667,7 @@ class DiscordBackend:
                         return
                     await user.create_dm()
                     msg = await user.dm_channel.send(content)
+                    await self._mirror_outgoing_dm(user, content)
                     self.dm_threads[str(uid)] = user
                     try:
                         disp = await self._resolve_member_display(uid)
@@ -687,6 +689,29 @@ class DiscordBackend:
             return await self._author_display_async(msg, tid)
         except Exception:
             return getattr(getattr(self.client, "user", None), "name", "me")
+
+    async def _mirror_outgoing_dm(self, recipient, content: str):
+        """Mirror an outgoing DM to the private bridge channel."""
+        try:
+            if not self.dm_bridge_chan_id:
+                return
+            bridge = self.client.get_channel(self.dm_bridge_chan_id)
+            if not bridge:
+                try:
+                    bridge = await self.client.fetch_channel(self.dm_bridge_chan_id)
+                except Exception:
+                    bridge = None
+            import discord as _discord
+            if not isinstance(bridge, _discord.TextChannel):
+                return
+            try:
+                disp = await self._resolve_member_display(recipient.id)
+            except Exception:
+                disp = None
+            name = disp or getattr(recipient, "global_name", None) or getattr(recipient, "name", "user")
+            await bridge.send(f"To {name} ({recipient.id}): {content}")
+        except Exception:
+            pass
 
     # ----- runner -----
     def _runner(self):
@@ -1215,8 +1240,10 @@ class DiscordBackend:
 
     def build_state(self) -> Dict[str, Any]:
         messages = {}
+        render_limit = int(SETTINGS.get("CHANNEL_RENDER_LIMIT", 10))
         for tid, lst in self.ui_messages.items():
-            messages[tid] = [m.to_dict() for m in sorted(lst, key=lambda x: x.ts)]
+            sorted_msgs = sorted(lst, key=lambda x: x.ts)
+            messages[tid] = [m.to_dict() for m in sorted_msgs[-render_limit:]]
         reactions = {str(k): v for k, v in self.ui_reactions.items()}
         me = None
         try:
@@ -1240,7 +1267,8 @@ class DiscordBackend:
         self.emit({"type": "threads", "threads": self.build_threads()})
 
     def _emit_history(self, tid: str):
-        msgs = [m.to_dict() for m in sorted(self.ui_messages.get(tid, []), key=lambda x: x.ts)]
+        render_limit = int(SETTINGS.get("CHANNEL_RENDER_LIMIT", 10))
+        msgs = [m.to_dict() for m in sorted(self.ui_messages.get(tid, []), key=lambda x: x.ts)][-render_limit:]
         reactions = {}
         for m in self.ui_messages.get(tid, []):
             reactions[str(m.id)] = self.ui_reactions.get(m.id, [])
@@ -1305,7 +1333,7 @@ class WSServer:
                 tid = msg.get("tid", "")
                 if tid.startswith("dm:"):
                     # ensure we have recent messages for this DM
-                    b.fetch_recent_dm(tid, recent=int(msg.get("recent", 75)))
+                    b.fetch_recent_dm(tid, recent=int(msg.get("recent", 10)))
                 b.write_keyboard_context(tid)
             elif t == "send_text":
                 b.send_text(msg.get("tid", ""), msg.get("text", ""))
