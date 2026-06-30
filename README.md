@@ -69,7 +69,7 @@ Located in `bennyshub/apps/tools/`:
 * **Phrase & Media Board** — Quick-access communication tiles with scanning; fully editable
 * **Journal** — Voice-enabled daily journal
 * **Day Hub** — Date, time, weather, and spoken news (local / NPR / BBC)
-* **Search** *(Rewritten)* — Fully self-contained accessible search with a built-in alphabetical keyboard, YouTube Shorts / Video / Image search modes, in-app video and image viewer overlays, KenLM word predictions, and a settings panel (theme, highlight, voice, scan speed). Uses Electron IPC — no WebSocket required. Python backend (`narbe_scan_browser.py`) handles search queries.
+* **Search** *(Rewritten)* — Fully self-contained accessible search with a built-in alphabetical keyboard, YouTube Shorts / Video / Image search modes, in-app video and image viewer overlays, KenLM word predictions, and a settings panel (theme, highlight, voice, scan speed). Uses Electron IPC — no WebSocket required. (legacy python app still in folder)
 * **RT Convo** *(New)* — AI-powered real-time AAC conversation board (see below)
 
 #### 🗣️ RT Convo — Real-Time AAC Conversation Board
