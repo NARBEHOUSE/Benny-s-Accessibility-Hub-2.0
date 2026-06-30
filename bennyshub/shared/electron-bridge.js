@@ -100,13 +100,6 @@
       launch: createBridgeMethod('streaming.launch')
     },
     
-    // Launch API
-    launch: {
-      messenger: createBridgeMethod('launch.messenger'),
-      search: createBridgeMethod('launch.search'),
-      editor: createBridgeMethod('launch.editor')
-    },
-    
     // In-iframe Messenger API (backend + file IO for the messenger frontend)
     messenger: {
       startBackend: createBridgeMethod('messenger.startBackend'),

@@ -4,7 +4,6 @@ import sys
 import time
 import json
 import threading
-import subprocess
 from typing import Optional, Dict, Any, List
 
 import tkinter as tk
@@ -1247,20 +1246,23 @@ class ControlBar(tk.Tk):
         os._exit(0)
 
     def on_open_messenger(self):
-        """Close Chrome, launch ben_discord_app.py directly, and exit."""
+        """Close Chrome and navigate the Electron hub to the in-iframe messenger."""
         try:
             self.withdraw()
             # Close Chrome browser
             _kill_chrome_gracefully()
             time.sleep(0.3)
-            
-            # Launch ben_discord_app.py directly
-            discord_app_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "messenger", "ben_discord_app.py"))
-            subprocess.Popen(["pythonw", discord_app_path], cwd=os.path.dirname(discord_app_path))
-            
+
+            # Write navigation signal for messenger
+            self._write_nav_signal({
+                "target": "messenger",
+                "path": "apps/tools/messenger/index.html",
+                "title": "Messenger"
+            })
+
         except Exception as e:
-            print(f"Error launching messenger: {e}")
-        
+            print(f"Error navigating to messenger: {e}")
+
         os._exit(0)
 
     def on_close_all(self):

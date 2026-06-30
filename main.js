@@ -3,7 +3,7 @@
  * 
  * Handles all backend operations:
  * - File I/O for keyboard predictions, journal entries
- * - Launching external Python apps (messenger, search)
+ * - Launching external Python apps (messenger)
  * - Window management
  * - Streaming platform automation
  * - Local HTTP server for YouTube embeds and other HTTP-dependent features
@@ -39,19 +39,12 @@ const RT_CONVO_STT_KEY_PATH = path.join(APPS_DIR, 'rt-convo', 'REDACTED-CREDENTI
 const VOICE_SETTINGS_PATH = path.join(BENNYSHUB_DIR, 'shared', 'voice-settings.json');
 
 // External Python scripts
-const MESSENGER_SCRIPT = path.join(APPS_DIR, 'messenger', 'ben_discord_app.py');
-const SEARCH_SCRIPT = path.join(APPS_DIR, 'search', 'narbe_scan_browser.py');
 const DM_LISTENER_SCRIPT = path.join(APPS_DIR, 'messenger', 'simple_dm_listener.py');
 const CONTROL_BAR_SCRIPT = path.join(APPS_DIR, 'streaming', 'utils', 'control_bar.py');
 const YTSEARCH_SERVER_SCRIPT = path.join(APPS_DIR, 'ytsearch', 'server.py');
 const AI_BRIDGE_SCRIPT = path.join(APPS_DIR, 'ai-messenger', 'bridge.py');
 
-// New HTML5 Electron messenger (replaces the old PySide6 ben_discord_app.py).
-// Launched as its own Electron process; main.js spawns the python backend itself.
-const MESSENGER_APP_MAIN = path.join(APPS_DIR, 'messenger', 'main.js');
-const ELECTRON_BIN = path.join(__dirname, 'node_modules', 'electron', 'dist', 'electron.exe');
-
-// Messenger run INSIDE the hub as an iframe (preferred). The hub spawns the
+// Messenger runs inside the hub as an iframe. The hub spawns the
 // python WebSocket backend itself and the frontend (index.html) loads in the
 // hub's app iframe like every other tool, so the hub stops scanning in the
 // background and the iframe keeps focus.
@@ -1719,27 +1712,7 @@ function launchControlBar(mode, showTitle) {
   }
 }
 
-// ============ EXTERNAL APP LAUNCHERS ============
-
-ipcMain.handle('launch:messenger', async () => {
-  try {
-    // Launch the new HTML5 Electron messenger as its own process. Its main.js
-    // spawns the python backend and opens the fullscreen scan UI.
-    if (fs.existsSync(MESSENGER_APP_MAIN) && fs.existsSync(ELECTRON_BIN)) {
-      spawn(ELECTRON_BIN, [MESSENGER_APP_MAIN], {
-        cwd: path.dirname(MESSENGER_APP_MAIN),
-        detached: true,
-        stdio: 'ignore'
-      }).unref();
-      return { success: true };
-    }
-    return { success: false, error: 'Messenger app not found' };
-  } catch (e) {
-    return { success: false, error: e.message };
-  }
-});
-
-// ============ IN-IFRAME MESSENGER (preferred) ============
+// ============ IN-IFRAME MESSENGER ============
 // The messenger frontend runs inside the hub's app iframe. These handlers give
 // it the same capabilities its standalone Electron preload (benAPI) provided:
 // a python WebSocket backend, file IO for keyboard predictions, config, and
@@ -2260,7 +2233,7 @@ ipcMain.handle('messenger:open-video', (_, url) => {
   try {
     const launcher = path.join(MESSENGER_DIR, 'play_video.py');
     if (fs.existsSync(launcher)) {
-      spawn('python', [launcher, url, '--app-title', 'NARBE Benny\u2019s Access Hub'],
+      spawn('python', [launcher, url, '--app-title', "NARBE Benny's Access Hub"],
         { detached: true, stdio: 'ignore', windowsHide: true }).unref();
     } else {
       try { shell.openExternal(url); } catch (_) {}
@@ -2283,22 +2256,6 @@ ipcMain.handle('launch:ai-bridge', async () => {
       return { success: true };
     }
     return { success: false, error: 'Bridge script not found' };
-  } catch (e) {
-    return { success: false, error: e.message };
-  }
-});
-
-ipcMain.handle('launch:search', async () => {
-  try {
-    if (fs.existsSync(SEARCH_SCRIPT)) {
-      spawn('python', [SEARCH_SCRIPT], {
-        cwd: path.dirname(SEARCH_SCRIPT),
-        detached: true,
-        stdio: 'ignore'
-      });
-      return { success: true };
-    }
-    return { success: false, error: 'Search script not found' };
   } catch (e) {
     return { success: false, error: e.message };
   }

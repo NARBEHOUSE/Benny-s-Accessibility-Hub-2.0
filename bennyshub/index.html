@@ -1214,24 +1214,7 @@
           
           // Check if running in Electron
           const isElectron = typeof window !== 'undefined' && window.electronAPI;
-          
-          // Check if this is an Electron external app launch (messenger, search, streaming)
-          if (launchExternal && isElectron) {
-            try {
-              if (launchExternal === 'messenger') {
-                await window.electronAPI.launch.messenger();
-              } else if (launchExternal === 'search') {
-                await window.electronAPI.launch.search();
-              } else if (launchExternal === 'streaming') {
-                await window.electronAPI.launch.streaming();
-              }
-            } catch (err) {
-              console.error('External app launch failed:', err);
-              speak('Error launching app');
-            }
-            return;
-          }
-          
+
           // Check if this is a server-port app (like ytsearch) - needs localhost for YouTube embed
           if (serverPort && isElectron) {
             try {
