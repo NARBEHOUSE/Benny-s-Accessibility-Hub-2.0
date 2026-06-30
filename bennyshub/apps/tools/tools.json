@@ -12,7 +12,7 @@
       "id": "search",
       "title": "Web Search",
       "description": "Accessible web browsing and search using Chrome.",
-      "launchExternal": "search",
+      "path": "apps/tools/search/index.html",
       "image": "images/tools/searchtool.jpg",
       "genres": ["Productivity", "Web"]
     },

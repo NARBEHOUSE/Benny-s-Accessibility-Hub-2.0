@@ -46,10 +46,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // ============ EXTERNAL APP LAUNCHERS ============
   launch: {
-    messenger: () => ipcRenderer.invoke('launch:messenger'),
-    search: () => ipcRenderer.invoke('launch:search'),
     ytsearchServer: () => ipcRenderer.invoke('launch:ytsearch-server'),
-    editor: (editorName) => ipcRenderer.invoke('launch:editor', editorName),
     openWindow: (data) => ipcRenderer.invoke('launch:window', data),
     aiBridge: () => ipcRenderer.invoke('launch:ai-bridge')
   },

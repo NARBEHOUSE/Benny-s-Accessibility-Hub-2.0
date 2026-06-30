@@ -30,7 +30,6 @@ These run as separate processes when needed:
 
 * `messenger/backend.py` — Discord client backend with WebSocket bridge for the Electron UI
 * `messenger/simple_dm_listener.py` — Background service announcing incoming DMs via TTS
-* `search/narbe_scan_browser.py` — Web search with accessible scanning interface
 * `streaming/server.py` — Local server for streaming app control
 * `streaming/utils/control_bar.py` — Always-on-top overlay for controlling streaming apps
 
@@ -69,7 +68,7 @@ Located in `bennyshub/apps/tools/`:
 * **Phrase & Media Board** — Quick-access communication tiles with scanning; fully editable
 * **Journal** — Voice-enabled daily journal
 * **Day Hub** — Date, time, weather, and spoken news (local / NPR / BBC)
-* **Search** *(Rewritten)* — Fully self-contained accessible search with a built-in alphabetical keyboard, YouTube Shorts / Video / Image search modes, in-app video and image viewer overlays, KenLM word predictions, and a settings panel (theme, highlight, voice, scan speed). Uses Electron IPC — no WebSocket required. (legacy python app still in folder)
+* **Search** *(Rewritten)* — Fully self-contained accessible search with a built-in alphabetical keyboard, YouTube Shorts / Video / Image search modes, in-app video and image viewer overlays, KenLM word predictions, and a settings panel (theme, highlight, voice, scan speed). Runs entirely on Electron IPC — the main process handles search queries via Node.js (no Python, no WebSocket required).
 * **RT Convo** *(New)* — AI-powered real-time AAC conversation board (see below)
 
 #### 🗣️ RT Convo — Real-Time AAC Conversation Board
