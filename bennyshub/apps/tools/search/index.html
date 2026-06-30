@@ -1,29 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Launching Search...</title>
-    <style>
-        body { background: #0b0f14; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        h1 { color: #ff5c00; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #ff5c00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NARBE Search</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
-    <div class="loader"></div>
-    <h1>Launching Search Tool...</h1>
-    <p>Please wait while the application starts.</p>
-    <button onclick="window.history.back()" style="margin-top:20px; padding:10px 20px; border:1px solid #333; background:transparent; color:#888; cursor:pointer;">Go Back</button>
+<div id="app">
 
-    <script>
-        fetch('/launch/search')
-            .then(response => {
-                if (response.ok) console.log("Launch command sent.");
-                else document.querySelector('p').innerText = "Request failed.";
-            })
-            .catch(err => document.querySelector('p').innerText = "Service unreachable.");
-    </script>
+  <!-- ── Status bar ── -->
+  <div id="status-bar">
+    <span id="status-dot" class="off"></span>
+    <span id="status-text">Connecting…</span>
+  </div>
+
+  <!-- ── Keyboard (always visible underneath overlays) ── -->
+  <div id="kb-main">
+
+    <!-- Row 0: Text display -->
+    <div class="scan-row" id="row-text">
+      <div id="kb-text-display">|</div>
+    </div>
+
+    <!-- Row 1: Modes (SHORTS / VIDEO / IMAGE / HISTORY / CLEAR HISTORY) -->
+    <div class="scan-row" id="row-modes">
+      <button class="kb-btn btn-primary" data-action="search_shorts">SHORTS</button>
+      <button class="kb-btn btn-primary" data-action="search_video">VIDEO</button>
+      <button class="kb-btn btn-primary" data-action="search_images">IMAGE</button>
+      <button class="kb-btn" data-action="toggle_history">HISTORY</button>
+      <button class="kb-btn btn-warn" data-action="clear_history">CLEAR HISTORY</button>
+    </div>
+
+    <!-- Row 2: Controls (SPACE / DEL LETTER / DEL WORD / CLEAR / SETTINGS / EXIT) -->
+    <div class="scan-row" id="row-controls">
+      <button class="kb-btn" data-action="space_char">SPACE</button>
+      <button class="kb-btn" data-action="del_letter">DEL LETTER</button>
+      <button class="kb-btn" data-action="del_word">DEL WORD</button>
+      <button class="kb-btn btn-warn" data-action="clear">CLEAR</button>
+      <button class="kb-btn btn-settings" data-action="settings">⚙ SETTINGS</button>
+      <button class="kb-btn btn-danger" data-action="exit">EXIT</button>
+    </div>
+
+    <!-- Rows 3-8: Alphabetical keys -->
+    <div class="scan-row alpha-row" id="row-alpha-0">
+      <button class="kb-btn" data-char="A">A</button>
+      <button class="kb-btn" data-char="B">B</button>
+      <button class="kb-btn" data-char="C">C</button>
+      <button class="kb-btn" data-char="D">D</button>
+      <button class="kb-btn" data-char="E">E</button>
+      <button class="kb-btn" data-char="F">F</button>
+    </div>
+    <div class="scan-row alpha-row" id="row-alpha-1">
+      <button class="kb-btn" data-char="G">G</button>
+      <button class="kb-btn" data-char="H">H</button>
+      <button class="kb-btn" data-char="I">I</button>
+      <button class="kb-btn" data-char="J">J</button>
+      <button class="kb-btn" data-char="K">K</button>
+      <button class="kb-btn" data-char="L">L</button>
+    </div>
+    <div class="scan-row alpha-row" id="row-alpha-2">
+      <button class="kb-btn" data-char="M">M</button>
+      <button class="kb-btn" data-char="N">N</button>
+      <button class="kb-btn" data-char="O">O</button>
+      <button class="kb-btn" data-char="P">P</button>
+      <button class="kb-btn" data-char="Q">Q</button>
+      <button class="kb-btn" data-char="R">R</button>
+    </div>
+    <div class="scan-row alpha-row" id="row-alpha-3">
+      <button class="kb-btn" data-char="S">S</button>
+      <button class="kb-btn" data-char="T">T</button>
+      <button class="kb-btn" data-char="U">U</button>
+      <button class="kb-btn" data-char="V">V</button>
+      <button class="kb-btn" data-char="W">W</button>
+      <button class="kb-btn" data-char="X">X</button>
+    </div>
+    <div class="scan-row alpha-row" id="row-alpha-4">
+      <button class="kb-btn" data-char="Y">Y</button>
+      <button class="kb-btn" data-char="Z">Z</button>
+      <button class="kb-btn" data-char="0">0</button>
+      <button class="kb-btn" data-char="1">1</button>
+      <button class="kb-btn" data-char="2">2</button>
+      <button class="kb-btn" data-char="3">3</button>
+    </div>
+    <div class="scan-row alpha-row" id="row-alpha-5">
+      <button class="kb-btn" data-char="4">4</button>
+      <button class="kb-btn" data-char="5">5</button>
+      <button class="kb-btn" data-char="6">6</button>
+      <button class="kb-btn" data-char="7">7</button>
+      <button class="kb-btn" data-char="8">8</button>
+      <button class="kb-btn" data-char="9">9</button>
+    </div>
+
+    <!-- Row 9: Predictions -->
+    <div class="scan-row" id="row-pred">
+      <button class="pred-btn" id="pred-0"></button>
+      <button class="pred-btn" id="pred-1"></button>
+      <button class="pred-btn" id="pred-2"></button>
+      <button class="pred-btn" id="pred-3"></button>
+      <button class="pred-btn" id="pred-4"></button>
+      <button class="pred-btn" id="pred-5"></button>
+    </div>
+
+  </div><!-- #kb-main -->
+
+  <!-- ── Loading overlay ── -->
+  <div id="loading-overlay" class="overlay" hidden>
+    <div class="overlay-card loading-card">
+      <div id="loading-text">Loading…</div>
+    </div>
+  </div>
+
+  <!-- ── Image viewer overlay ── -->
+  <div id="image-overlay" class="overlay" hidden>
+    <div class="overlay-bg">
+      <img id="overlay-img" src="" alt="">
+      <div id="image-title"></div>
+      <div id="image-counter"></div>
+      <div class="overlay-controls">
+        <button class="overlay-btn" id="img-prev">previous</button>
+        <button class="overlay-btn" id="img-next">next</button>
+        <button class="overlay-btn btn-danger" id="img-close">close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Video viewer overlay ── -->
+  <div id="video-overlay" class="overlay" hidden>
+    <div class="overlay-bg">
+      <div id="video-container"></div>
+      <div id="video-title"></div>
+      <div id="video-counter"><span id="video-counter-text"></span> <span id="video-source-badge"></span></div>
+      <div class="overlay-controls">
+        <button class="overlay-btn" id="vid-prev">previous</button>
+        <button class="overlay-btn" id="vid-next">next</button>
+        <button class="overlay-btn btn-danger" id="vid-close">close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Settings overlay ── -->
+  <div id="settings-overlay" class="overlay" hidden>
+    <div class="overlay-bg settings-bg">
+      <div class="settings-title">⚙ SETTINGS</div>
+      <div class="settings-grid" id="settings-grid">
+        <button class="settings-item" data-setting="theme">
+          <span class="setting-label">Theme</span>
+          <span class="setting-value" id="st-theme">Dark</span>
+        </button>
+        <button class="settings-item" data-setting="highlight">
+          <span class="setting-label">Highlight</span>
+          <span class="setting-value" id="st-highlight">Yellow</span>
+        </button>
+        <button class="settings-item" data-setting="voice">
+          <span class="setting-label">Voice</span>
+          <span class="setting-value" id="st-voice">Default</span>
+        </button>
+        <button class="settings-item" data-setting="tts-toggle">
+          <span class="setting-label">TTS</span>
+          <span class="setting-value" id="st-tts">On</span>
+        </button>
+        <button class="settings-item" data-setting="scan-speed">
+          <span class="setting-label">Scan Speed</span>
+          <span class="setting-value" id="st-speed">Medium</span>
+        </button>
+        <button class="settings-item" data-setting="auto-scan">
+          <span class="setting-label">Auto Scan</span>
+          <span class="setting-value" id="st-auto">Off</span>
+        </button>
+        <button class="settings-item" data-setting="volume-up">
+          <span class="setting-label">Volume Up</span>
+          <span class="setting-value">▲ Increase</span>
+        </button>
+        <button class="settings-item" data-setting="volume-down">
+          <span class="setting-label">Volume Down</span>
+          <span class="setting-value">▼ Decrease</span>
+        </button>
+        <button class="settings-item btn-danger" data-setting="close">
+          <span class="setting-label">Close Settings</span>
+          <span class="setting-value">Exit</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- #app -->
+
+<script src="../../../shared/voice-manager.js"></script>
+<script src="../../../shared/electron-bridge.js"></script>
+<script src="iframe-bridge.js"></script>
+<script src="app.js"></script>
+<script src="../../../shared/scan-manager.js"></script>
 </body>
 </html>

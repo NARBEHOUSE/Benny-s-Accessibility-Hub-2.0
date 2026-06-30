@@ -69,7 +69,7 @@ Located in `bennyshub/apps/tools/`:
 * **Phrase & Media Board** — Quick-access communication tiles with scanning; fully editable
 * **Journal** — Voice-enabled daily journal
 * **Day Hub** — Date, time, weather, and spoken news (local / NPR / BBC)
-* **Search** — Accessible web / YouTube search (Python backend)
+* **Search** *(Rewritten)* — Fully self-contained accessible search with a built-in alphabetical keyboard, YouTube Shorts / Video / Image search modes, in-app video and image viewer overlays, KenLM word predictions, and a settings panel (theme, highlight, voice, scan speed). Uses Electron IPC — no WebSocket required. Python backend (`narbe_scan_browser.py`) handles search queries.
 * **RT Convo** *(New)* — AI-powered real-time AAC conversation board (see below)
 
 #### 🗣️ RT Convo — Real-Time AAC Conversation Board
@@ -92,13 +92,14 @@ An AI-powered augmentative and alternative communication (AAC) board designed to
 
 ### 💬 Messenger (Discord)
 
-A fully rewritten switch-accessible Discord client:
+A fully rewritten switch-accessible Discord client, embedded as an iframe within the hub:
 
 * Full DM and channel support with message history
-* AI-powered keyboard context suggestions
+* Improved AI-powered keyboard context suggestions
 * TTS announcements for incoming messages
 * WebSocket bridge between Electron UI and Python Discord backend
 * Background DM listener with voice notifications
+* Refactored shared voice management (via `shared/voice-manager.js`)
 * Requires your own Discord bot token — see `config.example.json`
 
 ### 📺 Streaming Dashboard

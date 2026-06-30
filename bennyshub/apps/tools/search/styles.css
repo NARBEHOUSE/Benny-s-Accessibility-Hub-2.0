@@ -1,0 +1,607 @@
+/* ============================================================
+   NARBE Search — styles
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── CSS custom properties (default: dark theme, yellow highlight) ── */
+:root {
+  --bg:                #0b0f14;
+  --status-bg:         #0d1117;
+  --status-border:     #1e2a38;
+  --text:              #e0e0e0;
+  --display-bg:        #9ec8e8;
+  --display-text:      #0a0a0a;
+  --btn:               #1d2a3a;
+  --btn-text:          #c8d8e8;
+  --btn-primary:       #12355a;
+  --btn-primary-text:  #7ecaf8;
+  --btn-warn:          #3a2c0a;
+  --btn-warn-text:     #f0c060;
+  --btn-danger:        #3a1212;
+  --btn-danger-text:   #f07070;
+  --btn-settings:      #2a1a4a;
+  --btn-settings-text: #c084fc;
+  --pred-bg:           #0f1e2e;
+  --pred-text:         #88ccff;
+  --pred-border:       #1a3050;
+  --set-bg:            #090d12;
+  --set-title:         #88ccff;
+  --set-item:          #1d2a3a;
+  --set-label:         #88aacc;
+  --set-value:         #e0e0e0;
+  --hi:                #FFD64D;
+  --hi-text:           #0a0a0a;
+  --hi-outline:        #ffa000;
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: default;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Status bar ─────────────────────────────────────────── */
+
+#status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+  background: var(--status-bg);
+  border-bottom: 1px solid var(--status-border);
+  font-size: 12px;
+  flex-shrink: 0;
+  height: 26px;
+  color: var(--text);
+}
+
+#status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #555;
+  flex-shrink: 0;
+}
+
+#status-dot.on   { background: #4caf50; }
+#status-dot.off  { background: #555; }
+#status-dot.err  { background: #f44336; }
+#status-dot.warn { background: #ff9800; }
+
+/* ── Main keyboard layout ───────────────────────────────── */
+
+#kb-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 3px;
+  padding: 3px;
+  overflow: hidden;
+}
+
+/* ── Scan rows ──────────────────────────────────────────── */
+
+.scan-row {
+  display: flex;
+  flex-direction: row;
+  gap: 3px;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  border-radius: 5px;
+  padding: 2px;
+  transition: outline 0.06s;
+}
+
+#row-text { flex: 1.5; padding: 0; }
+
+.scan-row.row-active {
+  outline: 3px solid var(--hi);
+  outline-offset: -1px;
+  background: rgba(255, 214, 77, 0.10);
+}
+
+/* ── Text display ───────────────────────────────────────── */
+
+#kb-text-display {
+  flex: 1;
+  background: var(--display-bg);
+  color: var(--display-text);
+  font-size: clamp(15px, 2.8vh, 32px);
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  letter-spacing: 0.03em;
+  min-width: 0;
+}
+
+#kb-main.history-mode #kb-text-display {
+  background: #1e6040;
+  color: #b0ffb0;
+}
+
+/* ── Buttons ────────────────────────────────────────────── */
+
+.kb-btn, .pred-btn {
+  flex: 1;
+  border: none;
+  border-radius: 4px;
+  cursor: default;
+  font-family: inherit;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: background 0.05s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  padding: 0 3px;
+  font-size: clamp(9px, 1.7vh, 18px);
+}
+
+.kb-btn              { background: var(--btn);           color: var(--btn-text); }
+.kb-btn.btn-primary  { background: var(--btn-primary);   color: var(--btn-primary-text); }
+.kb-btn.btn-warn     { background: var(--btn-warn);      color: var(--btn-warn-text); }
+.kb-btn.btn-danger   { background: var(--btn-danger);    color: var(--btn-danger-text); }
+.kb-btn.btn-settings { background: var(--btn-settings);  color: var(--btn-settings-text); }
+
+.pred-btn {
+  background: var(--pred-bg);
+  color: var(--pred-text);
+  font-size: clamp(8px, 1.5vh, 15px);
+  font-weight: 600;
+  border: 1px solid var(--pred-border);
+}
+
+.pred-btn:empty { background: #0c1520; border-color: #111; }
+
+.kb-btn.key-active,
+.pred-btn.key-active {
+  background: var(--hi) !important;
+  color: var(--hi-text) !important;
+  outline: 2px solid var(--hi-outline);
+}
+
+/* ── Overlay base ───────────────────────────────────────── */
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay[hidden] { display: none !important; }
+
+/* ── Loading overlay ─────────────────────────────────────── */
+
+#loading-overlay { background: rgba(0, 0, 0, 0.80); }
+
+.loading-card {
+  background: #0f1923;
+  border: 1px solid #2a4060;
+  border-radius: 10px;
+  padding: 28px 50px;
+  font-size: clamp(14px, 2.4vh, 26px);
+  color: #88ccff;
+  text-align: center;
+}
+
+/* ── Image / Video overlays ──────────────────────────────── */
+
+#image-overlay, #video-overlay {
+  background: #000;
+  align-items: stretch;
+  justify-content: stretch;
+  flex-direction: column;
+}
+
+.overlay-bg {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+#overlay-img {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: contain;
+  display: block;
+  background: #000;
+}
+
+#image-title, #video-title {
+  font-size: clamp(11px, 1.8vh, 18px);
+  color: #aaa;
+  padding: 3px 12px;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+#image-counter, #video-counter {
+  font-size: clamp(10px, 1.4vh, 15px);
+  color: #666;
+  padding: 1px 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+#video-source-badge {
+  font-size: clamp(9px, 1.3vh, 13px);
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: #222;
+  color: #888;
+}
+#video-source-badge.src-youtube     { background: #c00;    color: #fff; }
+#video-source-badge.src-rumble      { background: #85c742; color: #111; }
+#video-source-badge.src-dailymotion { background: #0066dc; color: #fff; }
+
+/* ── Video container ─────────────────────────────────────── */
+
+#video-container {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#video-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* ── Overlay control buttons ─────────────────────────────── */
+
+.overlay-controls {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  padding: 5px;
+  width: 100%;
+  flex-shrink: 0;
+  height: clamp(34px, 5.5vh, 52px);
+}
+
+.overlay-btn {
+  flex: 1;
+  border: none;
+  border-radius: 4px;
+  cursor: default;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: clamp(10px, 1.7vh, 18px);
+  background: var(--btn);
+  color: var(--btn-text);
+  outline: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.05s;
+}
+
+.overlay-btn.btn-danger { background: var(--btn-danger); color: var(--btn-danger-text); }
+
+.overlay-btn.key-active {
+  background: var(--hi) !important;
+  color: var(--hi-text) !important;
+  outline: 2px solid var(--hi-outline);
+}
+
+/* ── Settings overlay ───────────────────────────────────── */
+
+#settings-overlay {
+  background: var(--set-bg);
+  z-index: 200;
+  align-items: stretch;
+  justify-content: stretch;
+  flex-direction: column;
+}
+
+.settings-bg {
+  padding: 6px;
+  gap: 6px;
+}
+
+.settings-title {
+  font-size: clamp(13px, 2.2vh, 22px);
+  font-weight: 700;
+  color: var(--set-title);
+  text-align: center;
+  padding: 4px 0;
+  flex-shrink: 0;
+  letter-spacing: 0.08em;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 5px;
+  flex: 1;
+  min-height: 0;
+}
+
+.settings-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--set-item);
+  border: none;
+  border-radius: 6px;
+  cursor: default;
+  font-family: inherit;
+  padding: 4px 8px;
+  gap: 3px;
+  outline: none;
+  text-align: center;
+  min-height: 0;
+}
+
+.setting-label {
+  font-size: clamp(8px, 1.4vh, 14px);
+  font-weight: 700;
+  color: var(--set-label);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.setting-value {
+  font-size: clamp(8px, 1.5vh, 15px);
+  color: var(--set-value);
+  font-weight: 600;
+}
+
+.settings-item.btn-danger              { background: var(--btn-danger); }
+.settings-item.btn-danger .setting-label { color: #f09090; }
+.settings-item.btn-danger .setting-value { color: var(--btn-danger-text); }
+
+.settings-item.key-active {
+  background: var(--hi) !important;
+  outline: 2px solid var(--hi-outline);
+}
+.settings-item.key-active .setting-label,
+.settings-item.key-active .setting-value { color: var(--hi-text) !important; }
+
+/* ── Themes ─────────────────────────────────────────────── */
+
+body.theme-light {
+  --bg:                #e4eef8;
+  --status-bg:         #ccdcee;
+  --status-border:     #aabdd0;
+  --text:              #1a2a3a;
+  --display-bg:        #1a6a9a;
+  --display-text:      #fff;
+  --btn:               #c0d4e8;
+  --btn-text:          #1a2a3a;
+  --btn-primary:       #3a80c0;
+  --btn-primary-text:  #fff;
+  --btn-warn:          #c89010;
+  --btn-warn-text:     #2a1a00;
+  --btn-danger:        #c85050;
+  --btn-danger-text:   #fff;
+  --btn-settings:      #8040c0;
+  --btn-settings-text: #fff;
+  --pred-bg:           #d0e4f4;
+  --pred-text:         #1a4070;
+  --pred-border:       #a0c0dc;
+  --set-bg:            #d8eaf8;
+  --set-title:         #1a4070;
+  --set-item:          #b8cce0;
+  --set-label:         #1a4070;
+  --set-value:         #1a2a3a;
+}
+
+body.theme-dark {
+  --bg:                #1a1a1a;
+  --status-bg:         #111;
+  --status-border:     #333;
+  --text:              #e8e8e8;
+  --display-bg:        #4a4a4a;
+  --display-text:      #fff;
+  --btn:               #2e2e2e;
+  --btn-text:          #e0e0e0;
+  --btn-primary:       #3a3a5a;
+  --btn-primary-text:  #aaaaff;
+  --btn-warn:          #3a3000;
+  --btn-warn-text:     #e8c840;
+  --btn-danger:        #3a1010;
+  --btn-danger-text:   #ff8080;
+  --btn-settings:      #2a1a3a;
+  --btn-settings-text: #d090ff;
+  --pred-bg:           #222;
+  --pred-text:         #aaa;
+  --pred-border:       #444;
+  --set-bg:            #0e0e0e;
+  --set-title:         #ccc;
+  --set-item:          #2e2e2e;
+  --set-label:         #999;
+  --set-value:         #ddd;
+}
+
+body.theme-blue {
+  --bg:                #060e1c;
+  --status-bg:         #0a1628;
+  --status-border:     #142840;
+  --text:              #90c8ff;
+  --display-bg:        #082a52;
+  --display-text:      #60b8ff;
+  --btn:               #0c1e38;
+  --btn-text:          #70a8e0;
+  --btn-primary:       #0a2a5a;
+  --btn-primary-text:  #50a8ff;
+  --btn-warn:          #2a1e06;
+  --btn-warn-text:     #d4a030;
+  --btn-danger:        #280a0a;
+  --btn-danger-text:   #e06060;
+  --btn-settings:      #1a0a38;
+  --btn-settings-text: #a060f0;
+  --pred-bg:           #060e20;
+  --pred-text:         #5090d0;
+  --pred-border:       #0e2038;
+  --set-bg:            #040c18;
+  --set-title:         #50a0e8;
+  --set-item:          #0c1e38;
+  --set-label:         #5090cc;
+  --set-value:         #80b8e8;
+}
+
+body.theme-green {
+  --bg:                #061408;
+  --status-bg:         #081a0a;
+  --status-border:     #0f2814;
+  --text:              #88e0a0;
+  --display-bg:        #0a3c14;
+  --display-text:      #60d880;
+  --btn:               #0c2010;
+  --btn-text:          #70c888;
+  --btn-primary:       #0a3018;
+  --btn-primary-text:  #50d870;
+  --btn-warn:          #302800;
+  --btn-warn-text:     #d4c040;
+  --btn-danger:        #280a08;
+  --btn-danger-text:   #e06060;
+  --btn-settings:      #200828;
+  --btn-settings-text: #b060e0;
+  --pred-bg:           #060e08;
+  --pred-text:         #50c068;
+  --pred-border:       #0e2010;
+  --set-bg:            #040c06;
+  --set-title:         #50c068;
+  --set-item:          #0c2010;
+  --set-label:         #509060;
+  --set-value:         #70c080;
+}
+
+body.theme-purple {
+  --bg:                #100818;
+  --status-bg:         #160c20;
+  --status-border:     #201030;
+  --text:              #d0a0f0;
+  --display-bg:        #2a0a4a;
+  --display-text:      #c080e8;
+  --btn:               #1c1028;
+  --btn-text:          #b080d0;
+  --btn-primary:       #28104a;
+  --btn-primary-text:  #c080f0;
+  --btn-warn:          #2a1e04;
+  --btn-warn-text:     #d0b040;
+  --btn-danger:        #280808;
+  --btn-danger-text:   #e06060;
+  --btn-settings:      #300850;
+  --btn-settings-text: #e090ff;
+  --pred-bg:           #0c0814;
+  --pred-text:         #9060c0;
+  --pred-border:       #160c28;
+  --set-bg:            #080610;
+  --set-title:         #a070d0;
+  --set-item:          #1c1028;
+  --set-label:         #8060a8;
+  --set-value:         #c090e0;
+}
+
+body.theme-orange {
+  --bg:                #180c00;
+  --status-bg:         #201200;
+  --status-border:     #2a1800;
+  --text:              #f0b060;
+  --display-bg:        #3c2000;
+  --display-text:      #f0a030;
+  --btn:               #241400;
+  --btn-text:          #d09040;
+  --btn-primary:       #382000;
+  --btn-primary-text:  #f0a830;
+  --btn-warn:          #2a2000;
+  --btn-warn-text:     #e0c040;
+  --btn-danger:        #280800;
+  --btn-danger-text:   #e06040;
+  --btn-settings:      #1e0830;
+  --btn-settings-text: #b060e0;
+  --pred-bg:           #140a00;
+  --pred-text:         #c08030;
+  --pred-border:       #201000;
+  --set-bg:            #100800;
+  --set-title:         #d09040;
+  --set-item:          #241400;
+  --set-label:         #a07028;
+  --set-value:         #d09040;
+}
+
+body.theme-red {
+  --bg:                #180404;
+  --status-bg:         #200808;
+  --status-border:     #2a0c0c;
+  --text:              #f09090;
+  --display-bg:        #3c0808;
+  --display-text:      #f06060;
+  --btn:               #241010;
+  --btn-text:          #d07070;
+  --btn-primary:       #381010;
+  --btn-primary-text:  #f07070;
+  --btn-warn:          #201800;
+  --btn-warn-text:     #d0a030;
+  --btn-danger:        #380808;
+  --btn-danger-text:   #ff8080;
+  --btn-settings:      #180420;
+  --btn-settings-text: #c060e0;
+  --pred-bg:           #140808;
+  --pred-text:         #c06060;
+  --pred-border:       #200c0c;
+  --set-bg:            #100606;
+  --set-title:         #d06060;
+  --set-item:          #241010;
+  --set-label:         #a05050;
+  --set-value:         #d07070;
+}
+
+/* ── Highlight colors ────────────────────────────────────── */
+
+body.highlight-yellow { --hi: #FFD64D; --hi-text: #0a0a0a; --hi-outline: #ffa000; }
+body.highlight-pink   { --hi: #ff69b4; --hi-text: #fff;    --hi-outline: #ff1493; }
+body.highlight-green  { --hi: #00e676; --hi-text: #000;    --hi-outline: #00c853; }
+body.highlight-orange { --hi: #ffa500; --hi-text: #000;    --hi-outline: #ff8c00; }
+body.highlight-black  { --hi: #111111; --hi-text: #fff;    --hi-outline: #444; }
+body.highlight-white  { --hi: #ffffff; --hi-text: #000;    --hi-outline: #bbb; }
+body.highlight-purple { --hi: #9932cc; --hi-text: #fff;    --hi-outline: #8a2be2; }
+body.highlight-red    { --hi: #ff2222; --hi-text: #fff;    --hi-outline: #dc143c; }

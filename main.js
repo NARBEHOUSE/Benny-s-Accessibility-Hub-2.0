@@ -33,7 +33,7 @@ const STREAMING_EPISODES_PATH = path.join(STREAMING_DIR, 'episodes.json');
 const STREAMING_LAST_WATCHED_PATH = path.join(STREAMING_DATA_DIR, 'last_watched.json');
 const STREAMING_SEARCH_HISTORY_PATH = path.join(STREAMING_DIR, 'search_history.json');
 const RT_CONVO_CONTEXT_PATH = path.join(APPS_DIR, 'rt-convo', 'context.json');
-const RT_CONVO_STT_KEY_PATH = path.join(APPS_DIR, 'rt-convo', 'google-credentials.json');
+const RT_CONVO_STT_KEY_PATH = path.join(APPS_DIR, 'rt-convo', 'REDACTED-CREDENTIAL-FILENAME.json');
 
 // Shared settings paths
 const VOICE_SETTINGS_PATH = path.join(BENNYSHUB_DIR, 'shared', 'voice-settings.json');
@@ -59,6 +59,12 @@ const MESSENGER_DIR = path.join(APPS_DIR, 'messenger');
 const MESSENGER_BACKEND_SCRIPT = path.join(MESSENGER_DIR, 'backend.py');
 const MESSENGER_WS_PORT = 8777;
 
+// ── Search in-iframe backend ──────────────────────────────────────────────────
+const SEARCH_DIR            = path.join(APPS_DIR, 'search');
+const SEARCH_BACKEND_SCRIPT = path.join(SEARCH_DIR, 'backend.py');
+const SEARCH_WS_PORT        = 8778;
+const SEARCH_HISTORY_FILE   = path.join(SEARCH_DIR, 'search_history.json');
+
 // Chrome path
 const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 
@@ -77,6 +83,7 @@ let speechProcess = null;
 let speechBuffer = '';
 let toolWindows = {};  // BrowserWindows opened for specific tools (e.g. rt-convo)
 let messengerBackendProc = null;  // python WebSocket backend for the in-iframe messenger
+let searchBackendProc    = null;  // python WebSocket backend for the in-iframe search
 
 // Send a message to every frame in the main window AND to any open tool windows
 function broadcastToAllFrames(channel, ...args) {
@@ -531,6 +538,93 @@ function startHubServer() {
         return;
       }
 
+      // Image proxy — fetches any image server-side with browser-like headers,
+      // bypassing hotlink protection and CORS. Used by the search app for GIFs.
+      if (urlPath === '/api/imgproxy' && req.method === 'GET') {
+        const targetUrl = new URLSearchParams(queryString).get('url');
+        if (!targetUrl) { res.writeHead(400); res.end(); return; }
+
+        // Follow redirects server-side. Many GIF CDNs (Giphy/Tenor/Imgur/Wikimedia)
+        // answer with a 301/302/307 to a CDN host; without following them here the
+        // browser <img> receives a bodiless 3xx and shows nothing. referer===null
+        // means "send default Referer", '' means "send none" (hotlink 403 retry).
+        const fetchImg = (rawUrl, referer, hops) => {
+          if (hops > 5) { try { res.writeHead(502); res.end(); } catch (_) {} return; }
+          let tp;
+          try { tp = new URL(rawUrl); } catch (_) { try { res.writeHead(400); res.end(); } catch (_) {} return; }
+          // Unwrap Bing thumbnail-proxy wrappers (/th/id/OGC...?rurl=<real>) to the true
+          // origin so we fetch the genuine animated gif rather than a preview frame.
+          if (/(^|\.)bing\.com$/i.test(tp.hostname) && /\/th\//i.test(tp.pathname)) {
+            const rurl = tp.searchParams.get('rurl');
+            if (rurl) { try { tp = new URL(rurl); rawUrl = tp.href; } catch (_) {} }
+          }
+          const proto = tp.protocol === 'https:' ? require('https') : require('http');
+          const headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'image/gif,image/webp,image/apng,image/*,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+          };
+          if (referer === null) headers['Referer'] = tp.origin + '/';
+          else if (referer)     headers['Referer'] = referer;
+          const proxyReq = proto.request({
+            hostname: tp.hostname,
+            port: tp.port || (tp.protocol === 'https:' ? 443 : 80),
+            path: tp.pathname + tp.search,
+            method: 'GET',
+            headers,
+          }, (proxyRes) => {
+            const status = proxyRes.statusCode || 0;
+            // Redirect — re-request the Location target (resolved against current URL).
+            if (status >= 300 && status < 400 && proxyRes.headers.location) {
+              proxyRes.resume();
+              let next;
+              try { next = new URL(proxyRes.headers.location, tp).href; }
+              catch (_) { try { res.writeHead(502); res.end(); } catch (_) {} return; }
+              fetchImg(next, tp.origin + '/', hops + 1);
+              return;
+            }
+            // Hotlink protection sometimes 403s only when a Referer is present — retry bare once.
+            if (status === 403 && referer !== '') {
+              proxyRes.resume();
+              fetchImg(rawUrl, '', hops + 1);
+              return;
+            }
+            const hdrs = { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'max-age=300' };
+            // Force the Content-Type from the file's magic bytes. Search engines/CDNs often
+            // mislabel gifs (octet-stream/text), which can make the browser <img> show a
+            // single static frame instead of animating. Sniffing guarantees image/gif.
+            let sniffed = false;
+            proxyRes.once('data', (chunk) => {
+              sniffed = true;
+              let ct = proxyRes.headers['content-type'] || '';
+              const b = chunk;
+              if (b.length >= 3 && b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) ct = 'image/gif';            // GIF87a/89a
+              else if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4E && b[3] === 0x47) ct = 'image/png';
+              else if (b.length >= 3 && b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF) ct = 'image/jpeg';
+              else if (b.length >= 12 && b.toString('latin1', 0, 4) === 'RIFF' && b.toString('latin1', 8, 12) === 'WEBP') ct = 'image/webp';
+              if (ct) hdrs['Content-Type'] = ct;
+              res.writeHead(status === 200 ? 200 : status, hdrs);
+              res.write(chunk);
+              proxyRes.pipe(res);
+            });
+            proxyRes.once('end', () => {
+              if (!sniffed) { try { res.writeHead(status === 200 ? 200 : status, hdrs); res.end(); } catch (_) {} }
+            });
+          });
+          proxyReq.on('error', () => { try { res.writeHead(502); res.end(); } catch (_) {} });
+          proxyReq.setTimeout(8000, () => { proxyReq.destroy(); });
+          proxyReq.end();
+        };
+
+        try {
+          fetchImg(targetUrl, null, 0);
+        } catch (e) {
+          console.error('[IMGPROXY]', e.message);
+          try { res.writeHead(500); res.end(); } catch (_) {}
+        }
+        return;
+      }
+
       if (urlPath === '/api/rt-convo/save' && req.method === 'POST') {
         let body = '';
         req.on('data', chunk => body += chunk);
@@ -639,7 +733,9 @@ async function createWindow() {
       // This allows iframes to access the parent's electronAPI
       sandbox: false,
       // Allow mixed content for YouTube embeds
-      allowRunningInsecureContent: true
+      allowRunningInsecureContent: true,
+      // Let the YouTube embed start without a user gesture.
+      autoplayPolicy: 'no-user-gesture-required'
     }
   });
 
@@ -761,8 +857,11 @@ app.whenReady().then(async () => {
   // Configure Content Security Policy to allow CDN resources for games
   // This allows Three.js, Cannon.js, YouTube player, localhost servers, search APIs, and other external libraries
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    // Don't modify headers for YouTube-related domains - let them handle their own CSP
-    const youtubeUrls = ['youtube.com', 'ytimg.com', 'googlevideo.com', 'google.com', 'gstatic.com', 'ggpht.com'];
+    // Don't modify headers for YouTube-related domains - let them handle their own CSP.
+    // NOTE: 'youtube-nocookie.com' must be listed explicitly — it does NOT contain the
+    // substring 'youtube.com', so without it the embed document inherits the hub CSP
+    // whose connect-src omits *.googlevideo.com, blocking the MSE media stream (endless spinner).
+    const youtubeUrls = ['youtube.com', 'youtube-nocookie.com', 'ytimg.com', 'googlevideo.com', 'google.com', 'gstatic.com', 'ggpht.com'];
     const url = details.url.toLowerCase();
     if (youtubeUrls.some(domain => url.includes(domain))) {
       callback({ responseHeaders: details.responseHeaders });
@@ -777,12 +876,12 @@ app.whenReady().then(async () => {
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com https://www.youtube.com https://s.ytimg.com https://www.google.com https://challenges.cloudflare.com http://localhost:* http://127.0.0.1:* blob:; " +
           "script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com https://unpkg.com https://cdn.jsdelivr.net https://www.youtube.com https://s.ytimg.com https://www.google.com https://challenges.cloudflare.com http://localhost:* http://127.0.0.1:* blob:; " +
           "connect-src 'self' https://unpkg.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.google-analytics.com https://*.googleapis.com https://*.workers.dev https://www.youtube.com https://www.google.com https://challenges.cloudflare.com https://api.duckduckgo.com https://*.wikipedia.org https://api.open-meteo.com https://geocoding-api.open-meteo.com https://huggingface.co https://*.huggingface.co http://localhost:* http://127.0.0.1:* wss: ws:; " +
-          "img-src 'self' data: blob: https: http://localhost:* http://127.0.0.1:*; " +
+          "img-src * data: blob:; " +
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com http://localhost:* http://127.0.0.1:*; " +
           "font-src 'self' data: https://fonts.gstatic.com; " +
           "worker-src 'self' blob:; " +
-          "media-src 'self' data: blob: https://*.googlevideo.com https://*.youtube.com http://localhost:* http://127.0.0.1:*; " +
-          "frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com https://challenges.cloudflare.com http://localhost:* http://127.0.0.1:*;"
+          "media-src * data: blob:; " +
+          "frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com https://rumble.com https://www.dailymotion.com https://challenges.cloudflare.com http://localhost:* http://127.0.0.1:*;"
         ]
       }
     });
@@ -825,6 +924,7 @@ app.on('window-all-closed', () => {
     startMenuCloserProcess = null;
   }
   stopMessengerBackend();
+  stopSearchBackend();
   stopSpeechProcess();
   Object.values(toolWindows).forEach(win => { try { if (!win.isDestroyed()) win.close(); } catch {} });
   toolWindows = {};
@@ -1631,8 +1731,6 @@ ipcMain.handle('launch:messenger', async () => {
         detached: true,
         stdio: 'ignore'
       }).unref();
-      // Don't minimize - let the messenger app take focus naturally
-      // Electron stays fullscreen in the background
       return { success: true };
     }
     return { success: false, error: 'Messenger app not found' };
@@ -1688,6 +1786,425 @@ function stopMessengerBackend() {
 ipcMain.handle('messenger:start-backend', async () => {
   const ok = startMessengerBackend();
   return { success: ok, wsPort: MESSENGER_WS_PORT };
+});
+
+// ── Search in-iframe backend IPC ──────────────────────────────────────────────
+function startSearchBackend() {
+  if (searchBackendProc && searchBackendProc.exitCode === null) return true;
+  if (!fs.existsSync(SEARCH_BACKEND_SCRIPT)) {
+    console.error('[SEARCH] backend.py not found:', SEARCH_BACKEND_SCRIPT);
+    return false;
+  }
+  try {
+    searchBackendProc = spawn('python', [SEARCH_BACKEND_SCRIPT], {
+      cwd: SEARCH_DIR,
+      env: Object.assign({}, process.env, { SEARCH_WS_PORT: String(SEARCH_WS_PORT) }),
+    });
+    searchBackendProc.stdout.on('data', (d) => process.stdout.write('[search-backend] ' + d));
+    searchBackendProc.stderr.on('data', (d) => process.stderr.write('[search-backend] ' + d));
+    searchBackendProc.on('exit', (code) => {
+      console.log('[SEARCH] backend exited with code', code);
+      searchBackendProc = null;
+    });
+    console.log('[SEARCH] backend started, PID', searchBackendProc.pid);
+    return true;
+  } catch (e) {
+    console.error('[SEARCH] failed to start backend:', e.message);
+    searchBackendProc = null;
+    return false;
+  }
+}
+
+function stopSearchBackend() {
+  if (searchBackendProc) {
+    try { searchBackendProc.kill(); } catch (_) {}
+    searchBackendProc = null;
+  }
+}
+
+ipcMain.handle('search:start-backend', async () => {
+  const ok = startSearchBackend();
+  return { success: ok, wsPort: SEARCH_WS_PORT };
+});
+
+ipcMain.handle('search:get-config', () => ({ appDir: SEARCH_DIR, wsPort: SEARCH_WS_PORT }));
+
+// ── Search: Node.js HTTP helpers (no Python / no pip required) ────────────────
+function searchNodeGet(urlStr, extraHeaders) {
+  return new Promise((resolve, reject) => {
+    let parsed;
+    try { parsed = new URL(urlStr); } catch (e) { return reject(e); }
+    const proto = parsed.protocol === 'https:' ? https : require('http');
+    const opts  = {
+      hostname: parsed.hostname,
+      port:     parsed.port ? Number(parsed.port) : (parsed.protocol === 'https:' ? 443 : 80),
+      path:     parsed.pathname + (parsed.search || ''),
+      method:   'GET',
+      headers: Object.assign({
+        'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36',
+        'Accept':          'text/html,application/json,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'identity',
+      }, extraHeaders || {}),
+    };
+    const req = proto.request(opts, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        let loc = res.headers.location;
+        if (loc.startsWith('/')) loc = `${parsed.protocol}//${parsed.hostname}${loc}`;
+        resolve(searchNodeGet(loc, extraHeaders));
+        return;
+      }
+      let body = '';
+      res.setEncoding('utf8');
+      res.on('data', c => { body += c; });
+      res.on('end',  () => resolve({ ok: res.statusCode < 400, status: res.statusCode, text: body }));
+      res.on('error', reject);
+    });
+    req.setTimeout(15000, () => { req.destroy(); reject(new Error('timeout')); });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+// ── Hidden BrowserWindow search (same method as narbe_scan_browser.py) ────────
+// Load real search engine pages in a hidden Chromium window, inject JS to scrape
+// image/video URLs from the rendered DOM — identical to the Python app approach.
+
+let _searchWin = null;
+let _altWin    = null;   // second hidden browser for parallel Rumble searches
+
+// Disable SafeSearch the same way the Python app did — via cookies on the browser
+// profile. URL params (adlt=off / kp=-2 / safesearch=off) are widely ignored by the
+// engines; the cookie is what actually unlocks adult/NSFW results. Idempotent.
+let _searchCookiesInstalled = false;
+async function installSearchCookies() {
+  if (_searchCookiesInstalled) return;
+  _searchCookiesInstalled = true;
+  const fiveYears = Math.floor(Date.now() / 1000) + 5 * 365 * 24 * 3600;
+  const cookies = [
+    // Google: consent + SafeSearch off (PREF f2=8000000 disables SafeSearch)
+    { url: 'https://www.google.com', domain: '.google.com', name: 'PREF',       value: 'f2=8000000&hl=en&gl=US' },
+    { url: 'https://www.google.com', domain: '.google.com', name: 'CONSENT',    value: 'YES+cb.2024' },
+    // YouTube: restricted mode off
+    { url: 'https://www.youtube.com', domain: '.youtube.com', name: 'PREF',     value: 'f2=8000000' },
+    // Bing: adult filter off
+    { url: 'https://www.bing.com', domain: '.bing.com', name: 'SRCHHPGUSR',     value: 'ADLT=OFF' },
+    { url: 'https://www.bing.com', domain: '.bing.com', name: 'SRCHUSR',        value: 'ADLT=OFF' },
+    { url: 'https://www.bing.com', domain: '.bing.com', name: 'ADLT',           value: 'OFF' },
+    // DuckDuckGo: SafeSearch off
+    { url: 'https://duckduckgo.com', domain: '.duckduckgo.com', name: 'kp',     value: '-2' },
+    // Brave: SafeSearch off
+    { url: 'https://search.brave.com', domain: '.search.brave.com', name: 'safesearch', value: 'off' },
+  ];
+  for (const c of cookies) {
+    try {
+      await session.defaultSession.cookies.set({
+        url: c.url, name: c.name, value: c.value, domain: c.domain,
+        path: '/', secure: true, expirationDate: fiveYears,
+      });
+    } catch (e) { /* non-fatal */ }
+  }
+}
+
+function _makeScrapeWin() {
+  const w = new BrowserWindow({
+    show: false, width: 1280, height: 900,
+    webPreferences: { nodeIntegration: false, contextIsolation: false,
+                      javascript: true, webSecurity: false },
+  });
+  w.webContents.setAudioMuted(true);
+  return w;
+}
+
+function _getSearchWin() {
+  if (_searchWin && !_searchWin.isDestroyed()) return _searchWin;
+  _searchWin = _makeScrapeWin();
+  _searchWin.on('closed', () => { _searchWin = null; });
+  return _searchWin;
+}
+
+function _getAltWin() {
+  if (_altWin && !_altWin.isDestroyed()) return _altWin;
+  _altWin = _makeScrapeWin();
+  _altWin.on('closed', () => { _altWin = null; });
+  return _altWin;
+}
+
+function _waitLoad(wc, ms) {
+  return new Promise(resolve => {
+    const t = setTimeout(resolve, ms);
+    wc.once('did-finish-load', () => { clearTimeout(t); resolve(); });
+  });
+}
+
+// Exact image-scraping JS from narbe_scan_browser.py (works on Google, DDG, Bing)
+const INJECT_IMAGES_JS = String.raw`(function(){
+  function isBad(u){
+    try{var url=new URL(u,location.href);var h=(url.hostname||'').toLowerCase();var p=(url.pathname||'').toLowerCase();
+    if(/encrypted\-tbn/i.test(h))return true;if(/branding|logo/.test(p))return true;}catch(e){}
+    return/^data:/i.test(String(u||""));
+  }
+  function decodeDDG(u){
+    try{var x=new URL(u,location.href);if((x.hostname||'').toLowerCase().indexOf('duckduckgo.com')!==-1&&/\/iu\/?/.test(x.pathname)){var orig=x.searchParams.get('u')||'';if(orig)return decodeURIComponent(orig);}}catch(e){}return u;
+  }
+  function getOrig(href){
+    try{var u=new URL(href,location.href);var c=u.searchParams.get('imgurl')||u.searchParams.get('imgrefurl')||u.searchParams.get('mediaurl')||u.searchParams.get('murl')||u.searchParams.get('imgsrc')||u.searchParams.get('u')||'';if(c)return decodeDDG(c);return href;}catch(e){}return href;
+  }
+  var out=[],seen={};
+  try{var ga=Array.from(document.querySelectorAll('a[href^="/imgres?"]'));for(var i=0;i<ga.length&&out.length<80;i++){var href=ga[i].getAttribute('href')||ga[i].href||'';if(!href)continue;try{var u=new URL(href,location.href);var img=u.searchParams.get('imgurl')||'';if(!img||isBad(img)||seen[img])continue;seen[img]=1;var t='';try{var im=ga[i].querySelector('img');t=(im&&im.getAttribute('alt'))||ga[i].getAttribute('title')||'image';}catch(e){}out.push({img:img,title:t||'image'});}catch(e){}}}catch(e){}
+  try{var anchors=Array.from(document.querySelectorAll('a[href*="/iu/"],a[href*="imgurl="],a[href*="mediaurl="],a[href*="murl="]'));for(var i=0;i<anchors.length&&out.length<80;i++){var href=anchors[i].href||anchors[i].getAttribute('href')||'';if(!href)continue;var img=getOrig(href);img=decodeDDG(img);if(!img||isBad(img)||seen[img])continue;seen[img]=1;var t='';try{var im=anchors[i].querySelector('img');t=(im&&im.getAttribute('alt'))||anchors[i].getAttribute('title')||'image';}catch(e){}out.push({img:img,title:t||'image'});}}catch(e){}
+  try{var tiles=Array.from(document.querySelectorAll('.iusc,[m]'));for(var i=0;i<tiles.length&&out.length<80;i++){var m=tiles[i].getAttribute('m')||'';if(!m)continue;try{var o=JSON.parse(m);var img=o.murl||o.purl||'';if(!img||isBad(img)||seen[img])continue;seen[img]=1;out.push({img:img,title:o.t||o.tt||'image'});}catch(e){}}}catch(e){}
+  if(!out.length){var imgs=Array.from(document.querySelectorAll('img[data-iurl],img[data-src],img[src^="http"],img'));for(var i=0;i<imgs.length&&out.length<80;i++){var el=imgs[i];var big=el.getAttribute('data-iurl')||el.getAttribute('data-src')||el.currentSrc||el.src||'';big=decodeDDG(big);if(!big||isBad(big)||seen[big])continue;try{var w=el.naturalWidth||0,h=el.naturalHeight||0;if(w&&h&&(w<300||h<200))continue;}catch(e){}seen[big]=1;var t=el.getAttribute('alt')||'image';out.push({img:big,title:t});}}
+  return JSON.stringify(out.slice(0,80));
+})();`;
+
+// Video-scraping JS injected into hidden browser pages.
+// Pre-scans ytInitialData for reelWatchEndpoint (YouTube Shorts in search data) so they get
+// isShort:1 regardless of whether the DOM Shorts shelf has rendered yet.
+const INJECT_VIDEOS_JS = String.raw`(function(){
+  var out=[],seen={};
+  // Phase 0: collect Shorts videoIds from ytInitialData before push() is called,
+  // so they get isShort:1 even when found later by the generic videoId walker.
+  var shortsIds={};
+  try{(function r(o){if(!o)return;if(Array.isArray(o)){for(var i=0;i<o.length;i++)r(o[i]);return;}if(typeof o==='object'){if(o.reelWatchEndpoint&&o.reelWatchEndpoint.videoId)shortsIds[o.reelWatchEndpoint.videoId]=1;for(var k in o){if(Object.prototype.hasOwnProperty.call(o,k))r(o[k]);}}})(window.ytInitialData);}catch(e){}
+  function push(id,title,isShort){if(!id||seen[id])return;seen[id]=1;out.push({videoId:id,title:title||'video',isShort:(isShort||shortsIds[id])?1:0});}
+  try{var sh=Array.from(document.querySelectorAll('a[href^="/shorts/"]'));for(var i=0;i<sh.length;i++){var a=sh[i];var m=(a.pathname||'').match(/\/shorts\/([^\/\?\&]+)/);var id=m&&m[1]||'';if(!id)continue;var t=(a.getAttribute('title')||a.textContent||'short').trim().replace(/\s+/g,' ');push(id,t,1);}}catch(e){}
+  try{(function walk(o){if(!o)return;if(Array.isArray(o)){for(var i=0;i<o.length;i++)walk(o[i]);return;}if(typeof o==='object'){if(o.videoId&&!o.playlistId){var t='';try{if(o.title&&Array.isArray(o.title.runs))t=o.title.runs.map(function(r){return r.text||'';}).join('');if(!t&&o.title&&o.title.simpleText)t=o.title.simpleText;}catch(e){}push(o.videoId,t||'video',0);}for(var k in o){if(Object.prototype.hasOwnProperty.call(o,k))walk(o[k]);}}})(window.ytInitialData);}catch(e){}
+  try{var sels=['a#thumbnail[href*="/watch"]','a#video-title[href*="/watch"]','a.yt-simple-endpoint[href*="/watch"]','ytd-video-renderer a[href*="/watch"]','ytd-rich-item-renderer a[href*="/watch"]','a[href^="/watch?"]'];var anchors=[];for(var s=0;s<sels.length;s++){anchors.push.apply(anchors,Array.from(document.querySelectorAll(sels[s])));}for(var i=0;i<anchors.length;i++){var a=anchors[i];var href=a.href||a.getAttribute('href')||'';if(!href)continue;try{var u=new URL(href,location.href);var id=u.searchParams.get('v')||'';if(!id)continue;var t=(a.getAttribute('title')||(a.querySelector('#video-title')&&a.querySelector('#video-title').textContent)||a.textContent||'video');t=(t||'video').trim().replace(/\s+/g,' ');push(id,t,0);}catch(e){}}}catch(e){}
+  return JSON.stringify(out.slice(0,60));
+})();`;
+
+// Rumble video scraping — searches rumble.com/search/video, extracts embed IDs
+const INJECT_RUMBLE_JS = String.raw`(function(){
+  var out=[], seen={};
+  var links = Array.from(document.querySelectorAll('a[href]'));
+  for (var i=0; i<links.length && out.length<30; i++){
+    var href = links[i].getAttribute('href')||'';
+    var m = href.match(/^\/(v[a-z0-9]+)-/i);
+    if (!m || seen[m[1]]) continue;
+    seen[m[1]] = 1;
+    var title = '';
+    try {
+      var card = links[i].closest('[class*="video"],[class*="card"],[class*="listing"],[class*="item"]') || links[i].parentElement;
+      var el = (card && card.querySelector('[class*="title"],[class*="heading"],h3,h4')) || links[i];
+      title = (el.getAttribute('title')||el.textContent||'').trim().replace(/\s+/g,' ').slice(0,120);
+    } catch(e) {}
+    if (!title) title = (links[i].getAttribute('title')||links[i].textContent||'video').trim().replace(/\s+/g,' ').slice(0,120);
+    var thumb = '';
+    try {
+      var card2 = links[i].closest('[class*="video"],[class*="card"],[class*="listing"],[class*="item"]') || links[i].parentElement;
+      var img = (card2 && card2.querySelector('img[src]')) || links[i].querySelector('img[src]');
+      if (img) thumb = img.getAttribute('data-src')||img.src||'';
+    } catch(e) {}
+    out.push({videoId: m[1], title: title||'video', thumb: thumb});
+  }
+  return JSON.stringify(out.slice(0,30));
+})();`;
+
+async function scrapeImagesWithBrowser(query) {
+  await installSearchCookies();
+  const wc = _getSearchWin().webContents;
+  const qEnc = encodeURIComponent(query);
+  // When the user is after gifs, target the engines' animated-gif filters so we surface
+  // real animated .gif URLs (which animate natively) instead of static photos/webp.
+  // Lead with the permissive engines (Bing adlt=off, DDG kp=-2, Brave safesearch=off)
+  // so NSFW results come through like the old Python app — Google filters adult content
+  // even with safe=off, and the loop returns on the first engine that yields results.
+  const isGif = /\bgifs?\b/i.test(query);
+  const urls = isGif ? [
+    `https://www.bing.com/images/search?q=${qEnc}&qft=+filterui:photo-animatedgif&FORM=IRFLTR&safeSearch=off&adlt=off`,
+    `https://duckduckgo.com/?q=${qEnc}&iar=images&iax=images&ia=images&kp=-2`,
+    `https://search.brave.com/images?q=${qEnc}&source=web&spellcheck=1&safesearch=off`,
+    `https://www.google.com/search?tbm=isch&q=${qEnc}&safe=off&tbs=itp:animated`,
+  ] : [
+    `https://www.bing.com/images/search?q=${qEnc}&FORM=HDRSC2&safeSearch=off&adlt=off`,
+    `https://duckduckgo.com/?q=${qEnc}&iar=images&iax=images&ia=images&kp=-2`,
+    `https://search.brave.com/images?q=${qEnc}&source=web&spellcheck=1&safesearch=off`,
+    `https://www.google.com/search?tbm=isch&q=${qEnc}&safe=off`,
+  ];
+  for (const url of urls) {
+    try {
+      await wc.loadURL(url);
+      await _waitLoad(wc, 6000);
+      // Dismiss consent dialogs (same as Python app's CONSENT_JS)
+      try { await wc.executeJavaScript(`(function(){var b=Array.from(document.querySelectorAll('button'));for(var i=0;i<b.length;i++){var t=(b[i].innerText||'').trim().toLowerCase();if(['accept all','agree','got it','ok','i agree','accept'].includes(t)){b[i].click();}}})()`); } catch(_) {}
+      await new Promise(r => setTimeout(r, 600));
+      // Scroll to trigger lazy-load (same as Python app)
+      try { await wc.executeJavaScript(`window.scrollBy(0,Math.max(1400,document.body.scrollHeight/1.5));`); } catch(_) {}
+      await new Promise(r => setTimeout(r, 600));
+      const raw     = await wc.executeJavaScript(INJECT_IMAGES_JS);
+      const results = JSON.parse(raw);
+      console.log(`[SEARCH] ${url.split('?')[0].split('/').pop()} → ${results.length} images`);
+      if (results.length >= 3) {
+        return results.slice(0, 25).map(x => ({ type: 'image', url: x.img, thumb: x.img, title: x.title }));
+      }
+    } catch (e) { console.log('[SEARCH] browser image failed:', e.message); }
+  }
+  return [];
+}
+
+function _ytItem(v) {
+  return {
+    type: 'video', id: v.videoId, title: v.title || 'Video', source: 'youtube',
+    thumb: `https://img.youtube.com/vi/${v.videoId}/hqdefault.jpg`,
+    embedUrl: `https://www.youtube-nocookie.com/embed/${v.videoId}?autoplay=1&mute=0&rel=0&controls=1&modestbranding=1`,
+  };
+}
+
+// Long-form video search via Cloudflare Worker (returns regular YouTube videos, no Shorts).
+async function scrapeVideosWithBrowser(query) {
+  try {
+    await installSearchCookies();
+    const wc = _getSearchWin().webContents;
+    wc.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+    );
+
+    const qEnc = encodeURIComponent(query);
+    await wc.loadURL(`https://www.youtube.com/results?search_query=${qEnc}`);
+    await _waitLoad(wc, 9000);
+    await new Promise(r => setTimeout(r, 3000));
+
+    // Scroll a few times to surface more results from lazy rendering.
+    for (let i = 0; i < 3; i++) {
+      try { await wc.executeJavaScript('window.scrollTo(0,document.documentElement.scrollHeight);'); } catch (_) {}
+      await new Promise(r => setTimeout(r, 900));
+    }
+
+    let raw = [];
+    try { raw = JSON.parse(await wc.executeJavaScript(INJECT_VIDEOS_JS) || '[]'); } catch (_) {}
+
+    console.log(`[SEARCH] Video scrape → ${raw.length} total (${raw.filter(v => v.isShort).length} shorts mixed in)`);
+    return raw.slice(0, 40).map(_ytItem);
+  } catch (err) {
+    console.error('[SEARCH] scrapeVideosWithBrowser error:', err.message);
+    return [];
+  }
+}
+
+// Scrape YouTube Shorts — three independent strategies tried in order:
+//   A) Channel Shorts tab  (@query/shorts)        — best for channel-name searches
+//   B) Search + duration filter (sp=EgIYAQ==)     — all results are short-duration videos
+//   C) Search + "shorts" text + isShort DOM filter — fallback text approach
+// The hidden browser gets a clean Chrome UA so YouTube doesn't serve consent/bot pages.
+async function scrapeShorts(query) {
+  try {
+    await installSearchCookies();
+    const wc = _getSearchWin().webContents;
+    // Remove "Electron" from the user-agent — YouTube may serve consent dialogs otherwise.
+    wc.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36'
+    );
+
+    async function loadExtract(url, filterShorts) {
+      try {
+        await wc.loadURL(url);
+        await _waitLoad(wc, 9000);
+        await new Promise(r => setTimeout(r, 3500));
+        try {
+          await wc.executeJavaScript(
+            'window.scrollBy(0,Math.max(1400,document.body.scrollHeight/1.5));' +
+            'setTimeout(function(){window.scrollTo(0,0);},180);'
+          );
+        } catch (_) {}
+        await new Promise(r => setTimeout(r, 2000));
+        for (let i = 0; i < 3; i++) {
+          try {
+            const raw = JSON.parse(await wc.executeJavaScript(INJECT_VIDEOS_JS) || '[]');
+            const items = filterShorts ? raw.filter(v => v.isShort) : raw;
+            console.log(`[SEARCH] Shorts loadExtract attempt ${i + 1}: ${items.length}/${raw.length} — ${url.slice(0, 55)}`);
+            if (items.length > 0) return items;
+          } catch (_) {}
+          if (i < 2) await new Promise(r => setTimeout(r, 1500));
+        }
+      } catch (e) { console.error('[SEARCH] Shorts loadExtract error:', e.message); }
+      return [];
+    }
+
+    const qEnc = encodeURIComponent(query);
+    const seen = new Set();
+    const all  = [];
+    function merge(items) {
+      for (const v of items) if (!seen.has(v.videoId)) { seen.add(v.videoId); all.push(v); }
+    }
+
+    // Strategy A: channel Shorts tab — guaranteed Shorts for channel-name queries
+    merge(await loadExtract(`https://www.youtube.com/@${qEnc}/shorts`, false));
+    console.log(`[SEARCH] Shorts after A (channel tab): ${all.length}`);
+
+    // Strategy B: YouTube short-duration search filter — all returned videos are < 4 min;
+    // no need to filter by isShort since the URL already limits to short-form content.
+    if (all.length < 10) {
+      merge(await loadExtract(
+        `https://www.youtube.com/results?search_query=${qEnc}&sp=EgIYAQ%3D%3D`, false
+      ));
+      console.log(`[SEARCH] Shorts after B (sp filter): ${all.length}`);
+    }
+
+    // Strategy C: free-text search with "shorts" appended, isShort DOM-tag filter
+    if (all.length < 5) {
+      merge(await loadExtract(
+        `https://www.youtube.com/results?search_query=${encodeURIComponent(query + ' shorts')}`, true
+      ));
+      console.log(`[SEARCH] Shorts after C (text+isShort): ${all.length}`);
+    }
+
+    console.log(`[SEARCH] Shorts final: ${all.length}`);
+    return all.slice(0, 50).map(_ytItem);
+  } catch (err) {
+    console.error('[SEARCH] scrapeShorts error:', err.message);
+    return [];
+  }
+}
+
+async function nodeKenlmPredict(text) {
+  try {
+    const words  = text.trimEnd().split(/\s+/).filter(Boolean);
+    const prefix = text.endsWith(' ') ? '' : (words[words.length - 1] || '');
+    const ctx    = text.endsWith(' ') ? words : words.slice(0, -1);
+    const qs     = new URLSearchParams({ num: '6', sort: 'logprob', safe: 'true', lang: 'en' });
+    if (prefix) qs.set('prefix', prefix);
+    if (ctx.length) qs.set('left', ctx.join(' '));
+    const res  = await searchNodeGet(
+      'https://api.imagineville.org/word/predict?' + qs.toString(),
+      { Accept: 'application/json' }
+    );
+    const raw  = JSON.parse(res.text);
+    const list = Array.isArray(raw) ? raw
+               : (raw.suggestions || raw.result || raw.results || raw.predictions || raw.words || []);
+    return list.map(w => (typeof w === 'string' ? w : (w.text || w.word || w.token || ''))).filter(Boolean).slice(0, 6);
+  } catch (_) { return []; }
+}
+
+function loadSearchHistoryNode() {
+  try {
+    if (fs.existsSync(SEARCH_HISTORY_FILE))
+      return JSON.parse(fs.readFileSync(SEARCH_HISTORY_FILE, 'utf8'));
+  } catch (_) {}
+  return [];
+}
+
+function appendSearchHistoryNode(query) {
+  let h = loadSearchHistoryNode();
+  h = h.filter(q => q.toLowerCase() !== query.toLowerCase());
+  h.unshift(query);
+  try { fs.writeFileSync(SEARCH_HISTORY_FILE, JSON.stringify(h.slice(0, 20), null, 2)); } catch (_) {}
+}
+
+ipcMain.handle('search:do-search', async (_, query, mode) => {
+  if (!query) return { items: [], mode };
+  appendSearchHistoryNode(query);
+  let items;
+  if (mode === 'video')  items = await scrapeVideosWithBrowser(query);
+  else if (mode === 'shorts') items = await scrapeShorts(query);
+  else items = await scrapeImagesWithBrowser(query);
+  return { items, mode };
+});
+ipcMain.handle('search:predict',       async (_, text)  => nodeKenlmPredict(text));
+ipcMain.handle('search:get-history',   async ()         => loadSearchHistoryNode());
+ipcMain.handle('search:save-history',  async (_, query) => appendSearchHistoryNode(query));
+ipcMain.handle('search:clear-history', async ()         => {
+  try { fs.writeFileSync(SEARCH_HISTORY_FILE, '[]'); } catch (_) {}
 });
 
 ipcMain.handle('messenger:get-config', () => ({ appDir: MESSENGER_DIR, wsPort: MESSENGER_WS_PORT }));
@@ -1779,8 +2296,6 @@ ipcMain.handle('launch:search', async () => {
         detached: true,
         stdio: 'ignore'
       });
-      // Do NOT minimize Electron for search app, as requested
-      // This allows it to stay in background and be restored more easily
       return { success: true };
     }
     return { success: false, error: 'Search script not found' };

@@ -66,6 +66,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openVideo:    (url) => ipcRenderer.invoke('messenger:open-video', url)
   },
 
+  // ============ IN-IFRAME SEARCH API ============
+  search: {
+    startBackend: () => ipcRenderer.invoke('search:start-backend'),
+    getConfig:    () => ipcRenderer.invoke('search:get-config'),
+    doSearch:     (query, mode) => ipcRenderer.invoke('search:do-search', query, mode),
+    predict:      (text) => ipcRenderer.invoke('search:predict', text),
+    getHistory:   () => ipcRenderer.invoke('search:get-history'),
+    saveHistory:  (q) => ipcRenderer.invoke('search:save-history', q),
+    clearHistory: () => ipcRenderer.invoke('search:clear-history'),
+  },
+
   // ============ TOOL WINDOW SELF-CLOSE ============
   closeToolWindow: () => ipcRenderer.invoke('toolWindow:close'),
   
@@ -141,6 +152,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // ============ NAVIGATION EVENTS ============
   onNavSignal: (callback) => {
     ipcRenderer.on('nav-signal', (event, signal) => callback(signal));
+  },
+
+  // ============ SCAN PAUSE ============
+  onScanPause: (callback) => {
+    ipcRenderer.on('scan:pause', (event, ms) => callback(ms));
   },
   
   // Check if running in Electron
