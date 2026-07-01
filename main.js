@@ -39,7 +39,6 @@ const RT_CONVO_STT_KEY_PATH = path.join(APPS_DIR, 'rt-convo', 'test-pc-391215-57
 const VOICE_SETTINGS_PATH = path.join(BENNYSHUB_DIR, 'shared', 'voice-settings.json');
 
 // External Python scripts
-const DM_LISTENER_SCRIPT = path.join(APPS_DIR, 'messenger', 'simple_dm_listener.py');
 const CONTROL_BAR_SCRIPT = path.join(APPS_DIR, 'streaming', 'utils', 'control_bar.py');
 const YTSEARCH_SERVER_SCRIPT = path.join(APPS_DIR, 'ytsearch', 'server.py');
 const AI_BRIDGE_SCRIPT = path.join(APPS_DIR, 'ai-messenger', 'bridge.py');
@@ -68,7 +67,6 @@ const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
 // app.commandLine.appendSwitch('disable-software-rasterizer');
 
 let mainWindow;
-let dmListenerProcess = null;
 let ytsearchServerProcess = null;
 let hubServer = null;
 let hubServerPort = 8765;
@@ -825,10 +823,8 @@ async function createWindow() {
   // Handle window close
   mainWindow.on('closed', () => {
     mainWindow = null;
-    // Clean up DM listener
-    if (dmListenerProcess) {
-      dmListenerProcess.kill();
-    }
+    // Clean up the messenger backend (Discord connection + TTS)
+    stopMessengerBackend();
   });
 
   // Open DevTools in development (disabled for production)
@@ -881,10 +877,12 @@ app.whenReady().then(async () => {
   });
   
   await createWindow();
-  
-  // Start DM listener in background
-  startDMListener();
-  
+
+  // Start the messenger backend (Discord connection + TTS) in the background so
+  // Ben gets spoken notifications hub-wide, even when the Messenger tool isn't
+  // open. The Messenger tool's own startup call to this is idempotent.
+  startMessengerBackend();
+
   // Start navigation signal watcher for control bar communication
   startNavSignalWatcher();
   
@@ -900,10 +898,6 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   // Kill tracked Python processes
-  if (dmListenerProcess) {
-    dmListenerProcess.kill();
-    dmListenerProcess = null;
-  }
   if (ytsearchServerProcess) {
     ytsearchServerProcess.kill();
     ytsearchServerProcess = null;
@@ -1283,22 +1277,6 @@ ipcMain.handle('calendar:saveSettings', async (event, settings) => {
 ipcMain.handle('calendar:fetchWeek', async () => {
   return await calendarFetchWeek();
 });
-
-function startDMListener() {
-  if (fs.existsSync(DM_LISTENER_SCRIPT)) {
-    try {
-      dmListenerProcess = spawn('python', [DM_LISTENER_SCRIPT], {
-        cwd: path.dirname(DM_LISTENER_SCRIPT),
-        stdio: 'ignore',
-        detached: false,
-        windowsHide: true
-      });
-      console.log('[DM-LISTENER] Started');
-    } catch (e) {
-      console.error('[DM-LISTENER] Failed to start:', e);
-    }
-  }
-}
 
 // Navigation signal file path - control_bar.py writes here to request navigation
 const NAV_SIGNAL_PATH = path.join(BENNYSHUB_DIR, 'nav_signal.json');
@@ -2738,10 +2716,7 @@ ipcMain.handle('system:shutdown', async () => {
 // Close app
 ipcMain.handle('system:closeApp', async () => {
   // Kill tracked Python processes
-  if (dmListenerProcess) {
-    dmListenerProcess.kill();
-    dmListenerProcess = null;
-  }
+  stopMessengerBackend();
   if (ytsearchServerProcess) {
     ytsearchServerProcess.kill();
     ytsearchServerProcess = null;

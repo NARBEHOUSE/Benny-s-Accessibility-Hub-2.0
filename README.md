@@ -28,8 +28,7 @@ The system is built on **Electron** (Node.js + Chromium) with specific Python co
 
 These run as separate processes when needed:
 
-* `messenger/backend.py` — Discord client backend with WebSocket bridge for the Electron UI
-* `messenger/simple_dm_listener.py` — Background service announcing incoming DMs via TTS
+* `messenger/backend.py` — Discord client backend with WebSocket bridge for the Electron UI; also announces incoming DMs/messages via TTS when no Messenger window is connected to show them
 * `streaming/server.py` — Local server for streaming app control
 * `streaming/utils/control_bar.py` — Always-on-top overlay for controlling streaming apps
 

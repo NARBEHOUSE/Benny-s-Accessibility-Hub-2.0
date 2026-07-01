@@ -1,5 +1,6 @@
 discord.py
 websockets
+pyttsx3==2.91
 flask
 werkzeug
 pandas
@@ -8,5 +9,3 @@ pyautogui
 pywin32
 pynput
 requests
-PySide6
-PySide6-WebEngine
