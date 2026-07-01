@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
 # backend.py — Headless Discord backend for the new HTML5 messenger.
 #
-# This is a faithful, Qt-free port of the DiscordBridge from ben_discord_app.py.
-# It runs the discord.py client in an asyncio loop and exposes the same data and
-# operations over a local WebSocket so an Electron/HTML5 frontend can drive the UI.
+# This is the single, always-running connection to Discord for the whole hub:
+# it runs the discord.py client in an asyncio loop, exposes the same data and
+# operations over a local WebSocket so an Electron/HTML5 frontend can drive the
+# UI, speaks new messages aloud (pyttsx3) when no frontend is connected to hear
+# them announced visually/via the frontend's own TTS, and mirrors every DM
+# (incoming and outgoing) as plain text into a private guild channel so DMs
+# are reviewable from Discord itself. It replaces what used to be two separate
+# processes (this backend + simple_dm_listener.py) both logged into Discord at
+# once — that's what caused messages to show up twice: this backend used to
+# also *read back* its own DM mirror to build UI state, double-counting each
+# DM under two different message ids. The mirror is now write-only.
 #
 # Config (config.json in this folder, env vars override):
 #   DISCORD_TOKEN, GUILD_ID, CHANNEL_IDS [..], DM_BRIDGE_CHANNEL_ID
@@ -38,7 +46,44 @@ from typing import Dict, List, Optional, Any
 import discord
 import websockets
 
+try:
+    import pyttsx3
+except Exception:
+    pyttsx3 = None
+
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Shared voice settings (written by the hub's NarbeVoiceManager) so this
+# backend's TTS matches the voice/rate/volume picked in the hub UI.
+try:
+    _shared_dir = os.path.abspath(os.path.join(APP_DIR, "..", "..", "..", "shared"))
+    if _shared_dir not in sys.path:
+        sys.path.insert(0, _shared_dir)
+    from voice_settings import apply_voice_settings, is_tts_enabled, check_settings_changed
+except Exception as e:
+    print(f"[TTS] Could not load voice_settings: {e}")
+    def apply_voice_settings(engine): pass
+    def is_tts_enabled(): return True
+    def check_settings_changed(): return False
+
+_url_re = re.compile(r'(https?://\S+|www\.\S+|\b[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\S*)')
+
+
+def _sanitize_tts_text(text: str) -> str:
+    if not text:
+        return ""
+    text = _url_re.sub(" link ", text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+
+def _first_n_words(text: str, n: int = 10) -> str:
+    if not text:
+        return ""
+    text = _sanitize_tts_text(text)
+    words = text.split()
+    return " ".join(words[:n])
+
 
 # ---------------- Settings ----------------
 SETTINGS_PATH = os.path.join(APP_DIR, "messenger_settings.json")
@@ -85,7 +130,7 @@ class UiMessage:
 class DiscordBackend:
     """Headless port of DiscordBridge. Emits events via an injected callback."""
 
-    def __init__(self, token, guild_id, chan_id, dm_bridge_chan_id, channel_ids=None, emit=None):
+    def __init__(self, token, guild_id, chan_id, dm_bridge_chan_id=0, channel_ids=None, emit=None, has_ui_clients=None):
         self.token = token
         self.guild_id = guild_id
         self.chan_id = chan_id
@@ -95,6 +140,11 @@ class DiscordBackend:
         self.loop: Optional[asyncio.AbstractEventLoop] = None
         self.thread: Optional[threading.Thread] = None
         self._emit = emit or (lambda evt: None)
+        # Whether a Messenger UI is currently connected over the WebSocket.
+        # Used to decide whether this backend should speak new messages aloud
+        # itself (nobody else will) or stay quiet (the open frontend already
+        # announces new messages visually + via its own TTS).
+        self._has_ui_clients = has_ui_clients or (lambda: False)
 
         self.main_channel: Optional[discord.TextChannel] = None
         self.channels: Dict[int, discord.TextChannel] = {}
@@ -102,23 +152,73 @@ class DiscordBackend:
         self.ui_messages: Dict[str, List[UiMessage]] = {"main": []}
         self._stopping = False
         self.message_content_available = True
-        self.dm_index_path = os.path.join(APP_DIR, "dm_index.json")
-        self._dm_index: Dict[str, str] = {}
         self.guild: Optional[discord.Guild] = None
         self._name_cache: Dict[int, str] = {}
         self.ui_reactions: Dict[int, List[Dict[str, Any]]] = {}
         self._dm_history_loading: set = set()
         self._seen_ids: set = set()
         self._warm_done = False
+        # Flips true the instant on_ready fires — well before the (slow, can
+        # take 30+s on a busy channel due to per-message member lookups) full
+        # history warm-load finishes. TTS gates on this, not _warm_done: a live
+        # DM arriving right after login isn't "backlog" the way old channel
+        # history is, so there's no reason to make Ben wait through the whole
+        # warm-load before he can hear about it.
+        self._connected = False
         # Latest *incoming* (not from_me) message timestamp per thread. Used so
         # the UI can highlight DMs/channels with new activity even before their
         # full message history has been loaded.
         self._thread_last_ts: Dict[str, float] = {}
 
+        # ----- TTS state (announces new messages when no UI is connected) -----
+        self._tts_engine = None
+        self._last_tts_by_user: Dict[int, float] = {}
+        self._tts_rate_window_sec = 120
+
     def _mark_incoming(self, tid: str, ts: float):
         try:
             if ts and ts > self._thread_last_ts.get(tid, 0):
                 self._thread_last_ts[tid] = float(ts)
+        except Exception:
+            pass
+
+    # ----- TTS (only when no Messenger UI is connected to hear it) -----
+    def _should_tts_for_user(self, user_id: int) -> bool:
+        now = time.time()
+        last = self._last_tts_by_user.get(user_id, 0)
+        if (now - last) >= self._tts_rate_window_sec:
+            self._last_tts_by_user[user_id] = now
+            return True
+        return False
+
+    def _tts_say(self, line: str):
+        if not line or pyttsx3 is None or not is_tts_enabled():
+            return
+        try:
+            if self._tts_engine is None:
+                self._tts_engine = pyttsx3.init()
+                apply_voice_settings(self._tts_engine)
+            elif check_settings_changed():
+                apply_voice_settings(self._tts_engine)
+            self._tts_engine.say(line)
+            self._tts_engine.runAndWait()
+        except Exception:
+            pass
+
+    def _maybe_announce(self, author, name: str, body: str, context: str):
+        """Speak a new message aloud, but only if no Messenger UI is open to
+        show/announce it already, and only once actually connected to Discord
+        (not gated on the slower full warm-load — a live message is never
+        backlog) and from a real other person."""
+        try:
+            is_me = bool(self.client and self.client.user and author.id == self.client.user.id)
+            is_bot = bool(getattr(author, "bot", False))
+            if is_me or is_bot or not self._connected or self._has_ui_clients():
+                return
+            if not self._should_tts_for_user(author.id):
+                return
+            first10 = _first_n_words(body, 10)
+            self._tts_say(f"{context} {name}: {first10}".strip())
         except Exception:
             pass
 
@@ -159,11 +259,46 @@ class DiscordBackend:
     def _setup_handlers(self):
         @self.client.event
         async def on_ready():
+            self._connected = True
             self.emit({"type": "status", "text": f"Logged in as {self.client.user}"})
             guild = self.client.get_guild(self.guild_id)
             self.guild = guild
             if not guild:
                 self.emit({"type": "status", "text": "Guild not found (continuing — DMs can still load)"})
+
+            # DM bridge warm load -> thread discovery only (never message
+            # content). This is a bot account, not a user account: Discord's
+            # READY payload does NOT hand bots a list of their existing DM
+            # channels the way it does for user accounts, so `private_channels`
+            # below is normally empty on startup and the bot has no way to
+            # know who it has DM'd with before unless a live message arrives
+            # again this session. The bridge mirror (write-only at runtime —
+            # see _mirror_to_bridge) doubles as the durable record of DM
+            # contacts, so read it here just to seed dm_threads/name cache.
+            # Actual conversation content for a thread still loads on demand
+            # via ensure_dm_history()/_fetch_recent_dm() (a REST history call
+            # that works regardless of whether the bot was online at the time).
+            # Done first, ahead of the (much slower, per-message member-lookup
+            # heavy) channel history warm-load below, so Ben's DM contact list
+            # shows up quickly instead of waiting behind it.
+            bridge = None
+            try:
+                if self.dm_bridge_chan_id:
+                    bridge = self.client.get_channel(self.dm_bridge_chan_id)
+                    if not isinstance(bridge, discord.TextChannel):
+                        try:
+                            bridge = await self.client.fetch_channel(self.dm_bridge_chan_id)
+                        except Exception:
+                            bridge = None
+            except Exception:
+                bridge = None
+            if isinstance(bridge, discord.TextChannel):
+                try:
+                    async for m in bridge.history(limit=200, oldest_first=True):
+                        self._maybe_stub_dm_from_bridge(m)
+                    self._emit_threads()
+                except Exception:
+                    pass
 
             if guild:
                 for chan_id in self.channel_ids:
@@ -216,26 +351,6 @@ class DiscordBackend:
                     else:
                         self.emit({"type": "status", "text": f"Channel {chan_id} not found or invalid"})
 
-            # DM bridge warm load -> index only
-            bridge = None
-            try:
-                if self.dm_bridge_chan_id:
-                    bridge = self.client.get_channel(self.dm_bridge_chan_id)
-                    if not isinstance(bridge, discord.TextChannel):
-                        try:
-                            bridge = await self.client.fetch_channel(self.dm_bridge_chan_id)
-                        except Exception:
-                            bridge = None
-            except Exception:
-                bridge = None
-            if isinstance(bridge, discord.TextChannel):
-                try:
-                    async for m in bridge.history(limit=200, oldest_first=True):
-                        self._maybe_index_dm_from_bridge(m)
-                    self._emit_threads()
-                except Exception:
-                    pass
-
             # Existing open DM channels: index only
             try:
                 for dm in list(getattr(self.client, "private_channels", []) or []):
@@ -255,30 +370,6 @@ class DiscordBackend:
                                         self._name_cache[int(u.id)] = nm
                             except Exception:
                                 pass
-                    except Exception:
-                        pass
-                self._emit_threads()
-            except Exception:
-                pass
-
-            # Persisted DM index (stubs only)
-            try:
-                self._load_dm_index()
-                for uid_str, disp in list(self._dm_index.items()):
-                    try:
-                        uid = int(uid_str)
-                    except Exception:
-                        continue
-                    if str(uid) not in self.dm_threads:
-                        class _Stub:
-                            pass
-                        s = _Stub(); s.name = disp; s.id = uid
-                        self.dm_threads[str(uid)] = s
-                    # The persisted index already holds a resolved display name;
-                    # seed the cache from it instead of hitting the network.
-                    try:
-                        if disp and uid not in self._name_cache:
-                            self._name_cache[uid] = disp
                     except Exception:
                         pass
                 self._emit_threads()
@@ -330,11 +421,10 @@ class DiscordBackend:
                         tid = f"channel:{chan_id}"
                     name = await self._author_display_async(message, tid)
                     self._push_ui_message_with_author(tid, message, name)
+                    channel_name = getattr(ch, "name", "channel")
+                    self._maybe_announce(message.author, name, message.content or "",
+                                          f"Message from {name} in {channel_name}:")
                     return
-
-            if getattr(getattr(message, "channel", None), "id", None) == self.dm_bridge_chan_id:
-                self._maybe_index_dm_from_bridge(message, emit_live=True)
-                return
 
             if isinstance(message.channel, discord.DMChannel):
                 try:
@@ -353,6 +443,13 @@ class DiscordBackend:
                     self._emit_threads()
                     name = await self._author_display_async(message, tid)
                     self._push_ui_message_with_author(tid, message, name)
+
+                    is_me = bool(self.client.user and message.author.id == self.client.user.id)
+                    other_name = await self._resolve_member_display(uid) \
+                        or getattr(other, "global_name", None) or getattr(other, "name", "user")
+                    await self._mirror_to_bridge(message, uid, other_name, is_me)
+                    if not is_me:
+                        self._maybe_announce(message.author, name, message.content or "", "New Message from")
                 except Exception:
                     pass
                 return
@@ -601,7 +698,6 @@ class DiscordBackend:
                         return
                     await user.create_dm()
                     msg = await user.dm_channel.send(text)
-                    await self._mirror_outgoing_dm(user, text)
                     self.dm_threads[str(uid)] = user
                     try:
                         disp = await self._resolve_member_display(uid)
@@ -667,7 +763,6 @@ class DiscordBackend:
                         return
                     await user.create_dm()
                     msg = await user.dm_channel.send(content)
-                    await self._mirror_outgoing_dm(user, content)
                     self.dm_threads[str(uid)] = user
                     try:
                         disp = await self._resolve_member_display(uid)
@@ -689,29 +784,6 @@ class DiscordBackend:
             return await self._author_display_async(msg, tid)
         except Exception:
             return getattr(getattr(self.client, "user", None), "name", "me")
-
-    async def _mirror_outgoing_dm(self, recipient, content: str):
-        """Mirror an outgoing DM to the private bridge channel."""
-        try:
-            if not self.dm_bridge_chan_id:
-                return
-            bridge = self.client.get_channel(self.dm_bridge_chan_id)
-            if not bridge:
-                try:
-                    bridge = await self.client.fetch_channel(self.dm_bridge_chan_id)
-                except Exception:
-                    bridge = None
-            import discord as _discord
-            if not isinstance(bridge, _discord.TextChannel):
-                return
-            try:
-                disp = await self._resolve_member_display(recipient.id)
-            except Exception:
-                disp = None
-            name = disp or getattr(recipient, "global_name", None) or getattr(recipient, "name", "user")
-            await bridge.send(f"To {name} ({recipient.id}): {content}")
-        except Exception:
-            pass
 
     # ----- runner -----
     def _runner(self):
@@ -799,32 +871,63 @@ class DiscordBackend:
             except Exception:
                 pass
 
-    # ----- indexing / formatting (Qt-free copies) -----
-    def _maybe_index_dm_from_bridge(self, message: discord.Message, emit_live: bool = False):
+    # ----- DM bridge mirror (Discord-side log + bot-restart DM contact list) -----
+    # Every DM (incoming and outgoing) gets echoed as a plain-text line into a
+    # private guild channel so Ben can review DM history from Discord itself,
+    # and — since this is a bot account with no Discord-provided list of past
+    # DMs — on_ready's warm load reads this same channel's history back to
+    # rebuild the DM contact list (see _maybe_stub_dm_from_bridge below). The
+    # duplicate-message bug came from a *different* mistake: treating a bridge
+    # line as a brand new chat message and live-appending it to ui_messages
+    # with its own (mismatched) id. Reading it only to seed dm_threads/name
+    # cache — never touching ui_messages/_seen_ids — doesn't have that problem;
+    # real conversation content still only ever comes from the direct DM
+    # channel or from ensure_dm_history()'s REST fetch.
+    def _bridge_body(self, message: discord.Message) -> str:
+        try:
+            parts = []
+            if (message.content or "").strip():
+                parts.append(message.content.strip())
+            for a in getattr(message, "attachments", []) or []:
+                url = getattr(a, "url", None) or ""
+                if url:
+                    parts.append(f"[attachment: {url}]")
+            body = " ".join(parts).strip()
+            return body if body else "[no text]"
+        except Exception:
+            return (message.content or "").strip() or "[no text]"
+
+    async def _mirror_to_bridge(self, message: discord.Message, uid: int, other_name: str, is_me: bool):
+        try:
+            if not self.dm_bridge_chan_id:
+                return
+            bridge = self.client.get_channel(self.dm_bridge_chan_id)
+            if not isinstance(bridge, discord.TextChannel):
+                try:
+                    bridge = await self.client.fetch_channel(self.dm_bridge_chan_id)
+                except Exception:
+                    bridge = None
+            if not isinstance(bridge, discord.TextChannel):
+                return
+            body = self._bridge_body(message)
+            if is_me:
+                await bridge.send(f"To {other_name} ({uid}): {body}")
+            else:
+                await bridge.send(f"DM from {other_name} ({uid}): {body}")
+        except Exception:
+            pass
+
+    def _maybe_stub_dm_from_bridge(self, message: discord.Message):
+        """Parse a bridge-mirror line ('DM from X (id): ...' / 'To X (id): ...')
+        to seed dm_threads/name cache with a contact — never touches
+        ui_messages, so it can't produce a duplicate chat message."""
         try:
             txt = message.content or ""
-            m = re.match(r"DM from (.+?) \((\d+)\):\s*(.*)", txt, flags=re.S)
+            m = re.match(r"^(?:DM from|To) (.+?) \((\d+)\):", txt)
             if not m:
                 return
             raw_name = m.group(1).strip()
             uid = int(m.group(2))
-            body = (m.group(3) or "").strip()
-
-            # Outgoing: bridge relays Ben's sent messages with "(outgoing…)" prefix.
-            # Show them as from_me=True so the conversation is complete.
-            from_me = body.lower().startswith("(outgoing")
-            if from_me:
-                body = re.sub(r'^\([^)]*\)\s*', '', body).strip()
-            else:
-                # Skip if uid belongs to Ben's own account (self-DM noise).
-                try:
-                    me_user = getattr(getattr(self, "client", None), "user", None)
-                    if me_user and int(uid) == int(getattr(me_user, "id", 0)):
-                        return
-                except Exception:
-                    pass
-
-            tid = f"dm:{uid}"
             disp = None
             try:
                 if uid in self._name_cache:
@@ -837,46 +940,15 @@ class DiscordBackend:
             except Exception:
                 pass
             name = disp or raw_name
-
             if str(uid) not in self.dm_threads:
                 class _Stub:
                     pass
                 s = _Stub(); s.name = name; s.id = uid
                 self.dm_threads[str(uid)] = s
-
-            self.ui_messages.setdefault(tid, [])
-
-            # Add the message content to the thread so it appears when opened.
-            lst = self.ui_messages[tid]
-            if not any(mm.id == message.id for mm in lst) and message.id not in self._seen_ids:
-                author_name = name
-                if from_me:
-                    try:
-                        me_user = getattr(getattr(self, "client", None), "user", None)
-                        author_name = getattr(me_user, "global_name", None) or getattr(me_user, "name", None) or "Me"
-                    except Exception:
-                        author_name = "Me"
-                ui = UiMessage(
-                    id=message.id,
-                    author=author_name,
-                    content=body,
-                    ts=message.created_at.timestamp(),
-                    from_me=from_me,
-                    attachments=[],
-                )
-                lst.append(ui)
-                self._seen_ids.add(message.id)
-                if not from_me:
-                    self._mark_incoming(tid, ui.ts)
-                if emit_live:
-                    self.emit({"type": "message_added", "tid": tid,
-                               "message": ui.to_dict(), "reactions": []})
-
-            self._emit_threads()
-            return
         except Exception:
             pass
 
+    # ----- indexing / formatting (Qt-free copies) -----
     def _format_message_content(self, m: discord.Message) -> str:
         txt = (m.content or "").strip()
         parts = []
@@ -1192,17 +1264,6 @@ class DiscordBackend:
             pass
         return out
 
-    def _load_dm_index(self):
-        try:
-            with open(self.dm_index_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if isinstance(data, dict):
-                self._dm_index = {str(k): str(v) for k, v in data.items()}
-            else:
-                self._dm_index = {}
-        except Exception:
-            self._dm_index = {}
-
     # ----- snapshots for WS -----
     def build_threads(self) -> List[Dict[str, Any]]:
         entries = []
@@ -1500,12 +1561,7 @@ def load_config():
         channel_ids = []
     if not channel_ids and channel_id:
         channel_ids = [channel_id]
-    dm_bridge_str = (
-        get_cfg("DM_BRIDGE_CHANNEL_ID", "")
-        or get_cfg("DM_Bridge_channel_id", "")
-        or get_cfg("dm_bridge_channel_id", "")
-    )
-    dm_bridge_id = int(dm_bridge_str or 0)
+    dm_bridge_id = int(get_cfg("DM_BRIDGE_CHANNEL_ID", "0") or 0)
     return token, guild_id, channel_ids, dm_bridge_id, cfg_path
 
 
@@ -1526,9 +1582,13 @@ def main():
         if srv:
             srv.emit(evt)
 
+    def has_ui_clients():
+        srv = server_holder.get("srv")
+        return bool(srv and srv.clients)
+
     backend = DiscordBackend(
-        token, guild_id, channel_ids[0] if channel_ids else 0,
-        dm_bridge_id, channel_ids=channel_ids, emit=emit
+        token, guild_id, channel_ids[0] if channel_ids else 0, dm_bridge_id,
+        channel_ids=channel_ids, emit=emit, has_ui_clients=has_ui_clients
     )
     _attach_persistence(backend)
 

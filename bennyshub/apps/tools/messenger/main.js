@@ -10,6 +10,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const net = require('net');
 const { spawn } = require('child_process');
 const APP_DIR = __dirname;
 const WS_PORT = parseInt(process.env.NEW_MSG_WS_PORT || '8777', 10);
@@ -22,17 +23,40 @@ let backendProc = null;
 let win = null;
 
 // Use the same interpreter as every other Python app in the hub: plain
-// 'python' from the system PATH. This is what the DM listener, search, editor
-// server and control bar all do, and it works on every machine. We deliberately
-// do NOT use the project .venv — it lives in OneDrive and syncs to other
-// machines where its base interpreter is missing, which made the redirector
-// python.exe die with exit code 103.
+// 'python' from the system PATH. This is what search, the editor server and
+// control bar all do, and it works on every machine. We deliberately do NOT
+// use the project .venv — it lives in OneDrive and syncs to other machines
+// where its base interpreter is missing, which made the redirector python.exe
+// die with exit code 103.
 function findPython() {
   return 'python';
 }
 
-function startBackend() {
+// The hub normally already has backend.py running (started at hub launch so
+// Ben gets spoken DM notifications even when Messenger isn't open — see root
+// main.js). If this standalone dev window is launched while the hub is also
+// running, spawning a second backend.py would log into Discord a second time
+// and race the first one for this WebSocket port — the exact "two Discord
+// connections" bug class that used to cause every DM to show up twice. Probe
+// the port first and attach to whatever's already listening instead.
+function isPortInUse(port, host = '127.0.0.1') {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    const finish = (result) => { try { socket.destroy(); } catch (_) {} resolve(result); };
+    socket.setTimeout(300);
+    socket.once('connect', () => finish(true));
+    socket.once('timeout', () => finish(false));
+    socket.once('error', () => finish(false));
+    socket.connect(port, host);
+  });
+}
+
+async function startBackend() {
   if (process.env.NEW_MSG_NO_BACKEND === '1') return;
+  if (await isPortInUse(WS_PORT)) {
+    console.log(`[backend] Port ${WS_PORT} is already in use (likely the hub's own backend) — attaching to it instead of starting a second one.`);
+    return;
+  }
   const py = findPython();
   const script = path.join(APP_DIR, 'backend.py');
   try {
@@ -101,8 +125,8 @@ function watchVoiceSettings() {
   } catch (_) {}
 }
 
-app.whenReady().then(() => {
-  startBackend();
+app.whenReady().then(async () => {
+  await startBackend();
   createWindow();
 });
 
