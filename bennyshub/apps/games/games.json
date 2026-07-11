@@ -12,7 +12,7 @@
       "id": "bennysbaseball",
       "title": "Benny's Baseball",
       "description": "A full baseball simluation game with no reaction needed, simply make choices and play a full season of baseball.",
-      "path": "apps/games/BENNYSBASEBALL/index.html",
+      "path": "apps/games/BENNYSBASEBALL2/index.html",
       "image": "images/games/bennysbaseball.png",
       "genres": ["Sports", "Strategy"]
     },
