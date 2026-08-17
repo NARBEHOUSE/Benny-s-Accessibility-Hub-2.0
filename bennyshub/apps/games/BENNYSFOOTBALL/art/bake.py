@@ -174,6 +174,28 @@ def render_pair(V, T, M, mesh, yaw, pitch, px, center, dist):
     return plain, jersey
 
 
+def glow_rgba(keep, radius=22, falloff=20, blur=16):
+    """A white aura traced from the figure's own outline, for the game to tint.
+
+    Radii are in SUPERSAMPLED pixels (4x), so 22 is about 5-6px of halo on the
+    finished 64px cell — roughly a tenth of the figure's height, which is what
+    made it read at game size. A third of that vanished on turf.
+
+    Baked rather than done with Phaser's preFX so it works on the Canvas
+    renderer too — this is the cue that tells the player who is open, and it
+    must not quietly vanish on a machine that fails to get WebGL.
+    """
+    a = Image.fromarray((keep * 255).astype(np.uint8), "L")
+    inner = a.filter(ImageFilter.MaxFilter(2 * radius + 1))
+    outer = inner.filter(ImageFilter.MaxFilter(2 * falloff + 1)).filter(
+        ImageFilter.GaussianBlur(blur))
+    ai = np.asarray(inner, dtype=np.float64) / 255.0
+    ao = np.asarray(outer, dtype=np.float64) / 255.0
+    alpha = np.maximum(ai * 0.95, ao * 0.55)
+    # White, so a Phaser tint yields the coverage colour exactly.
+    return np.ones(keep.shape + (3,), dtype=np.float64), alpha
+
+
 def to_rgba(rgb, keep, outline_px=0, silhouette=None,
             outline_rgb=(0.06, 0.06, 0.08)):
     """Key the chroma background out and optionally ring the shape in black.
@@ -300,6 +322,7 @@ def build(path, wamset, pitch, dirs, size, ss, outline, outdir, clip_defs):
 
     base = np.zeros((total_rows * size, dirs * size, 4), dtype=np.uint8)
     jers = np.zeros_like(base)
+    glow = np.zeros_like(base)
     anims, row = {}, 0
     for c in clips:
         anims[c["name"]] = {"row": row, "frames": len(c["frames"]),
@@ -314,9 +337,11 @@ def build(path, wamset, pitch, dirs, size, ss, outline, outdir, clip_defs):
                 b_rgb, b_a = to_rgba(rgb, keep & ~jmask, outline, silhouette=keep)
                 j_rgb, j_a = to_rgba(rgb, keep & jmask, 0)
                 y0, x0 = row * size, di * size
+                g_rgb, g_a = glow_rgba(keep)
                 base[y0:y0 + size, x0:x0 + size] = downsample(b_rgb, b_a, size)
                 jers[y0:y0 + size, x0:x0 + size] = normalize_jersey(
                     downsample(j_rgb, j_a, size))
+                glow[y0:y0 + size, x0:x0 + size] = downsample(g_rgb, g_a, size)
             row += 1
 
     # Where the feet land inside a frame, measured off the alpha rather than
@@ -337,12 +362,13 @@ def build(path, wamset, pitch, dirs, size, ss, outline, outdir, clip_defs):
     stem = os.path.join(outdir, plain.model.name)
     Image.fromarray(base, "RGBA").save(stem + "_base.png")
     Image.fromarray(jers, "RGBA").save(stem + "_jersey.png")
+    Image.fromarray(glow, "RGBA").save(stem + "_glow.png")
     meta = {"frameWidth": size, "frameHeight": size, "directions": dirs,
             "pitch": pitch, "yaws": yaws, "rows": total_rows,
             "footFrac": round(foot_frac, 4), "anims": anims}
     with open(stem + ".json", "w") as fh:
         json.dump(meta, fh, indent=2)
-    print("wrote %s_base.png / _jersey.png  (%d dirs x %d rows @ %dpx)"
+    print("wrote %s_base.png / _jersey.png / _glow.png  (%d dirs x %d rows @ %dpx)"
           % (stem, dirs, total_rows, size))
     for name, a in anims.items():
         print("   %-8s rows %2d..%-2d  %s%s"

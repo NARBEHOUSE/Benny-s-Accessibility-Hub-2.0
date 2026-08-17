@@ -22,6 +22,12 @@ COVER = [
     ("COVERED", "#ffb300", 0.36, "triangle"),
     ("DOUBLED", "#ff4040", 0.44, "square"),
 ]
+# coverageGlowColor / coverageGlowAlpha — the glow's own palette. A glow has to
+# be luminous, so the colourblind `doubled` is white rather than the dark slate
+# a filled shape could get away with.
+GLOW_NORMAL = ["#2196f3", "#ffb300", "#ff4040"]
+GLOW_CB     = ["#2196f3", "#fdd835", "#ffffff"]
+GLOW_ALPHA  = [0.72, 0.80, 0.92]
 TURF, TURF_ALT = (0x2e, 0x7d, 0x32), (0x27, 0x6b, 0x2c)
 
 
@@ -104,6 +110,20 @@ def panel(mode, marker_dy, base, jers, meta, font, title, scale=1.0):
         # markerGfx is depth 1: anything marking the player goes down first.
         if mode in ("disc", "shape"):
             draw_shape(d, kind, cx, cy + marker_dy, scale, col, alpha, 6, 9)
+        if mode.startswith("baked"):
+            # The real shipped layer: gridiron_glow.png, tinted the way
+            # _updateCoverageGlow tints it.
+            pal = GLOW_CB if mode.endswith("cb") else GLOW_NORMAL
+            gcol = fm.hex_rgb(pal[i])
+            sz = meta["frameWidth"]
+            row = meta["anims"]["run"]["row"]
+            gl = GLOWSHEET[row * sz:(row + 1) * sz, 6 * sz:7 * sz].astype(float)
+            gl[..., :3] *= np.asarray(gcol, dtype=float) / 255.0
+            gl[..., 3] *= GLOW_ALPHA[i]
+            gim = Image.fromarray(gl.clip(0, 255).astype(np.uint8), "RGBA").resize(
+                (H, H), Image.LANCZOS)
+            sy = FOOT - (meta["footFrac"] - 0.5) * H
+            img.alpha_composite(gim, (int(cx - H / 2), int(cy + sy - H / 2)))
         if mode in ("glow", "glowshape"):
             cell = player_cell(base, jers, meta, "#d32f2f", 6,
                                meta["anims"]["run"]["row"], H)
@@ -129,6 +149,8 @@ def main():
     meta = json.load(open(stem + ".json"))
     base = np.asarray(Image.open(stem + "_base.png").convert("RGBA"))
     jers = np.asarray(Image.open(stem + "_jersey.png").convert("RGBA"))
+    globals()["GLOWSHEET"] = np.asarray(
+        Image.open(stem + "_glow.png").convert("RGBA"))
     try:
         font = ImageFont.truetype(
             "/System/Library/Fonts/Supplemental/Arial Black.ttf", 13)
@@ -166,6 +188,13 @@ def main():
         panel("glow", 0, base, jers, meta, font, "GLOW only"),
         panel("glowshape", 0, base, jers, meta, font, "GLOW + shape badge"),
     ], "out/highlight_glow.png")
+
+    # What actually ships, in both palettes.
+    sheet([
+        panel("disc", 0, base, jers, meta, font, "TODAY (disc+shape)"),
+        panel("baked", 0, base, jers, meta, font, "GLOW shipped — normal"),
+        panel("bakedcb", 0, base, jers, meta, font, "GLOW shipped — colourblind"),
+    ], "out/highlight_shipped.png")
 
 
 if __name__ == "__main__":

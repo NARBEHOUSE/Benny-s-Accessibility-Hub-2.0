@@ -109,8 +109,14 @@ function setEasyThrow(on) {
 const PLAYER_SPRITE = {
     baseKey:   'player_base',
     jerseyKey: 'player_jersey',
+    // A white aura traced from each frame's own silhouette, tinted at runtime
+    // to the coverage colour. Baked rather than generated with Phaser's preFX
+    // so it survives on the Canvas renderer — this is the cue that says who is
+    // open, and it must not depend on getting WebGL.
+    glowKey:   'player_glow',
     basePath:   'images/players/gridiron_base.png',
     jerseyPath: 'images/players/gridiron_jersey.png',
+    glowPath:   'images/players/gridiron_glow.png',
     frameW: 64, frameH: 64,
     dirs: 8,            // yaw steps, 45° apart
     // Clip table, copied from the bake manifest (images/players/gridiron.json).
@@ -188,6 +194,9 @@ function loadPlayerSprites(scene) {
     }
     if (!scene.textures.exists(PLAYER_SPRITE.jerseyKey)) {
         scene.load.spritesheet(PLAYER_SPRITE.jerseyKey, PLAYER_SPRITE.jerseyPath, cfg);
+    }
+    if (!scene.textures.exists(PLAYER_SPRITE.glowKey)) {
+        scene.load.spritesheet(PLAYER_SPRITE.glowKey, PLAYER_SPRITE.glowPath, cfg);
     }
 }
 
@@ -283,6 +292,30 @@ function cbHighlightColor(dispCov) {
 // Glow alpha paired with cbHighlightColor.
 function cbGlowAlpha(dispCov) {
     return dispCov === 0 ? 0.32 : (dispCov === 1 ? 0.36 : 0.44);
+}
+
+// ─── Coverage glow ───────────────────────────────────────────────────────────
+// The receiver aura uses its own palette rather than cbHighlightColor's,
+// because a glow has a constraint a filled outline does not: it must be
+// LUMINOUS. cbHighlightColor's colourblind `doubled` is dark slate #546e7a,
+// which is legible as a fill inside a stroked shape and cannot work as an aura
+// at all — a dark glow against dark turf is a contradiction.
+//
+// Normal mode keeps the blue / amber / red everyone already reads. The
+// colourblind triad is blue / yellow / white: white is maximally bright and is
+// the one colour that survives all three filters untouched, since every row of
+// those matrices sums to 1.
+function coverageGlowColor(dispCov) {
+    if (colorblindMode() === 'normal') {
+        return dispCov === 0 ? 0x2196f3 : (dispCov === 1 ? 0xffb300 : 0xff4040);
+    }
+    return dispCov === 0 ? 0x2196f3 : (dispCov === 1 ? 0xfdd835 : 0xffffff);
+}
+
+// Base opacity per state, before the selected-receiver pulse is applied.
+// Doubled sits highest so the most dangerous state is also the loudest.
+function coverageGlowAlpha(dispCov) {
+    return dispCov === 0 ? 0.72 : (dispCov === 1 ? 0.80 : 0.92);
 }
 
 // ─── Shared helmet drawing helper ────────────────────────────────────────────

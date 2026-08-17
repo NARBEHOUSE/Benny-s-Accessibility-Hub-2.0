@@ -89,6 +89,37 @@ The graft carries `overlap` because a fist closing on a ball necessarily
 intersects it: the hand is a plain loft with no modelled fingers. The depth is
 bounded by a check rather than left unbounded.
 
+## Coverage cues
+
+Open / covered / doubled is shown as a **glow around the player**, chosen by
+Ari and Ben over the circle/triangle/square shapes the discs use. It is traced
+from each frame's own silhouette, so unlike a shape drawn at a fixed radius it
+always frames the player in any pose at any size — which is what went wrong
+when the taller sprite replaced the disc, leaving the shape ringing the
+player's legs.
+
+The aura ships as a third baked layer (`gridiron_glow.png`), white, tinted at
+runtime. It is baked rather than produced with Phaser's `preFX.addGlow` on
+purpose: preFX is WebGL-only, and this is the cue that says who is open — it
+must not quietly vanish on a machine that fails to get a WebGL context.
+
+The glow has its own palette (`coverageGlowColor`), not `cbHighlightColor`'s,
+because a glow must be **luminous**. The colourblind `doubled` in that older
+palette is dark slate `#546e7a`, which is perfectly legible as a fill inside a
+stroked shape and cannot work as an aura at all. The glow's colourblind triad
+is blue / yellow / **white** — white is maximally bright and the one colour
+that survives all three filters untouched, since every row of those matrices
+sums to 1. Verified with `cbcheck.py`: all three states stay separable under
+protanopia, with doubled the brightest.
+
+Discs keep the shapes. They have no glow layer, and the shape path is still
+there for them.
+
+One residual to know about: in **normal** mode the doubled glow is red, and red
+is the colour protanopia flattens hardest. If doubled coverage is ever hard to
+spot, the Colorblind setting now gives a materially better glow palette than it
+used to. `highlightcheck.py` renders all of this for inspection.
+
 ## Rebuilding
 
 Requires the WAM toolchain. Point `PYTHONPATH` at its root and use its venv:
@@ -125,6 +156,10 @@ $PY fieldmock.py
 # 8. Verify the JS wiring: facings, seating, and that PLAYER_SPRITE.anims
 #    still matches the rows the bake actually wrote.
 node dircheck.js
+
+# 9. Look at the coverage glow, in both palettes and through the filters.
+$PY highlightcheck.py
+$PY cbcheck.py out/highlight_shipped.png
 ```
 
 `bake.py --contact` re-runs the camera-pitch comparison if the model changes
@@ -132,7 +167,7 @@ enough to want a different angle.
 
 ## Atlas layout
 
-`gridiron_base.png` and `_jersey.png` are 8 columns (directions) x 36 rows
+`gridiron_base.png`, `_jersey.png` and `_glow.png` are 8 columns (directions) x 36 rows
 (every frame of every clip, stacked) of 64px cells, so Phaser's frame index is
 `(clip.row + frame) * 8 + direction`. `gridiron.json` carries the row table and
 `footFrac`, both measured at bake time — `makePlayer()` uses `footFrac` to seat

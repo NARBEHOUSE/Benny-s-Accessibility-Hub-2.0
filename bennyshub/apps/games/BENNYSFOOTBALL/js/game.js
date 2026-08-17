@@ -471,6 +471,9 @@ class GameScene extends Phaser.Scene {
             // Put the measured foot line at footOffsetY so the body straddles
             // the origin like the disc did and lands on the existing shadow.
             const sy = P.footOffsetY - (P.footFrac - 0.5) * h;
+            // Coverage aura, behind the player and off until a play needs it.
+            const glow = this.add.sprite(0, sy, P.glowKey, 0)
+                .setDisplaySize(h, h).setVisible(false);
             const jersey = this.add.sprite(0, sy, P.jerseyKey, 0)
                 .setDisplaySize(h, h).setTint(colorObj.hex);
             const base = this.add.sprite(0, sy, P.baseKey, 0).setDisplaySize(h, h);
@@ -478,9 +481,9 @@ class GameScene extends Phaser.Scene {
             // where the shoulder pads would swallow it.
             const num = this.add.text(0, sy - h * 0.46, label,
                 { fontSize: '9px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
-            // Index 3 stays the label — _setPlayerLabel() addresses it by position.
-            c.add([shadow, jersey, base, num]);
-            c._spr = { base, jersey, dir: 0, phase: 0, lastX: null, lastY: null };
+            c.add([shadow, glow, jersey, base, num]);
+            c._label = num;
+            c._spr = { base, jersey, glow, dir: 0, phase: 0, lastX: null, lastY: null };
             return c;
         }
 
@@ -488,6 +491,7 @@ class GameScene extends Phaser.Scene {
         const shine = this.add.circle(-4, -4, 4, colorObj.light, 0.6);
         const num = this.add.text(0, 0, label, { fontSize: '9px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5);
         c.add([shadow, body, shine, num]);
+        c._label = num;
         return c;
     }
 
@@ -558,6 +562,7 @@ class GameScene extends Phaser.Scene {
             const idx = row * P.dirs + s.dir;
             s.base.setFrame(idx);
             s.jersey.setFrame(idx);
+            if (s.glow) s.glow.setFrame(idx);   // the aura follows the pose
         });
     }
 
@@ -583,8 +588,10 @@ class GameScene extends Phaser.Scene {
         s.action = { clip, t: 0 };
     }
 
-    // Update the position label shown on a player sprite (list[3] is the text child).
-    _setPlayerLabel(p, label) { if (p && p.list && p.list[3]) p.list[3].setText(label); }
+    // Update the position label shown on a player sprite. Addressed by a stored
+    // reference rather than by child index, which silently pointed at the wrong
+    // child the moment the glow layer was inserted into the container.
+    _setPlayerLabel(p, label) { if (p && p._label) p._label.setText(label); }
 
     createTeams() {
         this.offense = OFFENSE_SETUP.map(s => {
@@ -624,6 +631,47 @@ class GameScene extends Phaser.Scene {
     _carryPoint(p) {
         const off = (p && p._spr) ? PLAYER_SPRITE.ballOffset : { x: 12, y: -2 };
         return { x: p.x + off.x, y: p.y + off.y };
+    }
+
+    // Light every receiver with an aura in their coverage colour, and breathe
+    // the one currently selected. The aura is traced from each frame's own
+    // silhouette, so unlike a shape drawn at a fixed radius it always frames
+    // the player, in any pose, at any size.
+    _updateCoverageGlow(time) {
+        if (!this.offense || !this.defense) return;
+        const live = (this.phase === 'receiver' || this.phase === 'charge')
+            && this.receivers;
+        // Everything off first, so a glow can never outlive the play it
+        // belonged to.
+        [...this.offense, ...this.defense].forEach(p => {
+            if (p && p._spr && p._spr.glow) p._spr.glow.setVisible(false);
+        });
+        if (!live) return;
+
+        const h = PLAYER_SPRITE.displayH;
+        const sel = (this.phase === 'charge' && this.target)
+            ? this.target : this.receivers[this.recIndex];
+        const pulse = 0.5 + 0.5 * Math.sin(time * 0.007);
+
+        this.receivers.forEach(rr => {
+            const g = rr.player && rr.player._spr && rr.player._spr.glow;
+            if (!g) return;
+            const disp = rr.displayCov !== undefined
+                ? rr.displayCov : (rr.coverage || 0);
+            const a = coverageGlowAlpha(disp);
+            g.setVisible(true);
+            g.setTint(coverageGlowColor(disp));
+            if (rr === sel) {
+                // The selected receiver burns brighter and breathes, so "who am
+                // I throwing to" stays separable from "how covered is he".
+                g.setAlpha(Math.min(1, a * (0.9 + 0.35 * pulse)));
+                const k = 1.10 + 0.07 * pulse;
+                g.setDisplaySize(h * k, h * k);
+            } else {
+                g.setAlpha(a * 0.58);
+                g.setDisplaySize(h, h);
+            }
+        });
     }
 
     // The ball carrier stands on a white shadow instead of a black one, so who
@@ -3724,6 +3772,7 @@ class GameScene extends Phaser.Scene {
         this._sortPlayerDepths();
         this._updatePlayerSprites(delta);
         this._updateCarrierShadow();
+        this._updateCoverageGlow(time);
 
         // Real-time game clock: ticks down only while a play is live.
         if (this.gs && this.gs.timeRemaining > 0 && this.clockShouldRun()) {
@@ -3817,14 +3866,16 @@ class GameScene extends Phaser.Scene {
             this.receivers.forEach((rr) => {
                 const cov  = rr.coverage || 0;
                 const disp = rr.displayCov !== undefined ? rr.displayCov : cov;
-                // Centred on the body, not the container origin — a sprite
-                // stands above that origin and the marker would ring its legs.
                 const mc   = this._markerCentre(rr.player);
                 const ms   = this._markerScale(rr.player);
                 const px   = mc.x, py = mc.y;
 
-                // Base marker: filled + shadow outline + coloured outline.
-                drawShape(disp, px, py, ms, cbGlowAlpha(disp), 6, cbHighlightColor(disp), 9);
+                // Sprites carry the state as a glow around their own outline
+                // (_updateCoverageGlow). Discs have no glow layer, so they keep
+                // the shape marker they have always used.
+                if (!rr.player._spr) {
+                    drawShape(disp, px, py, ms, cbGlowAlpha(disp), 6, cbHighlightColor(disp), 9);
+                }
 
                 // Connector lines to covering defenders.
                 (rr.defenders || []).forEach(def => {
@@ -3843,11 +3894,13 @@ class GameScene extends Phaser.Scene {
                 const pulse = 0.5 + 0.5 * Math.sin(time * 0.007); // 0.5–1.0
                 // Scale oscillates between 1.35 and 1.65 so the pulsing reticle
                 // is clearly larger than the static base marker underneath.
-                const scale = (1.35 + 0.30 * pulse) * this._markerScale(r.player);
-                const rc = this._markerCentre(r.player);
-                // Black halo pass first (shadow), then white inner fill, then colour outline.
-                drawShape(rDisp, rc.x, rc.y, scale, 0, 4, 0xffffff, 9);
-                drawShape(rDisp, rc.x, rc.y, scale * 0.88, 0, 3, cbHighlightColor(rDisp), 0);
+                if (!r.player._spr) {
+                    const scale = (1.35 + 0.30 * pulse) * this._markerScale(r.player);
+                    const rc = this._markerCentre(r.player);
+                    // Black halo pass, then white inner fill, then colour outline.
+                    drawShape(rDisp, rc.x, rc.y, scale, 0, 4, 0xffffff, 9);
+                    drawShape(rDisp, rc.x, rc.y, scale * 0.88, 0, 3, cbHighlightColor(rDisp), 0);
+                }
             }
         }
 

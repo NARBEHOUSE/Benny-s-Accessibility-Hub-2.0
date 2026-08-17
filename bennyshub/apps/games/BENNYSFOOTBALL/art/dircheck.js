@@ -59,6 +59,22 @@ for (const name of Object.keys(P.anims)) {
   check(!!meta.anims[name], `${name.padEnd(7)} declared in JS is present in the bake`);
 }
 
+// ── the three layers must line up ─────────────────────────────────────────
+// base, jersey and glow are indexed by the same frame number, so a mismatched
+// sheet would tint the wrong pose or silently drop the coverage cue.
+console.log('\nsheet geometry');
+const png = (f) => {
+  const b = fs.readFileSync(path.join(HERE, '../images/players/' + f));
+  return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
+};
+const want = { w: meta.directions * meta.frameWidth, h: meta.rows * meta.frameHeight };
+for (const f of ['gridiron_base.png', 'gridiron_jersey.png', 'gridiron_glow.png']) {
+  let got;
+  try { got = png(f); } catch (e) { check(false, `${f} is missing`); continue; }
+  check(got.w === want.w && got.h === want.h,
+    `${f.padEnd(20)} ${got.w}x${got.h} == ${want.w}x${want.h}`);
+}
+
 // ── atlas indexing ────────────────────────────────────────────────────────
 console.log('\natlas indexing');
 const maxIdx = meta.rows * meta.directions - 1;
