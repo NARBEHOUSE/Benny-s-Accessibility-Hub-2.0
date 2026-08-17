@@ -1,0 +1,157 @@
+# Benny's Football — field player, authored for sprite-baking at ~26px.
+# Silhouette target: an arrowhead. Wide pad wedge, helmet notched INTO it,
+# no neck. `jersey` is pure white because the bake tints it per team.
+
+model gridiron
+  height 1.90
+  style chunky
+
+palette
+  jersey #ffffff
+  pants  #e8e4d9
+  skin   #d99a6c
+  mask   #b9c3cd
+  sock   #2b3038
+
+skeleton
+  root pelvis at 0.47
+  bone spine parent=pelvis dir=up len=0.11
+  bone chest parent=spine  dir=up len=0.12
+  # No neck bone. The helmet parents straight onto the chest — that IS the
+  # signature, stated structurally rather than tuned later.
+  # The pad notch dips to ~0.62 while the helmet bottom sits near 0.65, so the
+  # shell settles into the pads without needing the bone sunk further — which
+  # drove the helmet into the arms.
+  bone head  parent=chest dir=up len=0.195 bend=pitch,yaw
+
+  mirror
+    # Puts the arm's inner edge at 0.136 against the helmet's outer 0.118, and
+    # its outer edge at 0.272 just inside the pad rim at 0.298 — arms tucked
+    # under the shell, clear of the shell above them.
+    bone clavicle parent=chest at=1.0 dir=side tilt=6 len=0.205
+    bone upperarm parent=clavicle dir=down pitch=-14 len=0.150 bend=pitch,yaw
+    # Pre-bent at rest, so the elbow legitimately moves both ways from there.
+    bone forearm  parent=upperarm dir=fwd pitch=40 len=0.140 bend=pitch
+    bone hand     parent=forearm dir=fwd len=0.055
+
+    bone thigh parent=pelvis side=0.085 dir=down tilt=3 pitch=-6 len=0.210 bend=pitch,+yaw
+    # +pitch tips a `down` bone backward, which is exactly knee flexion.
+    bone shin  parent=thigh dir=down pitch=8 len=0.215 bend=+pitch
+    bone foot  parent=shin dir=fwd len=0.085
+  end
+
+parts
+  # ── trunk ────────────────────────────────────────────────────────────────
+  loft torso bones=pelvis..chest material=pants frame=fwd
+    ring 0.00 w=0.270 d=0.205
+    ring 0.28 w=0.252 d=0.192 material=jersey
+    ring 0.70 w=0.322 d=0.228
+    ring 1.00 w=0.372 d=0.252
+    cap start=flat end=flat
+
+  loft hips bone=pelvis dir=down len=0.075 material=pants frame=fwd
+    ring 0.00 w=0.268 d=0.204
+    ring 1.00 w=0.250 d=0.196
+    cap start=none end=dome
+
+  # ── the signature: one shoulder-pad shell spanning the centreline ────────
+  # Not a mirrored pair — real pads are a single unit arching over the chest,
+  # and a mirror block would leave a seam down the middle (mistakes #10).
+  # Runs right-to-left; `frame=up` so d is pad thickness and w its depth.
+  loft pads bone=chest at=0.80 offset=(-0.2875,0,0) dir=side len=0.575 \
+       material=jersey frame=up shape=squarish
+    ring 0.00 w=0.185 d=0.112
+    ring 0.16 w=0.235 d=0.150
+    ring 0.38 w=0.215 d=0.116 up=-0.026
+    ring 0.50 w=0.200 d=0.090 up=-0.038
+    ring 0.62 w=0.215 d=0.116 up=-0.026
+    ring 0.84 w=0.235 d=0.150
+    ring 1.00 w=0.185 d=0.112
+    # Flat, not domed: a squared outer edge is what pads actually look like,
+    # and it keeps the crests from competing with the helmet at 24px.
+    cap start=flat end=flat
+
+  # ── helmet ───────────────────────────────────────────────────────────────
+  # A bucket, not an egg: squat and near-spherical, with a jaw flare low and
+  # forward. Widest below the midline, which is what makes it read as a shell
+  # over a head rather than as a head.
+  loft helmet bones=head..head material=jersey
+    ring 0.00 w=0.232 d=0.244
+    ring 0.30 w=0.256 d=0.268
+    ring 0.62 w=0.248 d=0.258
+    ring 1.00 w=0.204 d=0.208
+    cap start=dome end=dome
+
+  # The facemask is a mass, not detail: in profile it is what separates a
+  # football helmet from every other helmet. Solid, not a cage — a cage is
+  # invisible at 26px. press=off because the authored forward aim IS the
+  # point; letting the shell's normal decide it laid the mask flat on the face.
+  loft facemask bone=head at=0.26 offset=(0,-0.012,0.100) dir=fwd len=0.115 \
+       on=helmet press=off material=mask frame=up
+    ring 0.00 w=0.175 d=0.135
+    ring 0.55 w=0.165 d=0.120
+    ring 1.00 w=0.140 d=0.086
+    cap start=none end=flat
+
+  # ── limbs ────────────────────────────────────────────────────────────────
+  mirror
+    loft arm bones=upperarm..forearm material=jersey
+      ring 0.00 w=0.148 d=0.148
+      ring 0.34 w=0.122 d=0.122
+      ring 0.40 w=0.112 d=0.112 material=skin
+      ring 1.00 w=0.088 d=0.088
+      cap start=dome end=none
+
+    loft hand bones=hand..hand material=skin
+      ring 0.00 w=0.074 d=0.074
+      ring 1.00 w=0.062 d=0.070
+      cap start=none end=dome
+
+    loft leg bones=thigh..shin material=pants
+      ring 0.00 w=0.190 d=0.190
+      ring 0.42 w=0.158 d=0.158
+      ring 0.52 w=0.132 d=0.132 material=sock
+      ring 0.66 w=0.132 d=0.138
+      ring 1.00 w=0.092 d=0.098
+      cap start=dome end=none
+
+    loft shoe bones=foot..foot material=sock frame=up
+      ring 0.00 w=0.098 d=0.092
+      ring 1.00 w=0.086 d=0.062
+      cap start=flat end=dome
+  end
+
+animations
+  # Amplitudes are deliberately large. Mistakes #9: motion authored at the
+  # size it feels right reads as a still frame.
+  anim run loop dur=0.62
+    # Stance runs 0-50% (thigh travels from ahead to trailing), swing 50-100%.
+    # The knee therefore stays extended through stance and peaks mid-swing;
+    # flexing it during stance is the moonwalk, caught by slide() below.
+    ch thigh.l pitch 0%=-34 25%=6 50%=32 75%=6 100%=-34
+    ch shin.l  pitch 0%=10 25%=6 50%=22 75%=58 100%=10
+    ch foot.l  pitch 0%=-10 50%=20 75%=-6 100%=-10
+    ch upperarm.l pitch 0%=34 50%=-30 100%=34
+    ch forearm.l  pitch 0%=-18 50%=14 100%=-18
+    ch spine roll 0%=5 50%=-5 100%=5
+    ch chest yaw  0%=-7 50%=7 100%=-7
+    mirrorphase 50%
+
+checks
+  assert bottom(shoe.l) < 0.02
+  # The signature, as a number: the helmet bottom sits below the pad top.
+  assert ymin(helmet) < ymax(pads)
+  assert width(pads) / width(helmet) in 2.3..2.9
+  assert height / height(helmet) in 3.1..3.7
+  assert slide(shoe.l, run) < 0.02
+  assert lowest(run) > -0.03
+  assert tris < 3500
+  # Pads cover the deltoid and the trunk fills the armpit — both are what the
+  # geometry is supposed to do. Everything else still gets swept.
+  noclip except=arm.l+pads,arm.r+pads,arm.l+torso,arm.r+torso
+  # In profile the mask is the whole football read, and profile is half of the
+  # eight sprite directions. It has to clear the shell, not sit on it.
+  assert zmax(facemask) > zmax(helmet)
+  measure maskjut zmax(facemask) - zmax(helmet)
+  measure padspan width(pads)
+  measure headheights height / height(helmet)
