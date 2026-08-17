@@ -459,7 +459,12 @@ class GameScene extends Phaser.Scene {
     makePlayer(colorObj, label) {
         const c = this.add.container(0, 0).setDepth(3);
         // Larger, darker shadow so every team color pops off the green field.
+        // Kept on the container so _updateCarrierShadow can recolour it: the
+        // ball carrier gets a white one, which is the clearest "who has it"
+        // cue available — white survives all three colourblind filters
+        // unchanged, since every row of those matrices sums to 1.
         const shadow = this.add.ellipse(3, 7, 34, 11, 0x000000, 0.52);
+        c._shadow = shadow;
 
         if (playerSpritesReady(this)) {
             const P = PLAYER_SPRITE, h = P.displayH;
@@ -528,7 +533,11 @@ class GameScene extends Phaser.Scene {
 
             if (row === undefined) {
                 const speed = Math.sqrt(dx * dx + dy * dy) / dt;
-                if (speed > P.runSpeed) {
+                // A charging quarterback keeps the aim beginCharge gave them.
+                // Otherwise the drop-back tween, which can still be running,
+                // turns them back downfield the moment they drift a pixel.
+                const aiming = this.phase === 'charge' && p === this.offense[0];
+                if (speed > P.runSpeed && !aiming) {
                     s.dir = spriteDirIndex(Math.atan2(dy, dx));
                     // Advance the cycle by distance travelled, not wall time.
                     s.phase += (speed * dt) / P.stridePx * RUN.frames;
@@ -615,6 +624,35 @@ class GameScene extends Phaser.Scene {
     _carryPoint(p) {
         const off = (p && p._spr) ? PLAYER_SPRITE.ballOffset : { x: 12, y: -2 };
         return { x: p.x + off.x, y: p.y + off.y };
+    }
+
+    // The ball carrier stands on a white shadow instead of a black one, so who
+    // has the ball is readable at a glance without hunting for the ball itself.
+    // Works for discs as well as sprites.
+    _updateCarrierShadow() {
+        if (!this.offense || !this.defense) return;
+        const carrier = this.ball && this.ball.carrier;
+        [...this.offense, ...this.defense].forEach(p => {
+            const sh = p && p._shadow;
+            if (!sh) return;
+            const hot = (p === carrier);
+            if (sh._hot === hot) return;   // only touch it when it changes
+            sh._hot = hot;
+            // White needs more alpha than black to hold up against the turf.
+            sh.setFillStyle(hot ? 0xffffff : 0x000000, hot ? 0.82 : 0.52);
+        });
+    }
+
+    // Turn a player to face a point without starting an action clip. Facing
+    // otherwise only updates from movement, and a quarterback stands still
+    // through the whole charge — so without this they aim downfield only at
+    // the instant of release.
+    facePlayer(p, target) {
+        const s = p && p._spr;
+        if (!s || !target) return;
+        const dx = target.x - p.x, dy = target.y - p.y;
+        if (dx === 0 && dy === 0) return;
+        s.dir = spriteDirIndex(Math.atan2(dy, dx));
     }
 
     // True while some player's sprite already has the football modelled into
@@ -1805,6 +1843,10 @@ class GameScene extends Phaser.Scene {
 
     beginCharge() {
         this.phase = 'charge';
+        // Turn to the receiver now, not at the release. Aiming at the target
+        // the throw will actually use (the route endpoint) keeps it consistent
+        // with the facing playPlayerAction sets a moment later.
+        this.facePlayer(this.offense[0], this.target);
         this.power = 0; this.charging = false; this.passCuePlayed = false; this.passOverPlayed = false;
         // Accessibility: "Easy Throw" mode skips the charge entirely and throws
         // at ideal power so the player only needs to pick a receiver, not hold.
@@ -3670,6 +3712,7 @@ class GameScene extends Phaser.Scene {
         // are drawn on top; ball carrier always on top; tackled player under everyone.
         this._sortPlayerDepths();
         this._updatePlayerSprites(delta);
+        this._updateCarrierShadow();
 
         // Real-time game clock: ticks down only while a play is live.
         if (this.gs && this.gs.timeRemaining > 0 && this.clockShouldRun()) {

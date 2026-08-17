@@ -69,15 +69,18 @@ def draw_field(d):
         d.line([px, MID_Y + 48, px + dr * 18, MID_Y + 48], fill=(255, 225, 77), width=5)
 
 
-def shadow(img, cx, cy):
+def shadow(img, cx, cy, hot=False):
+    """hot = this player has the ball, so the blob is white (see game.js
+    _updateCarrierShadow)."""
     ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    fill = (255, 255, 255, 209) if hot else (0, 0, 0, 133)
     ImageDraw.Draw(ov).ellipse([cx + 3 - 17, cy + 7 - 5.5, cx + 3 + 17, cy + 7 + 5.5],
-                               fill=(0, 0, 0, 133))
+                               fill=fill)
     img.alpha_composite(ov)
 
 
-def disc(img, cx, cy, body, light, label, font):
-    shadow(img, cx, cy)
+def disc(img, cx, cy, body, light, label, font, hot=False):
+    shadow(img, cx, cy, hot)
     ov = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     dd = ImageDraw.Draw(ov)
     dd.ellipse([cx - 13, cy - 13, cx + 13, cy + 13],
@@ -90,7 +93,7 @@ def disc(img, cx, cy, body, light, label, font):
             anchor="mm", stroke_width=2, stroke_fill=(0, 0, 0))
 
 
-def sprite(img, cx, cy, base, jers, meta, team_hex, d_idx, f_idx, label, font):
+def sprite(img, cx, cy, base, jers, meta, team_hex, d_idx, f_idx, label, font, hot=False):
     s, dirs = meta["frameWidth"], meta["directions"]
     h, foot_off = 52, 8
     # Row 0 of the run clip: the standing/contact frame.
@@ -102,7 +105,7 @@ def sprite(img, cx, cy, base, jers, meta, team_hex, d_idx, f_idx, label, font):
     cell.alpha_composite(Image.fromarray(j.clip(0, 255).astype(np.uint8), "RGBA"))
     cell.alpha_composite(Image.fromarray(b.clip(0, 255).astype(np.uint8), "RGBA"))
     cell = cell.resize((h, h), Image.LANCZOS)
-    shadow(img, cx, cy)
+    shadow(img, cx, cy, hot)
     sy = foot_off - (meta["footFrac"] - 0.5) * h
     img.alpha_composite(cell, (int(round(cx - h / 2)), int(round(cy + sy - h / 2))))
     ImageDraw.Draw(img).text((cx, cy + sy - h * 0.46), label, font=font,
@@ -123,10 +126,11 @@ def panel(mode, base, jers, meta, font, title_font):
             + [(p, l, OPP_HEX, OPP_LIGHT, 2) for p, l in zip(dfn, def_lbl)])
     # Painter's order matches the game's y-sort: higher y draws on top.
     for (cx, cy), lbl, hexc, light, di in sorted(rows, key=lambda r: r[0][1]):
+        hot = (lbl == "QB")
         if mode == "disc":
-            disc(img, cx, cy, hexc, light, lbl, font)
+            disc(img, cx, cy, hexc, light, lbl, font, hot)
         else:
-            sprite(img, cx, cy, base, jers, meta, hexc, di, 0, lbl, font)
+            sprite(img, cx, cy, base, jers, meta, hexc, di, 0, lbl, font, hot)
     d.text((14, 10), "CLASSIC — flat colour discs" if mode == "disc"
            else "3D — baked WAM sprites, jersey tinted per team",
            font=title_font, fill=(255, 255, 255), stroke_width=3,
