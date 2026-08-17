@@ -150,6 +150,21 @@ const PLAYER_SPRITE = {
     // ball, or a carrier still rendered as a disc. The body spans roughly
     // y -40..+8 about the container origin, so this sits at chest height.
     ballOffset: { x: 11, y: -20 },
+
+    // ── Coverage-highlight geometry ──────────────────────────────────────────
+    // The open / covered / doubled shapes are how the play is read, so their
+    // shapes and colours are left exactly as they were. What the taller sprite
+    // broke is where they sit: a disc straddles the container origin, so a
+    // marker centred there framed it, while a sprite stands almost entirely
+    // ABOVE that origin — the marker ended up ringing the legs with the helmet
+    // and pads outside it altogether.
+    //
+    // -16 is the middle of the sprite's body (it spans about -40..+8), and
+    // 1.10 restores the amount of colour left visible around the figure once
+    // it is properly centred: measured against the disc it is 109%, where
+    // centring alone would have been 84%.
+    markerOffsetY: -16,
+    markerScale: 1.10,
     footFrac: 0.9219,   // where the feet sit in a frame — measured by the bake
     // Below this speed (world px/sec) a player is standing, not running.
     runSpeed: 10,

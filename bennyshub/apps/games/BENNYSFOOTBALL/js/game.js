@@ -643,6 +643,17 @@ class GameScene extends Phaser.Scene {
         });
     }
 
+    // Centre point for anything that marks a player — coverage highlights, the
+    // opposing QB's target reticle. Discs are unchanged; sprites need the
+    // marker lifted onto the body rather than left around their feet.
+    _markerCentre(p) {
+        return { x: p.x, y: p.y + (p && p._spr ? PLAYER_SPRITE.markerOffsetY : 0) };
+    }
+
+    _markerScale(p) {
+        return (p && p._spr) ? PLAYER_SPRITE.markerScale : 1.0;
+    }
+
     // Turn a player to face a point without starting an action clip. Facing
     // otherwise only updates from movement, and a quarterback stands still
     // through the whole charge — so without this they aim downfield only at
@@ -3747,7 +3758,8 @@ class GameScene extends Phaser.Scene {
             m.lineStyle(3, 0xffeb3b, 0.8); m.lineBetween(fdX, FIELD.TOP, fdX, FIELD.BOTTOM);
             // Show who the opposing QB is targeting so you can read the play.
             if (this.oppTarget) {
-                const t = this.oppTarget;
+                // Same correction as the coverage markers: centre on the body.
+                const t = this._markerCentre(this.oppTarget);
                 m.lineStyle(4, 0xff3b3b, 1); m.strokeCircle(t.x, t.y, 24);
                 m.lineStyle(2, 0xffffff, 0.9); m.strokeCircle(t.x, t.y, 30);
                 // crosshair
@@ -3805,16 +3817,21 @@ class GameScene extends Phaser.Scene {
             this.receivers.forEach((rr) => {
                 const cov  = rr.coverage || 0;
                 const disp = rr.displayCov !== undefined ? rr.displayCov : cov;
-                const px   = rr.player.x, py = rr.player.y;
+                // Centred on the body, not the container origin — a sprite
+                // stands above that origin and the marker would ring its legs.
+                const mc   = this._markerCentre(rr.player);
+                const ms   = this._markerScale(rr.player);
+                const px   = mc.x, py = mc.y;
 
-                // Base marker: filled + shadow outline + coloured outline at scale 1.
-                drawShape(disp, px, py, 1.0, cbGlowAlpha(disp), 6, cbHighlightColor(disp), 9);
+                // Base marker: filled + shadow outline + coloured outline.
+                drawShape(disp, px, py, ms, cbGlowAlpha(disp), 6, cbHighlightColor(disp), 9);
 
                 // Connector lines to covering defenders.
                 (rr.defenders || []).forEach(def => {
                     if (!def) return;
+                    const dc = this._markerCentre(def);
                     m.lineStyle(3, 0xff5050, 0.65);
-                    m.lineBetween(px, py, def.x, def.y);
+                    m.lineBetween(px, py, dc.x, dc.y);
                 });
             });
 
@@ -3826,10 +3843,11 @@ class GameScene extends Phaser.Scene {
                 const pulse = 0.5 + 0.5 * Math.sin(time * 0.007); // 0.5–1.0
                 // Scale oscillates between 1.35 and 1.65 so the pulsing reticle
                 // is clearly larger than the static base marker underneath.
-                const scale = 1.35 + 0.30 * pulse;
+                const scale = (1.35 + 0.30 * pulse) * this._markerScale(r.player);
+                const rc = this._markerCentre(r.player);
                 // Black halo pass first (shadow), then white inner fill, then colour outline.
-                drawShape(rDisp, r.player.x, r.player.y, scale, 0, 4, 0xffffff, 9);
-                drawShape(rDisp, r.player.x, r.player.y, scale * 0.88, 0, 3, cbHighlightColor(rDisp), 0);
+                drawShape(rDisp, rc.x, rc.y, scale, 0, 4, 0xffffff, 9);
+                drawShape(rDisp, rc.x, rc.y, scale * 0.88, 0, 3, cbHighlightColor(rDisp), 0);
             }
         }
 
