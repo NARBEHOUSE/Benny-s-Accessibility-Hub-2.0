@@ -92,7 +92,9 @@ def disc(img, cx, cy, body, light, label, font):
 
 def sprite(img, cx, cy, base, jers, meta, team_hex, d_idx, f_idx, label, font):
     s, dirs = meta["frameWidth"], meta["directions"]
-    h, foot_off = 46, 8
+    h, foot_off = 52, 8
+    # Row 0 of the run clip: the standing/contact frame.
+    f_idx = meta["anims"]["run"]["row"] + f_idx
     b = base[f_idx * s:(f_idx + 1) * s, d_idx * s:(d_idx + 1) * s].astype(np.float64)
     j = jers[f_idx * s:(f_idx + 1) * s, d_idx * s:(d_idx + 1) * s].astype(np.float64)
     j[..., :3] *= np.asarray(hex_rgb(team_hex), dtype=np.float64) / 255.0
@@ -134,7 +136,7 @@ def panel(mode, base, jers, meta, font, title_font):
 
 def main():
     stem = ("/Users/egd/projects/volunteer-work/Benny-s-Accessibility-Hub-2.0/"
-            "bennyshub/apps/games/BENNYSFOOTBALL/images/players/gridiron_run")
+            "bennyshub/apps/games/BENNYSFOOTBALL/images/players/gridiron")
     meta = json.load(open(stem + ".json"))
     base = np.asarray(Image.open(stem + "_base.png").convert("RGBA"))
     jers = np.asarray(Image.open(stem + "_jersey.png").convert("RGBA"))
@@ -149,8 +151,10 @@ def main():
     out = Image.new("RGB", (W, H * 2 + 8), (16, 16, 16))
     out.paste(a.convert("RGB"), (0, 0))
     out.paste(b.convert("RGB"), (0, H + 8))
-    out.save("sprites/fieldmock.png")
-    print("wrote sprites/fieldmock.png")
+    import os
+    os.makedirs("out", exist_ok=True)
+    out.save("out/fieldmock.png")
+    print("wrote out/fieldmock.png")
 
 
 if __name__ == "__main__":

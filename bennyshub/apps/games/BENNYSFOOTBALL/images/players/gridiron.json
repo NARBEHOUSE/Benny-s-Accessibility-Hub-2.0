@@ -1,0 +1,44 @@
+{
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "directions": 8,
+  "pitch": 30.0,
+  "yaws": [
+    0.0,
+    45.0,
+    90.0,
+    135.0,
+    180.0,
+    225.0,
+    270.0,
+    315.0
+  ],
+  "rows": 28,
+  "footFrac": 0.9219,
+  "anims": {
+    "run": {
+      "row": 0,
+      "frames": 8,
+      "loop": true,
+      "ground": false
+    },
+    "throw": {
+      "row": 8,
+      "frames": 8,
+      "loop": false,
+      "ground": false
+    },
+    "catch": {
+      "row": 16,
+      "frames": 6,
+      "loop": false,
+      "ground": false
+    },
+    "tackle": {
+      "row": 22,
+      "frames": 6,
+      "loop": false,
+      "ground": true
+    }
+  }
+}

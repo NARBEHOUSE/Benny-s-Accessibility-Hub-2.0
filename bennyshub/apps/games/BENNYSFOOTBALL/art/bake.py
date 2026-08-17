@@ -147,59 +147,112 @@ def normalize_jersey(rgba):
     return np.dstack([scaled, rgba[..., 3:]]).astype(np.uint8)
 
 
-def build(path, pitch, dirs, anim, frames, size, ss, outline, outdir):
+def parse_anim_specs(text):
+    """`run:8,tackle:6:ground` -> [(name, frames, ground), ...]."""
+    out = []
+    for spec in text.split(","):
+        if not spec.strip():
+            continue
+        parts = spec.split(":")
+        out.append((parts[0],
+                    int(parts[1]) if len(parts) > 1 and parts[1] else 8,
+                    "ground" in parts[2:]))
+    return out
+
+
+def ground_frames(frames, rest_y):
+    """Translate each frame so its lowest point sits back on the field.
+
+    WAM has no root translation an animation can reach: `shift` is parsed on a
+    pose, but anim_rotations_at blends only pitch/yaw/roll/tilt, so it never
+    arrives and editing it changes nothing. Rotating the root instead pivots
+    the whole body about the pelvis head, which lifts the feet — a fall
+    authored that way levitated 0.21 above the field while every model check
+    still passed. Supplying the translation here is both the only place it can
+    happen and the right one: these are sprites, and a falling sprite is a
+    figure travelling down its own frame.
+    """
+    return [np.column_stack([V[:, 0], V[:, 1] + (rest_y - V[:, 1].min()), V[:, 2]])
+            for V in frames]
+
+
+def build(path, pitch, dirs, anim_specs, size, ss, outline, outdir):
     model, bones, bone_order, mesh = load(path)
-    _, T, M = mesh.arrays()
-    poses = posed_frames(model, bones, bone_order, mesh, anim, frames)
+    V0, T, M = mesh.arrays()
+    rest_y = float(V0[:, 1].min())
+
+    clips = []
+    for name, n, ground in parse_anim_specs(anim_specs):
+        poses = posed_frames(model, bones, bone_order, mesh, name, n)
+        if ground:
+            poses = ground_frames(poses, rest_y)
+        src = next((a for a in model.anims if a["name"] == name), {})
+        clips.append({"name": name, "poses": poses, "ground": ground,
+                      "loop": bool(src.get("loop"))})
+
     yaws = [360.0 * d / dirs for d in range(dirs)]
     px = size * ss
+    total_rows = sum(len(c["poses"]) for c in clips)
 
-    # One framing across every pose AND every direction, or the player scales
-    # and drifts as it turns or as its legs swing.
-    allV = np.concatenate(poses)
+    # One framing across every pose of every clip AND every direction, or the
+    # player changes size when it turns, strides, or starts a new action.
+    allV = np.concatenate([p for c in clips for p in c["poses"]])
     center = (allV.min(axis=0) + allV.max(axis=0)) / 2
     dist = max(wrender.fit_distance(allV, center,
                                     wrender.orbit_basis(y, pitch),
                                     28.0, 1.0, 1.14)
                for y in yaws)
 
-    base = np.zeros((len(poses) * size, dirs * size, 4), dtype=np.uint8)
+    base = np.zeros((total_rows * size, dirs * size, 4), dtype=np.uint8)
     jers = np.zeros_like(base)
-    for fi, V in enumerate(poses):
-        for di, yaw in enumerate(yaws):
-            rgb, jmask = render_pair(V, T, M, mesh, yaw, pitch, px,
-                                     center, dist)
-            keep = keep_mask(rgb)
-            # The ring lives on the base layer so a team tint never colours it.
-            b_rgb, b_a = to_rgba(rgb, keep & ~jmask, outline, silhouette=keep)
-            j_rgb, j_a = to_rgba(rgb, keep & jmask, 0)
-            y0, x0 = fi * size, di * size
-            base[y0:y0 + size, x0:x0 + size] = downsample(b_rgb, b_a, size)
-            jers[y0:y0 + size, x0:x0 + size] = normalize_jersey(
-                downsample(j_rgb, j_a, size))
+    anims, row = {}, 0
+    for c in clips:
+        anims[c["name"]] = {"row": row, "frames": len(c["poses"]),
+                            "loop": c["loop"], "ground": c["ground"]}
+        for V in c["poses"]:
+            for di, yaw in enumerate(yaws):
+                rgb, jmask = render_pair(V, T, M, mesh, yaw, pitch, px,
+                                         center, dist)
+                keep = keep_mask(rgb)
+                # The ring lives on the base layer so a tint never colours it.
+                b_rgb, b_a = to_rgba(rgb, keep & ~jmask, outline, silhouette=keep)
+                j_rgb, j_a = to_rgba(rgb, keep & jmask, 0)
+                y0, x0 = row * size, di * size
+                base[y0:y0 + size, x0:x0 + size] = downsample(b_rgb, b_a, size)
+                jers[y0:y0 + size, x0:x0 + size] = normalize_jersey(
+                    downsample(j_rgb, j_a, size))
+            row += 1
 
     # Where the feet land inside a frame, measured off the alpha rather than
     # guessed, so the game can seat the sprite on its existing shadow ellipse
-    # instead of having the offset hand-tuned by eye.
+    # instead of having the offset hand-tuned by eye. Taken from the FIRST clip
+    # only: that is the standing/running player the shadow has to line up with,
+    # and a tackle deliberately travels down its frame.
     solid = np.maximum(base[..., 3], jers[..., 3]) > 128
+    n0 = len(clips[0]["poses"])
     # Per cell-row, not globally: the lowest row of the whole atlas belongs to
     # whichever frame sits lowest in the sheet, which says nothing about how
     # far down the foot sits inside a cell.
-    per_cell = solid.reshape(len(poses), size, -1).any(axis=2)   # (frames, size)
+    per_cell = solid[:n0 * size].reshape(n0, size, -1).any(axis=2)
     lows = [np.where(r)[0].max() for r in per_cell if r.any()]
     foot_frac = float((max(lows) + 1) / size) if lows else 1.0
 
     os.makedirs(outdir, exist_ok=True)
-    stem = os.path.join(outdir, "%s_%s" % (model.name, anim or "rest"))
+    stem = os.path.join(outdir, model.name)
     Image.fromarray(base, "RGBA").save(stem + "_base.png")
     Image.fromarray(jers, "RGBA").save(stem + "_jersey.png")
     meta = {"frameWidth": size, "frameHeight": size, "directions": dirs,
-            "frames": len(poses), "pitch": pitch, "anim": anim or "rest",
-            "yaws": yaws, "footFrac": round(foot_frac, 4)}
+            "pitch": pitch, "yaws": yaws, "rows": total_rows,
+            "footFrac": round(foot_frac, 4), "anims": anims}
     with open(stem + ".json", "w") as fh:
         json.dump(meta, fh, indent=2)
-    print("wrote %s_base.png / _jersey.png  (%d dirs x %d frames @ %dpx)"
-          % (stem, dirs, len(poses), size))
+    print("wrote %s_base.png / _jersey.png  (%d dirs x %d rows @ %dpx)"
+          % (stem, dirs, total_rows, size))
+    for name, a in anims.items():
+        print("   %-8s rows %2d..%-2d  %s%s"
+              % (name, a["row"], a["row"] + a["frames"] - 1,
+                 "loop" if a["loop"] else "one-shot",
+                 ", grounded" if a["ground"] else ""))
     return stem
 
 
@@ -240,8 +293,9 @@ def main():
     ap.add_argument("model")
     ap.add_argument("--pitch", type=float, default=42.0)
     ap.add_argument("--dirs", type=int, default=8)
-    ap.add_argument("--anim", default=None)
-    ap.add_argument("--frames", type=int, default=8)
+    ap.add_argument("--anims", default="run:8,throw:8,catch:6,tackle:6:ground",
+                    help="name:frames[:ground], comma separated. The first clip"
+                         " defines the foot line the game seats sprites by.")
     ap.add_argument("--size", type=int, default=64)
     ap.add_argument("--ss", type=int, default=4, help="supersample factor")
     ap.add_argument("--outline", type=int, default=7,
@@ -255,7 +309,7 @@ def main():
         contact(a.model, [float(p) for p in a.pitches.split(",")],
                 a.dirs, a.size, a.outdir)
     else:
-        build(a.model, a.pitch, a.dirs, a.anim, a.frames, a.size, a.ss,
+        build(a.model, a.pitch, a.dirs, a.anims, a.size, a.ss,
               a.outline, a.outdir)
 
 

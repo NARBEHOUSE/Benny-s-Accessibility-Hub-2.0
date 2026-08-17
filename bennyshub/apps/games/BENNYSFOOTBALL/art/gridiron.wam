@@ -29,7 +29,9 @@ skeleton
     # its outer edge at 0.272 just inside the pad rim at 0.298 — arms tucked
     # under the shell, clear of the shell above them.
     bone clavicle parent=chest at=1.0 dir=side tilt=6 len=0.205
-    bone upperarm parent=clavicle dir=down pitch=-14 len=0.150 bend=pitch,yaw
+    # A shoulder is a ball joint: tilt is abduction, which a tackled player's
+    # arms need in order to splay rather than stay pinned to the ribs.
+    bone upperarm parent=clavicle dir=down pitch=-14 len=0.150 bend=pitch,yaw,tilt
     # Pre-bent at rest, so the elbow legitimately moves both ways from there.
     bone forearm  parent=upperarm dir=fwd pitch=40 len=0.140 bend=pitch
     bone hand     parent=forearm dir=fwd len=0.055
@@ -137,6 +139,103 @@ animations
     ch chest yaw  0%=-7 50%=7 100%=-7
     mirrorphase 50%
 
+  # ── throw ────────────────────────────────────────────────────────────────
+  # A right-handed pass, so this is the one genuinely asymmetric clip: the .r
+  # channels are written directly rather than mirrored off .l.
+  # +yaw about +Y carries the LEFT shoulder backward, so the wind-up (right
+  # shoulder back) is negative yaw and the follow-through positive.
+  # Keys sit on the 8-frame sample grid (0, 29, 43, 57, 71, 86, 100). An
+  # extreme placed between samples is never seen: the release at 62% baked as
+  # -42 then -78, so the arm appeared to bob back up through its own
+  # follow-through instead of whipping past it.
+  anim throw dur=0.85
+    ch upperarm.r pitch 0%=0 29%=118 43%=112 57%=-52 71%=-98 86%=-66 100%=-32
+    # Elbow flexion at the cock is capped at -58. Deeper folds the fist back
+    # BEHIND the shoulder and 0.042 into the pad shell — which the cock angle
+    # was blamed for first, wrongly: sweeping the cock from 118 to 80 barely
+    # moved the number and cost the same arm travel either way (0.4838).
+    ch forearm.r  pitch 0%=0 29%=-58 43%=-66 57%=-30 71%=8 86%=0 100%=-12
+    # A little outward splay through the wind-up. Negative tilt swings the
+    # RIGHT arm out — the sign convention is written for the authored left
+    # side and this channel is on .r directly.
+    ch upperarm.r tilt  0%=0 29%=-16 43%=-13 71%=-5 100%=0
+    ch clavicle.r tilt  0%=0 29%=-12 71%=10 100%=6
+    ch upperarm.l pitch 0%=0 29%=-36 71%=-12 100%=4
+    ch forearm.l  pitch 0%=0 29%=-26 100%=6
+    ch chest yaw  0%=0 29%=-26 71%=22 100%=14
+    ch spine yaw  0%=0 29%=-13 71%=11 100%=7
+    ch chest pitch 0%=0 29%=6 71%=-10 100%=-4
+    ch head  yaw  0%=0 29%=9 71%=-4 100%=0
+    ch thigh.l pitch 0%=0 29%=-18 71%=7 100%=0
+    ch thigh.r pitch 0%=0 29%=11 71%=-8 100%=0
+    ch shin.l  pitch 0%=0 29%=10 71%=4 100%=0
+
+  # ── catch ────────────────────────────────────────────────────────────────
+  # Symmetric, so it is posed with pitch-only globs — pitch is the one channel
+  # that does not flip under mirroring, which makes `upperarm.*` safe here.
+  pose reach
+    upperarm.* pitch=-94
+    forearm.*  pitch=-28
+    chest pitch=-9
+    head  pitch=-11
+    thigh.* pitch=-11
+    shin.*  pitch=15
+
+  pose secure
+    upperarm.* pitch=-32
+    forearm.*  pitch=-60
+    chest pitch=11
+    head  pitch=5
+    thigh.* pitch=7
+    shin.*  pitch=21
+
+  # Keys on the 6-frame sample grid (0, 20, 40, 60, 80, 100).
+  anim catch dur=0.62
+    key 0%   pose=rest
+    key 40%  pose=reach
+    key 80%  pose=secure
+    key 100% pose=rest
+
+  # ── tackle ───────────────────────────────────────────────────────────────
+  # There is no root translation channel on `ch` lines, so the drop has to come
+  # from `shift` on a pose, which the compiler applies to the root bone only.
+  # The fall is deliberately a hard knockdown to a collapsed crouch rather than
+  # a fully prone body: prone widens the bounding box enough to shrink every
+  # other clip when the bake fits one camera across all of them, and at 26px a
+  # flattened player reads as a smear anyway.
+  # No `shift` here, deliberately. It parses on a pose and global_transforms
+  # would honour it, but anim_rotations_at blends only pitch/yaw/roll/tilt, so
+  # a shift never reaches a clip and editing it changes nothing at all. The
+  # fall is therefore pure rotation, and the bake translates the figure back
+  # down onto the field (`tackle:6:ground`).
+  pose hit
+    pelvis pitch=-14 tilt=6
+    chest  pitch=-17
+    head   pitch=-23
+    upperarm.* pitch=-40
+    forearm.*  pitch=-34
+    thigh.* pitch=10
+    shin.*  pitch=32
+
+  pose down
+    pelvis pitch=-58 tilt=16
+    chest  pitch=-7
+    head   pitch=-13
+    # Splayed per side: tilt does not flip inside a glob, so `upperarm.*` with
+    # one sign would throw one arm out and tuck the other across the body.
+    upperarm.l pitch=-15 tilt=27
+    upperarm.r pitch=-15 tilt=-27
+    forearm.*  pitch=-46
+    thigh.* pitch=-29
+    shin.*  pitch=88
+
+  # Keys on the 6-frame sample grid; the clip ends fully down and the game
+  # holds that last frame until the next snap.
+  anim tackle dur=0.75
+    key 0%   pose=rest
+    key 20%  pose=hit
+    key 100% pose=down
+
 checks
   assert bottom(shoe.l) < 0.02
   # The signature, as a number: the helmet bottom sits below the pad top.
@@ -145,10 +244,28 @@ checks
   assert height / height(helmet) in 3.1..3.7
   assert slide(shoe.l, run) < 0.02
   assert lowest(run) > -0.03
+  # Every clip has to stay on top of the field.
+  assert lowest(throw) > -0.03
+  assert lowest(catch) > -0.03
+  assert lowest(tackle) > -0.03
+  # Each action has to actually be an action — mistakes #9 is a clip authored
+  # at the amplitude that feels right, which plays as a still frame.
+  assert moves(hand.r, throw) > 0.30
+  assert moves(hand.l, catch) > 0.20
+  assert moves(helmet, tackle) > 0.25
+  # The throwing arm must clear the head, or the release reads as a shot put.
+  assert moves(helmet, throw) < moves(hand.r, throw)
   assert tris < 3500
   # Pads cover the deltoid and the trunk fills the armpit — both are what the
   # geometry is supposed to do. Everything else still gets swept.
-  noclip except=arm.l+pads,arm.r+pads,arm.l+torso,arm.r+torso
+  # in=* sweeps the posed frames of every clip, not just the rest pose. The
+  # compiler warns that a throwing arm swinging 124 degrees is "very likely
+  # folding through itself"; this is the measurement that settles whether it
+  # actually does.
+  # arm+leg is hands brushing the thighs at the extremes of the stride, which
+  # is what running looks like; it measures 0.029 of model height, about one
+  # pixel at the size this ships at.
+  noclip in=* except=arm.l+pads,arm.r+pads,arm.l+torso,arm.r+torso,arm.l+leg.l,arm.r+leg.r,hand.l+leg.l,hand.r+leg.r
   # In profile the mask is the whole football read, and profile is half of the
   # eight sprite directions. It has to clear the shell, not sit on it.
   assert zmax(facemask) > zmax(helmet)
