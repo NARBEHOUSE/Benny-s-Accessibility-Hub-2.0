@@ -109,19 +109,33 @@ function setEasyThrow(on) {
 const PLAYER_SPRITE = {
     baseKey:   'player_base',
     jerseyKey: 'player_jersey',
-    basePath:   'images/players/gridiron_run_base.png',
-    jerseyPath: 'images/players/gridiron_run_jersey.png',
+    basePath:   'images/players/gridiron_base.png',
+    jerseyPath: 'images/players/gridiron_jersey.png',
     frameW: 64, frameH: 64,
     dirs: 8,            // yaw steps, 45° apart
-    frames: 8,          // run-cycle frames
+    // Clip table, copied from the bake manifest (images/players/gridiron.json).
+    // `row` is the first atlas row; a frame index is row * dirs + direction.
+    // `hold` keeps the last frame up instead of releasing back to the run,
+    // which is what a tackled player should do until the next snap.
+    anims: {
+        run:    { row: 0,  frames: 8, loop: true },
+        throw:  { row: 8,  frames: 8, fps: 15 },
+        catch:  { row: 16, frames: 6, fps: 13 },
+        tackle: { row: 22, frames: 6, fps: 12, hold: true }
+    },
     // The disc is 26px across and spans y -13..+13 about the container origin,
     // and every tackle/catch/distance calculation in the game treats that
     // origin as the player. So the sprite has to straddle it the same way —
     // seating it by the feet instead drops the whole body above the point the
     // game thinks the player is at.
-    displayH: 46,       // on-field height in world px (discs are 26 across)
+    // On-field height of the 64px cell, not of the player (discs are 26
+    // across). The bake fits one camera across every clip, so adding the
+    // tackle — a wider, lower pose — shrank the standing figure inside its
+    // cell from ~88% to ~78%. This is scaled by that 1.12 to keep the player
+    // the same size on the field as before the action clips existed.
+    displayH: 52,
     footOffsetY: 8,     // world y of the foot line, so it lands on the shadow
-    footFrac: 0.9688,   // where the feet sit in a frame — measured by the bake
+    footFrac: 0.9219,   // where the feet sit in a frame — measured by the bake
     // Below this speed (world px/sec) a player is standing, not running.
     runSpeed: 10,
     // World px of travel per full stride. Drives the cycle off actual speed so

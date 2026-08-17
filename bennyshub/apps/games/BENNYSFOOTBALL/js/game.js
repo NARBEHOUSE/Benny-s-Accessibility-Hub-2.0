@@ -493,7 +493,7 @@ class GameScene extends Phaser.Scene {
     // kickoff returns and tackle rushes that never go through jog().
     _updatePlayerSprites(delta) {
         if (!this.offense || !this.defense) return;
-        const P = PLAYER_SPRITE;
+        const P = PLAYER_SPRITE, RUN = P.anims.run;
         const dt = Math.max(delta, 1) / 1000;
         [...this.offense, ...this.defense].forEach(p => {
             const s = p && p._spr;
@@ -502,19 +502,50 @@ class GameScene extends Phaser.Scene {
             const dx = p.x - s.lastX, dy = p.y - s.lastY;
             s.lastX = p.x; s.lastY = p.y;
 
-            const speed = Math.sqrt(dx * dx + dy * dy) / dt;
-            if (speed > P.runSpeed) {
-                s.dir = spriteDirIndex(Math.atan2(dy, dx));
-                // Advance the cycle by distance travelled, not by wall time.
-                s.phase += (speed * dt) / P.stridePx * P.frames;
-            } else {
-                s.phase = 0;   // planted: hold the contact frame
+            let row;
+            if (s.action) {
+                // A one-shot owns the sprite until it finishes. Facing was
+                // frozen when it started, so a throw does not pirouette if the
+                // QB drifts a pixel mid-animation.
+                const a = s.action;
+                a.t += dt * a.clip.fps;
+                const last = a.clip.frames - 1;
+                if (a.t >= a.clip.frames) {
+                    if (a.clip.hold) { a.t = last; }
+                    else { s.action = null; }
+                }
+                if (s.action) row = a.clip.row + Math.min(Math.floor(a.t), last);
             }
-            const f = ((Math.floor(s.phase) % P.frames) + P.frames) % P.frames;
-            const idx = f * P.dirs + s.dir;
+
+            if (row === undefined) {
+                const speed = Math.sqrt(dx * dx + dy * dy) / dt;
+                if (speed > P.runSpeed) {
+                    s.dir = spriteDirIndex(Math.atan2(dy, dx));
+                    // Advance the cycle by distance travelled, not wall time.
+                    s.phase += (speed * dt) / P.stridePx * RUN.frames;
+                } else {
+                    s.phase = 0;   // planted: hold the contact frame
+                }
+                const f = ((Math.floor(s.phase) % RUN.frames) + RUN.frames) % RUN.frames;
+                row = RUN.row + f;
+            }
+
+            const idx = row * P.dirs + s.dir;
             s.base.setFrame(idx);
             s.jersey.setFrame(idx);
         });
+    }
+
+    // Play a one-shot action clip on a player. Safe to call for disc players
+    // and for any name the bake did not produce — both are simply ignored, so
+    // callers never have to check which rendering mode is active.
+    playPlayerAction(p, name) {
+        const s = p && p._spr;
+        if (!s) return;
+        const clip = PLAYER_SPRITE.anims[name];
+        if (!clip || clip.loop) return;
+        // Freeze facing for the duration; actions are performed, not steered.
+        s.action = { clip, t: 0 };
     }
 
     // Update the position label shown on a player sprite (list[3] is the text child).
@@ -553,9 +584,19 @@ class GameScene extends Phaser.Scene {
         return { off, def };
     }
 
+    // Release any held action clip so a tackled player gets back up. The
+    // tackle clip holds its last frame on purpose, so without this the player
+    // stays face-down through every following snap.
+    _clearPlayerActions() {
+        [...(this.offense || []), ...(this.defense || [])].forEach(p => {
+            if (p && p._spr) p._spr.action = null;
+        });
+    }
+
     // Snap players to formation instantly (drive start / kickoff).
     repositionFormation(losYard) {
         const { off, def } = this.formationPositions(losYard);
+        this._clearPlayerActions();
         // Kill any leftover animation tweens so kickoff/play tweens can't override us.
         [...this.offense, ...this.defense].forEach(p => this.tweens.killTweensOf(p));
         this.offense.forEach((p, i) => { this.stopBob(p); p.setPosition(off[i].x, off[i].y); p.setScale(1); p.homeX = off[i].x; p.homeY = off[i].y; });
@@ -570,6 +611,7 @@ class GameScene extends Phaser.Scene {
     // Smoothly jog all players back into formation, then run the callback.
     tweenFormation(losYard, duration, cb) {
         const { off, def } = this.formationPositions(losYard);
+        this._clearPlayerActions();
         // Kill any leftover animation tweens so kickoff/play tweens can't override the formation.
         [...this.offense, ...this.defense].forEach(p => { this.tweens.killTweensOf(p); this.stopBob(p); });
         this.offense.forEach((p, i) => { p.homeX = off[i].x; p.homeY = off[i].y; this.jog(p, off[i].x, off[i].y, duration, 'Sine.easeInOut'); });
@@ -767,6 +809,16 @@ class GameScene extends Phaser.Scene {
             // so defenders visually pile on top of them.
             this._tackledPlayer = p;
             p.setDepth(2.0);
+            this.playPlayerAction(p, 'tackle');
+            if (p._spr) {
+                // The tackle clip already puts the player on the ground, so the
+                // spin that stands in for it on disc players would read as the
+                // sprite tipping over on top of its own fall.
+                this.time.delayedCall(600, () => {
+                    if (this._tackledPlayer === p) this._tackledPlayer = null;
+                });
+                return;
+            }
             this.tweens.add({
                 targets: p, angle: (Math.random() < 0.5 ? -28 : 28), duration: 120, yoyo: true,
                 onComplete: () => {
@@ -1794,7 +1846,7 @@ class GameScene extends Phaser.Scene {
 
         // Ball flight; faster ball when thrown harder.
         this.ball.visible = true; this.ball.carrier = null;
-        this.ball.x = qb.x; this.ball.y = qb.y; this.ball.flying = true;
+        this.ball.x = qb.x; this.ball.y = qb.y; this.playPlayerAction(qb, 'throw'); this.ball.flying = true;
         const flightDur = Phaser.Math.Linear(820, 480, Phaser.Math.Clamp(power / 100, 0, 1));
         const tx = complete ? r.x : landX, ty = complete ? r.y : landY;
         const flight = { x: qb.x, y: qb.y };
@@ -1819,6 +1871,7 @@ class GameScene extends Phaser.Scene {
         this.audio.play('catch');
         this.audio.play('crowd');
         this.audio.speak('Caught!', true);
+        this.playPlayerAction(r.player, 'catch');
         // Zoom in on the receiver so the player can see the run-after-catch.
         this._zoomOnPoint(r.player.x, r.player.y, 1.55, 260);
         const rec = r.player;
@@ -1904,6 +1957,7 @@ class GameScene extends Phaser.Scene {
             return d < bd ? p : best;
         }, this.defense[0]);
         this.ball.carrier = db;
+        this.playPlayerAction(db, 'catch');
         this.audio.speak('Intercepted!', true);
 
         // Defender returns the ball toward their own end zone (left).
@@ -2805,7 +2859,7 @@ class GameScene extends Phaser.Scene {
         const wr = wrOverride || this.defense[2];     // CPU's intended receiver
         const myDef = defOverride || this.offense[3]; // our cornerback who breaks on the ball
         this.ball.visible = true; this.ball.carrier = null;
-        this.ball.x = qb.x; this.ball.y = qb.y;
+        this.ball.x = qb.x; this.ball.y = qb.y; this.playPlayerAction(qb, 'throw');
         // Zoom onto the route endpoint so the pick is clearly visible.
         this._zoomOnPoint(wr.x, wr.y, 1.6, 320);
         this.audio.speak('Up for grabs!', true);
@@ -2817,6 +2871,7 @@ class GameScene extends Phaser.Scene {
             onUpdate: () => { this.ball.x = flight.x; this.ball.y = flight.y; },
             onComplete: () => {
                 this.ball.carrier = myDef;
+                this.playPlayerAction(myDef, 'catch');
                 this.audio.play('interception'); this.audio.play('crowd_big');
                 this.audio.speak('Intercepted!', true);
                 this.tweens.killTweensOf(myDef); this.stopBob(myDef);
@@ -2900,7 +2955,7 @@ class GameScene extends Phaser.Scene {
         if (type === 'incomplete') {
             const qb = this.defense[0], wr = wrOverride || this.defense[2], myDef = defOverride || this.offense[3];
             this.ball.visible = true; this.ball.carrier = null;
-            this.ball.x = qb.x; this.ball.y = qb.y;
+            this.ball.x = qb.x; this.ball.y = qb.y; this.playPlayerAction(qb, 'throw');
             this.audio.speak('Knocked away.', true);
             this.jog(myDef, wr.x + 4, wr.y - 6, 560, 'Sine.easeOut'); // defender contests
             // Everyone else is in motion too: receivers run routes, our defenders
@@ -3056,7 +3111,7 @@ class GameScene extends Phaser.Scene {
             // Show the ball flying from QB to receiver before the run-after-catch.
             const qb = this.defense[0];
             this.ball.visible = true; this.ball.carrier = null;
-            this.ball.x = qb.x; this.ball.y = qb.y;
+            this.ball.x = qb.x; this.ball.y = qb.y; this.playPlayerAction(qb, 'throw');
             this.audio.speak('Complete!', true);
             this.audio.play('throw');
             const flightDur = 380 + Math.abs(carrier.x - qb.x) * 0.55;
