@@ -511,17 +511,13 @@ class GameScene extends Phaser.Scene {
                 a.t += dt * a.clip.fps;
                 const last = a.clip.frames - 1;
                 if (a.t >= a.clip.frames) {
-                    if (a.clip.hold) {
-                        a.t = last;
-                        // A held clip (the tackle) stays up until the player is
-                        // put back in motion. Releasing on movement rather than
-                        // only on an explicit reset means no future code path
-                        // can strand someone face-down by forgetting to clear
-                        // it: the moment anything jogs them, they get up.
-                        if (Math.abs(dx) + Math.abs(dy) > 1.5) s.action = null;
-                    } else {
-                        s.action = null;
-                    }
+                    // A held clip (the tackle) stays on its last frame until
+                    // the next play sets up. Both formation paths release it
+                    // through _standDownedPlayers; releasing it here on
+                    // movement instead would stand players up early, which is
+                    // the opposite of staying down.
+                    if (a.clip.hold) a.t = last;
+                    else s.action = null;
                 }
                 if (s.action) row = a.clip.row + Math.min(Math.floor(a.t), last);
             }
@@ -610,13 +606,40 @@ class GameScene extends Phaser.Scene {
         return { x: p.x + off.x, y: p.y + off.y };
     }
 
-    // Release any held action clip so a tackled player gets back up. The
-    // tackle clip holds its last frame on purpose, so without this the player
-    // stays face-down through every following snap.
+    // Hard reset of every action clip, for an instant snap into formation at a
+    // drive start. The gradual path is _standDownedPlayers(); this one exists
+    // because a player teleported to a new line of scrimmage must not still be
+    // lying in the pose they fell in somewhere else.
     _clearPlayerActions() {
         [...(this.offense || []), ...(this.defense || [])].forEach(p => {
             if (p && p._spr) p._spr.action = null;
         });
+    }
+
+    // True while a player is playing or holding a knockdown. They stay where
+    // they fell for the whole transition instead of being jogged back to the
+    // line of scrimmage still face-down, and are stood up as the next play
+    // sets up.
+    _isDown(p) {
+        const a = p && p._spr && p._spr.action;
+        return !!(a && a.clip.hold);
+    }
+
+    // Stand up anyone still on the ground and send them to their spot. Called
+    // as a formation tween lands, which is the moment the next play sets up.
+    // Returns true if anyone had to get up, so the caller can hold the play
+    // menu back until they are actually in place.
+    _standDownedPlayers(offPos, defPos, duration) {
+        let any = false;
+        const send = (list, pos) => list.forEach((p, i) => {
+            if (!this._isDown(p)) return;
+            any = true;
+            p._spr.action = null;
+            this.jog(p, pos[i].x, pos[i].y, duration);
+        });
+        send(this.offense, offPos);
+        send(this.defense, defPos);
+        return any;
     }
 
     // Snap players to formation instantly (drive start / kickoff).
@@ -637,17 +660,23 @@ class GameScene extends Phaser.Scene {
     // Smoothly jog all players back into formation, then run the callback.
     tweenFormation(losYard, duration, cb) {
         const { off, def } = this.formationPositions(losYard);
-        this._clearPlayerActions();
+        // Deliberately no _clearPlayerActions() here: downed players are held
+        // in place and released by _standDownedPlayers as this tween lands.
         // Kill any leftover animation tweens so kickoff/play tweens can't override the formation.
         [...this.offense, ...this.defense].forEach(p => { this.tweens.killTweensOf(p); this.stopBob(p); });
-        this.offense.forEach((p, i) => { p.homeX = off[i].x; p.homeY = off[i].y; this.jog(p, off[i].x, off[i].y, duration, 'Sine.easeInOut'); });
-        this.defense.forEach((p, i) => this.jog(p, def[i].x, def[i].y, duration, 'Sine.easeInOut'));
+        // Anyone knocked down stays down where they fell while the rest jog
+        // back; they get up as this tween lands.
+        this.offense.forEach((p, i) => { p.homeX = off[i].x; p.homeY = off[i].y; if (!this._isDown(p)) this.jog(p, off[i].x, off[i].y, duration, 'Sine.easeInOut'); });
+        this.defense.forEach((p, i) => { if (!this._isDown(p)) this.jog(p, def[i].x, def[i].y, duration, 'Sine.easeInOut'); });
         // Restore correct position labels for offensive phase.
         ['QB','RB','WR','WR','TE','OL'].forEach((l, i) => this._setPlayerLabel(this.offense[i], l));
         ['DL','DL','LB','CB','CB','S'].forEach((l, i) => this._setPlayerLabel(this.defense[i], l));
         // Ball follows the QB as the offense jogs back into formation.
         this.ball.carrier = this.offense[0]; this.ball.visible = true;
-        this.time.delayedCall(duration + 120, cb);
+        this.time.delayedCall(duration + 120, () => {
+            const gotUp = this._standDownedPlayers(off, def, 420);
+            this.time.delayedCall(gotUp ? 470 : 0, cb);
+        });
     }
 
     // ─── Animation helpers ─────────────────────────────────────────────────────
@@ -2561,21 +2590,26 @@ class GameScene extends Phaser.Scene {
 
     tweenDefense(losYard, duration, cb) {
         const { oppOff, ourDef } = this.defenseFormationPositions(losYard);
-        // Defensive series run through here rather than tweenFormation, so this
-        // is what stands a tackled player back up while the opponent has the
-        // ball. Missing it left CPU ball carriers face-down for the rest of
-        // the drive.
-        this._clearPlayerActions();
+        // Defensive series run through here rather than tweenFormation, so
+        // this is the path that stands a tackled CPU ball carrier back up.
+        // As above, the release happens when the tween lands, not up front.
         // Kill any leftover animation tweens so kickoff/play tweens can't override the formation.
         [...this.offense, ...this.defense].forEach(p => { this.tweens.killTweensOf(p); this.stopBob(p); });
-        this.defense.forEach((p, i) => this.jog(p, oppOff[i].x, oppOff[i].y, duration));
-        this.offense.forEach((p, i) => this.jog(p, ourDef[i].x, ourDef[i].y, duration));
+        // Anyone knocked down stays down where they fell while the rest jog
+        // back; they get up as this tween lands.
+        this.defense.forEach((p, i) => { if (!this._isDown(p)) this.jog(p, oppOff[i].x, oppOff[i].y, duration); });
+        this.offense.forEach((p, i) => { if (!this._isDown(p)) this.jog(p, ourDef[i].x, ourDef[i].y, duration); });
         // Flip labels: this.defense sprites are now the opp offense; this.offense are our defense.
         ['QB','RB','WR','WR','TE','OL'].forEach((l, i) => this._setPlayerLabel(this.defense[i], l));
         ['DL','DL','LB','CB','CB','S'].forEach((l, i) => this._setPlayerLabel(this.offense[i], l));
         this.ball.carrier = null;
         this.ball.x = ydToX(losYard) + 24; this.ball.y = FIELD.MID_Y; this.ball.visible = true;
-        this.time.delayedCall(duration + 120, cb);
+        this.time.delayedCall(duration + 120, () => {
+            // Note the swap: on defence `this.defense` holds the opposing
+            // offence and `this.offense` holds our defenders.
+            const gotUp = this._standDownedPlayers(ourDef, oppOff, 420);
+            this.time.delayedCall(gotUp ? 470 : 0, cb);
+        });
     }
 
     showDefPlayCall() {
