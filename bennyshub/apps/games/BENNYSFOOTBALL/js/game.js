@@ -511,8 +511,17 @@ class GameScene extends Phaser.Scene {
                 a.t += dt * a.clip.fps;
                 const last = a.clip.frames - 1;
                 if (a.t >= a.clip.frames) {
-                    if (a.clip.hold) { a.t = last; }
-                    else { s.action = null; }
+                    if (a.clip.hold) {
+                        a.t = last;
+                        // A held clip (the tackle) stays up until the player is
+                        // put back in motion. Releasing on movement rather than
+                        // only on an explicit reset means no future code path
+                        // can strand someone face-down by forgetting to clear
+                        // it: the moment anything jogs them, they get up.
+                        if (Math.abs(dx) + Math.abs(dy) > 1.5) s.action = null;
+                    } else {
+                        s.action = null;
+                    }
                 }
                 if (s.action) row = a.clip.row + Math.min(Math.floor(a.t), last);
             }
@@ -539,12 +548,22 @@ class GameScene extends Phaser.Scene {
     // Play a one-shot action clip on a player. Safe to call for disc players
     // and for any name the bake did not produce — both are simply ignored, so
     // callers never have to check which rendering mode is active.
-    playPlayerAction(p, name) {
+    //
+    // `face` is the point the action is directed at — the receiver for a throw,
+    // the passer for a catch. Without it the clip plays in whatever direction
+    // the player last MOVED, and a quarterback stands still before the snap, so
+    // a throw would fire off toward the bottom of the screen with the arm
+    // swinging straight at the camera where none of it reads.
+    playPlayerAction(p, name, face) {
         const s = p && p._spr;
         if (!s) return;
         const clip = PLAYER_SPRITE.anims[name];
         if (!clip || clip.loop) return;
-        // Freeze facing for the duration; actions are performed, not steered.
+        if (face && (face.x !== p.x || face.y !== p.y)) {
+            s.dir = spriteDirIndex(Math.atan2(face.y - p.y, face.x - p.x));
+        }
+        // Facing is then frozen for the duration; actions are performed, not
+        // steered.
         s.action = { clip, t: 0 };
     }
 
@@ -582,6 +601,13 @@ class GameScene extends Phaser.Scene {
             { x: losX + 95, y: midY }
         ];
         return { off, def };
+    }
+
+    // Where the ball sits when this player has it, and where a throw leaves
+    // from. Discs keep the original offset; sprites need chest height.
+    _carryPoint(p) {
+        const off = (p && p._spr) ? PLAYER_SPRITE.ballOffset : { x: 12, y: -2 };
+        return { x: p.x + off.x, y: p.y + off.y };
     }
 
     // Release any held action clip so a tackled player gets back up. The
@@ -1846,10 +1872,12 @@ class GameScene extends Phaser.Scene {
 
         // Ball flight; faster ball when thrown harder.
         this.ball.visible = true; this.ball.carrier = null;
-        this.ball.x = qb.x; this.ball.y = qb.y; this.playPlayerAction(qb, 'throw'); this.ball.flying = true;
+        const _qbPt = this._carryPoint(qb);
+        this.ball.x = _qbPt.x; this.ball.y = _qbPt.y; this.ball.flying = true;
+        this.playPlayerAction(qb, 'throw', r);
         const flightDur = Phaser.Math.Linear(820, 480, Phaser.Math.Clamp(power / 100, 0, 1));
         const tx = complete ? r.x : landX, ty = complete ? r.y : landY;
-        const flight = { x: qb.x, y: qb.y };
+        const flight = { x: _qbPt.x, y: _qbPt.y };
         this.tweens.add({
             targets: flight, x: tx, y: ty, duration: flightDur, ease: 'Sine.easeInOut',
             onUpdate: () => { this.ball.x = flight.x; this.ball.y = flight.y; },
@@ -1871,7 +1899,7 @@ class GameScene extends Phaser.Scene {
         this.audio.play('catch');
         this.audio.play('crowd');
         this.audio.speak('Caught!', true);
-        this.playPlayerAction(r.player, 'catch');
+        this.playPlayerAction(r.player, 'catch', this.offense[0]);
         // Zoom in on the receiver so the player can see the run-after-catch.
         this._zoomOnPoint(r.player.x, r.player.y, 1.55, 260);
         const rec = r.player;
@@ -1957,7 +1985,7 @@ class GameScene extends Phaser.Scene {
             return d < bd ? p : best;
         }, this.defense[0]);
         this.ball.carrier = db;
-        this.playPlayerAction(db, 'catch');
+        this.playPlayerAction(db, 'catch', this.offense[0]);
         this.audio.speak('Intercepted!', true);
 
         // Defender returns the ball toward their own end zone (left).
@@ -2533,6 +2561,11 @@ class GameScene extends Phaser.Scene {
 
     tweenDefense(losYard, duration, cb) {
         const { oppOff, ourDef } = this.defenseFormationPositions(losYard);
+        // Defensive series run through here rather than tweenFormation, so this
+        // is what stands a tackled player back up while the opponent has the
+        // ball. Missing it left CPU ball carriers face-down for the rest of
+        // the drive.
+        this._clearPlayerActions();
         // Kill any leftover animation tweens so kickoff/play tweens can't override the formation.
         [...this.offense, ...this.defense].forEach(p => { this.tweens.killTweensOf(p); this.stopBob(p); });
         this.defense.forEach((p, i) => this.jog(p, oppOff[i].x, oppOff[i].y, duration));
@@ -2624,8 +2657,10 @@ class GameScene extends Phaser.Scene {
             this.tweens.add({ targets: p, x: p.x + dx, y: p.y + dy, duration: 280, ease: 'Quad.easeOut' });
         });
 
-        // Spike the ball: it drops fast and bounces on the turf.
-        this.ball.x = scorer.x; this.ball.y = scorer.y - 12; this.ball.visible = true;
+        // Spike the ball: it drops fast and bounces on the turf. It has to
+        // leave the scorer's hands, which are chest height on a sprite.
+        const _spikePt = this._carryPoint(scorer);
+        this.ball.x = _spikePt.x; this.ball.y = _spikePt.y; this.ball.visible = true;
         this.tweens.add({
             targets: this.ball, y: scorer.y + 20, duration: 150, ease: 'Quad.easeIn',
             onComplete: () => this.tweens.add({
@@ -2859,19 +2894,21 @@ class GameScene extends Phaser.Scene {
         const wr = wrOverride || this.defense[2];     // CPU's intended receiver
         const myDef = defOverride || this.offense[3]; // our cornerback who breaks on the ball
         this.ball.visible = true; this.ball.carrier = null;
-        this.ball.x = qb.x; this.ball.y = qb.y; this.playPlayerAction(qb, 'throw');
+        const _qbPt = this._carryPoint(qb);
+        this.ball.x = _qbPt.x; this.ball.y = _qbPt.y;
+        this.playPlayerAction(qb, 'throw', wr);
         // Zoom onto the route endpoint so the pick is clearly visible.
         this._zoomOnPoint(wr.x, wr.y, 1.6, 320);
         this.audio.speak('Up for grabs!', true);
         // Our defender breaks toward the catch point.
         this.jog(myDef, wr.x - 6, wr.y - 10, 640, 'Sine.easeOut');
-        const flight = { x: qb.x, y: qb.y };
+        const flight = { x: _qbPt.x, y: _qbPt.y };
         this.tweens.add({
             targets: flight, x: wr.x - 6, y: wr.y - 10, duration: 660, ease: 'Sine.easeInOut',
             onUpdate: () => { this.ball.x = flight.x; this.ball.y = flight.y; },
             onComplete: () => {
                 this.ball.carrier = myDef;
-                this.playPlayerAction(myDef, 'catch');
+                this.playPlayerAction(myDef, 'catch', qb);
                 this.audio.play('interception'); this.audio.play('crowd_big');
                 this.audio.speak('Intercepted!', true);
                 this.tweens.killTweensOf(myDef); this.stopBob(myDef);
@@ -2955,7 +2992,9 @@ class GameScene extends Phaser.Scene {
         if (type === 'incomplete') {
             const qb = this.defense[0], wr = wrOverride || this.defense[2], myDef = defOverride || this.offense[3];
             this.ball.visible = true; this.ball.carrier = null;
-            this.ball.x = qb.x; this.ball.y = qb.y; this.playPlayerAction(qb, 'throw');
+            const _qbPt = this._carryPoint(qb);
+            this.ball.x = _qbPt.x; this.ball.y = _qbPt.y;
+            this.playPlayerAction(qb, 'throw', wr);
             this.audio.speak('Knocked away.', true);
             this.jog(myDef, wr.x + 4, wr.y - 6, 560, 'Sine.easeOut'); // defender contests
             // Everyone else is in motion too: receivers run routes, our defenders
@@ -2968,7 +3007,7 @@ class GameScene extends Phaser.Scene {
                 if (i === 3) return; // contesting defender handled above
                 this.jog(p, p.x - 14 + Math.random() * 24, p.y + (Math.random() - 0.5) * 40, 600 + Math.random() * 220);
             });
-            const flight = { x: qb.x, y: qb.y };
+            const flight = { x: _qbPt.x, y: _qbPt.y };
             this.tweens.add({
                 targets: flight, x: wr.x, y: wr.y + 16, duration: 620, ease: 'Sine.easeIn',
                 onUpdate: () => { this.ball.x = flight.x; this.ball.y = flight.y; },
@@ -3111,11 +3150,13 @@ class GameScene extends Phaser.Scene {
             // Show the ball flying from QB to receiver before the run-after-catch.
             const qb = this.defense[0];
             this.ball.visible = true; this.ball.carrier = null;
-            this.ball.x = qb.x; this.ball.y = qb.y; this.playPlayerAction(qb, 'throw');
+            const _qbPt = this._carryPoint(qb);
+            this.ball.x = _qbPt.x; this.ball.y = _qbPt.y;
+            this.playPlayerAction(qb, 'throw', carrier);
             this.audio.speak('Complete!', true);
             this.audio.play('throw');
             const flightDur = 380 + Math.abs(carrier.x - qb.x) * 0.55;
-            const flight = { x: qb.x, y: qb.y };
+            const flight = { x: _qbPt.x, y: _qbPt.y };
             this.tweens.add({
                 targets: flight, x: carrier.x, y: carrier.y, duration: flightDur, ease: 'Sine.easeInOut',
                 onUpdate: () => { this.ball.x = flight.x; this.ball.y = flight.y; },
@@ -3570,10 +3611,14 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // Ball tracks its carrier so it looks like it's being run with.
+        // Ball tracks its carrier so it looks like it's being run with. The
+        // (12, -2) offset was tuned against the 26px disc, whose middle sits at
+        // the container origin. A sprite is 52px tall and stands almost
+        // entirely ABOVE that origin, so the same offset drops the ball at the
+        // player's shins and reads as a loose ball rather than a carried one.
         if (this.ball.carrier) {
-            this.ball.x = this.ball.carrier.x + 12;
-            this.ball.y = this.ball.carrier.y - 2;
+            const pt = this._carryPoint(this.ball.carrier);
+            this.ball.x = pt.x; this.ball.y = pt.y;
         }
 
         // Line of scrimmage + first-down markers during live phases.

@@ -135,6 +135,10 @@ const PLAYER_SPRITE = {
     // the same size on the field as before the action clips existed.
     displayH: 52,
     footOffsetY: 8,     // world y of the foot line, so it lands on the shadow
+    // Where a carried ball rides, relative to the container origin. The body
+    // spans roughly y -40..+8 about that origin, so this sits at chest height
+    // where the hands are, not at the feet.
+    ballOffset: { x: 11, y: -20 },
     footFrac: 0.9219,   // where the feet sit in a frame — measured by the bake
     // Below this speed (world px/sec) a player is standing, not running.
     runSpeed: 10,
