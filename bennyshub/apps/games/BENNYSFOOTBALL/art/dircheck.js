@@ -46,9 +46,14 @@ for (const name of Object.keys(meta.anims)) {
   if (!c) { check(false, `${name}: missing from PLAYER_SPRITE.anims`); continue; }
   check(c.row === m.row && c.frames === m.frames,
     `${name.padEnd(7)} row ${c.row} x${c.frames} == baked row ${m.row} x${m.frames}`);
-  check(!!c.loop === !!m.loop, `${name.padEnd(7)} loop ${!!c.loop} == ${!!m.loop}`);
+  check(!!c.loop === !!m.loop, `${name.padEnd(9)} loop ${!!c.loop} == ${!!m.loop}`);
   if (!m.loop) check(typeof c.fps === 'number' && c.fps > 0,
-    `${name.padEnd(7)} one-shot declares an fps (${c.fps})`);
+    `${name.padEnd(9)} one-shot declares an fps (${c.fps})`);
+  // Which frames already contain the ball decides when the drawn one is
+  // hidden and when a throw's flight starts. Drift here shows two footballs
+  // at once, or none.
+  const cb = (c.ballFrames || []).join(','), mb = (m.ballFrames || []).join(',');
+  check(cb === mb, `${name.padEnd(9)} ballFrames [${cb}] == baked [${mb}]`);
 }
 for (const name of Object.keys(P.anims)) {
   check(!!meta.anims[name], `${name.padEnd(7)} declared in JS is present in the bake`);

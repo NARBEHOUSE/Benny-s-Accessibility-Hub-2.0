@@ -502,7 +502,7 @@ class GameScene extends Phaser.Scene {
             const dx = p.x - s.lastX, dy = p.y - s.lastY;
             s.lastX = p.x; s.lastY = p.y;
 
-            let row;
+            let row, clip = null, frame = 0;
             if (s.action) {
                 // A one-shot owns the sprite until it finishes. Facing was
                 // frozen when it started, so a throw does not pirouette if the
@@ -519,7 +519,11 @@ class GameScene extends Phaser.Scene {
                     if (a.clip.hold) a.t = last;
                     else s.action = null;
                 }
-                if (s.action) row = a.clip.row + Math.min(Math.floor(a.t), last);
+                if (s.action) {
+                    clip = a.clip;
+                    frame = Math.min(Math.floor(a.t), last);
+                    row = clip.row + frame;
+                }
             }
 
             if (row === undefined) {
@@ -531,9 +535,16 @@ class GameScene extends Phaser.Scene {
                 } else {
                     s.phase = 0;   // planted: hold the contact frame
                 }
-                const f = ((Math.floor(s.phase) % RUN.frames) + RUN.frames) % RUN.frames;
-                row = RUN.row + f;
+                // The carrier runs from the row set that has the ball modelled
+                // into their hand; everyone else from the empty-handed one.
+                clip = (this.ball && this.ball.carrier === p) ? P.anims.run_carry : RUN;
+                frame = ((Math.floor(s.phase) % clip.frames) + clip.frames) % clip.frames;
+                row = clip.row + frame;
             }
+
+            // Does the art on screen already contain the ball? The drawn one is
+            // suppressed while it does.
+            s.showsBall = !!(clip && clip.ballFrames && clip.ballFrames.indexOf(frame) !== -1);
 
             const idx = row * P.dirs + s.dir;
             s.base.setFrame(idx);
@@ -604,6 +615,22 @@ class GameScene extends Phaser.Scene {
     _carryPoint(p) {
         const off = (p && p._spr) ? PLAYER_SPRITE.ballOffset : { x: 12, y: -2 };
         return { x: p.x + off.x, y: p.y + off.y };
+    }
+
+    // True while some player's sprite already has the football modelled into
+    // it. There is only ever one ball, so the drawn one stands down.
+    _ballIsModelled() {
+        return [...(this.offense || []), ...(this.defense || [])]
+            .some(p => p && p._spr && p._spr.showsBall);
+    }
+
+    // How long after a throw starts the ball actually leaves the hand. The
+    // release is baked into the art, so the flight has to wait for it instead
+    // of setting off during the wind-up.
+    _throwReleaseDelay(p) {
+        const clip = PLAYER_SPRITE.anims.throw;
+        if (!p || !p._spr || !clip || !clip.ballFrames.length) return 0;
+        return clip.ballFrames.length / clip.fps * 1000;
     }
 
     // Hard reset of every action clip, for an instant snap into formation at a
@@ -1906,9 +1933,12 @@ class GameScene extends Phaser.Scene {
         this.playPlayerAction(qb, 'throw', r);
         const flightDur = Phaser.Math.Linear(820, 480, Phaser.Math.Clamp(power / 100, 0, 1));
         const tx = complete ? r.x : landX, ty = complete ? r.y : landY;
+        // The art holds the ball until frame 5, so the flight waits for the
+        // release rather than setting off during the wind-up.
+        const _release = this._throwReleaseDelay(qb);
         const flight = { x: _qbPt.x, y: _qbPt.y };
         this.tweens.add({
-            targets: flight, x: tx, y: ty, duration: flightDur, ease: 'Sine.easeInOut',
+            targets: flight, x: tx, y: ty, duration: flightDur, delay: _release, ease: 'Sine.easeInOut',
             onUpdate: () => { this.ball.x = flight.x; this.ball.y = flight.y; },
             onComplete: () => {
                 this.ball.flying = false;
@@ -2936,9 +2966,12 @@ class GameScene extends Phaser.Scene {
         this.audio.speak('Up for grabs!', true);
         // Our defender breaks toward the catch point.
         this.jog(myDef, wr.x - 6, wr.y - 10, 640, 'Sine.easeOut');
+        // The art holds the ball until frame 5, so the flight waits for the
+        // release rather than setting off during the wind-up.
+        const _release = this._throwReleaseDelay(qb);
         const flight = { x: _qbPt.x, y: _qbPt.y };
         this.tweens.add({
-            targets: flight, x: wr.x - 6, y: wr.y - 10, duration: 660, ease: 'Sine.easeInOut',
+            targets: flight, x: wr.x - 6, y: wr.y - 10, duration: 660, delay: _release, ease: 'Sine.easeInOut',
             onUpdate: () => { this.ball.x = flight.x; this.ball.y = flight.y; },
             onComplete: () => {
                 this.ball.carrier = myDef;
@@ -3041,9 +3074,12 @@ class GameScene extends Phaser.Scene {
                 if (i === 3) return; // contesting defender handled above
                 this.jog(p, p.x - 14 + Math.random() * 24, p.y + (Math.random() - 0.5) * 40, 600 + Math.random() * 220);
             });
-            const flight = { x: _qbPt.x, y: _qbPt.y };
+            // The art holds the ball until frame 5, so the flight waits for the
+        // release rather than setting off during the wind-up.
+        const _release = this._throwReleaseDelay(qb);
+        const flight = { x: _qbPt.x, y: _qbPt.y };
             this.tweens.add({
-                targets: flight, x: wr.x, y: wr.y + 16, duration: 620, ease: 'Sine.easeIn',
+                targets: flight, x: wr.x, y: wr.y + 16, duration: 620, delay: _release, ease: 'Sine.easeIn',
                 onUpdate: () => { this.ball.x = flight.x; this.ball.y = flight.y; },
                 onComplete: () => { this.audio.play('fail'); this.ball.visible = false; done(); }
             });
@@ -3190,9 +3226,12 @@ class GameScene extends Phaser.Scene {
             this.audio.speak('Complete!', true);
             this.audio.play('throw');
             const flightDur = 380 + Math.abs(carrier.x - qb.x) * 0.55;
-            const flight = { x: _qbPt.x, y: _qbPt.y };
+            // The art holds the ball until frame 5, so the flight waits for the
+        // release rather than setting off during the wind-up.
+        const _release = this._throwReleaseDelay(qb);
+        const flight = { x: _qbPt.x, y: _qbPt.y };
             this.tweens.add({
-                targets: flight, x: carrier.x, y: carrier.y, duration: flightDur, ease: 'Sine.easeInOut',
+                targets: flight, x: carrier.x, y: carrier.y, duration: flightDur, delay: _release, ease: 'Sine.easeInOut',
                 onUpdate: () => { this.ball.x = flight.x; this.ball.y = flight.y; },
                 onComplete: () => {
                     this.audio.play('catch');
@@ -3859,9 +3898,9 @@ class GameScene extends Phaser.Scene {
             this.meterGfx.clear();
         }
 
-        // Ball.
+        // Ball. Suppressed while a player's own art is carrying it.
         this.ballGfx.clear();
-        if (this.ball.visible) {
+        if (this.ball.visible && !this._ballIsModelled()) {
             this.ballGfx.fillStyle(0x000000, 0.25);
             this.ballGfx.fillEllipse(this.ball.x + 2, this.ball.y + 6, 16, 7);
             this.ballGfx.fillStyle(0x8d4a2b, 1);

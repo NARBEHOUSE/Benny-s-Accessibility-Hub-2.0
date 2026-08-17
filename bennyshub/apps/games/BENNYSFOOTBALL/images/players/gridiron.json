@@ -13,32 +13,68 @@
     270.0,
     315.0
   ],
-  "rows": 28,
+  "rows": 36,
   "footFrac": 0.9219,
   "anims": {
     "run": {
       "row": 0,
       "frames": 8,
       "loop": true,
-      "ground": false
+      "ground": false,
+      "ballFrames": []
     },
-    "throw": {
+    "run_carry": {
       "row": 8,
       "frames": 8,
+      "loop": true,
+      "ground": false,
+      "ballFrames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    "throw": {
+      "row": 16,
+      "frames": 8,
       "loop": false,
-      "ground": false
+      "ground": false,
+      "ballFrames": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ]
     },
     "catch": {
-      "row": 16,
+      "row": 24,
       "frames": 6,
       "loop": false,
-      "ground": false
+      "ground": false,
+      "ballFrames": [
+        4,
+        5
+      ]
     },
     "tackle": {
-      "row": 22,
+      "row": 30,
       "frames": 6,
       "loop": false,
-      "ground": true
+      "ground": true,
+      "ballFrames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
     }
   }
 }

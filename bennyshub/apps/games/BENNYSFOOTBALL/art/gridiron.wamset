@@ -1,0 +1,48 @@
+set gridiron_kit
+
+# The player holding the ball. Baking this as a composition means the ball is
+# skinned to the arm and moves with it through every frame, and — the thing a
+# separately drawn sprite cannot do — is correctly hidden behind the body when
+# the player is facing away.
+
+models
+  body gridiron.wam
+  ball football.wam
+
+# One composition covers every clip. The ball sits in the right hand, and the
+# animations do the rest: the same graft reads as a ball cocked beside the
+# helmet through the throw and as one carried at the hip through the run,
+# because the arm is in a different place in each.
+#
+# A tuck against the ribs was tried first and abandoned. Grafting to the
+# forearm put both ends of the ball equally near the torso, so `hold`'s
+# points-away check fired on every forward-facing orientation, and clearing
+# the 0.03-0.05 body overlap meant guessing bone-space offsets that rotate
+# with the bone — the hand-derived transform the language exists to avoid.
+#
+# The aim is stated rather than left to `hold`: the ball's declared carry
+# leans toward `fwd` and the hand bone itself points forward, which is
+# parallel and says nothing about which way to tilt.
+compose carry
+  base body
+  # `overlap` because a fist closing on a ball necessarily intersects it: the
+  # hand is a plain loft with no modelled fingers, so there is no placement
+  # that both looks held and stays clear. The reported depth is checked below
+  # rather than left unbounded.
+  graft ball to=hand.r:0.45 align=grip aim=68:up scale=0.22 overlap
+
+checks
+  # The ball is deliberately larger than scale so it reads at sprite size: a
+  # real one is 0.15 of a player's height and would be about six pixels here.
+  # The game's own drawn ball was exaggerated the same way.
+  # Measured on the COMPOSED ball, not the standalone model: length() on the
+  # bare model returns its 0.17m girth, since its long axis is vertical in its
+  # own space, which is not the number this is about.
+  assert height(carry.ball.shell) / height(body) in 0.16..0.26
+  # The ball may sink into the gripping arm, but only shallowly — deeper and
+  # it is buried in the limb rather than held by it.
+  assert clip(carry.ball.shell, carry.body.arm.r) < 0.06
+  measure ballVsPlayer height(carry.ball.shell) / height(body)
+
+every
+  assert tris < 4000

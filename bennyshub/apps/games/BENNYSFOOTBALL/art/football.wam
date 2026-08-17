@@ -1,0 +1,45 @@
+# The ball, as its own model so it can be grafted into a carrier's hands and
+# animate with them. It is a separate file rather than part of gridiron.wam
+# because it is genuinely handed around — quarterback, back, receiver, and a
+# defender on an interception all hold the same object.
+#
+# `hold` states how it is carried once, here, so no composition ever re-derives
+# a placement by hand.
+
+model football
+  height 0.28          # a real ball is 280mm point to point
+  style smooth
+
+  anchor grip at=(0,0.50,0) dir=up
+  marker tip  at=(0,1.00,0)
+  marker butt at=(0,0.00,0)
+  hold grip point=tip carry=76
+
+palette
+  leather #9a5330
+  lace    #f4f1e8
+
+skeleton
+  root core at 0.06   # clear of the ground plane; a ball has no feet
+  bone axis parent=core dir=up len=0.90
+
+parts
+  # A prolate spheroid. The lace stripe runs the length of the tube as a
+  # material arc rather than as geometry: at the ~10px this ships at, a modelled
+  # lace is invisible, while a pale band along the top is what makes the shape
+  # read as a football instead of a brown pebble.
+  loft shell bones=axis..axis material=leather sides=12 \
+       material_arc=lace:78-102
+    ring 0.00 w=0.10 d=0.10
+    ring 0.16 w=0.36 d=0.36
+    ring 0.50 w=0.62 d=0.62
+    ring 0.84 w=0.36 d=0.36
+    ring 1.00 w=0.10 d=0.10
+    cap start=point end=point
+
+checks
+  # Longer than it is round, or it is not a football.
+  assert height(shell) > width(shell)
+  assert height(shell) / width(shell) in 1.5..1.8   # real ball is 1.65
+  assert tris < 400
+  measure ballLen height(shell)

@@ -10,8 +10,12 @@ jersey layer is found by rendering twice with different jersey palette entries
 and differencing -- that captures occlusion exactly, which a material-id pass
 would not.
 
-  python3 bake.py gridiron.wam --contact          # choose a camera pitch
-  python3 bake.py gridiron.wam --pitch 42          # write the sheets
+Frames where the carrier has the ball are rendered from a composition of the
+player with the football grafted into their hand, so it is skinned to the arm
+and occludes correctly. See DEFAULT_CLIPS.
+
+  python3 bake.py gridiron.wam --contact           # choose a camera pitch
+  python3 bake.py gridiron.wam --pitch 30 -o ../images/players
 """
 import argparse
 import json
@@ -38,29 +42,104 @@ JERSEY_PROBE = (0.0, 1.0, 0.0)
 LIGHT = (0.55, 0.46, 0.14)
 
 
+# Which rows the atlas carries, and which of them show the ball in hand.
+# `ball` is a frame range rather than a flag because the transfer happens
+# mid-clip: a throw starts with the ball and ends without it, a catch the other
+# way round. Baking the handover into the frames is more accurate than anything
+# the game could do by toggling a separate sprite.
+#
+# Only `run` needs both an empty-handed and a carrying row set. Every call site
+# of tackleShake passes the ball carrier, only the quarterback throws, and only
+# a receiver catches — so those three clips are carrier-only, which is what
+# keeps this to 36 rows instead of 56.
+DEFAULT_CLIPS = [
+    {"name": "run",       "anim": "run",    "frames": 8},
+    {"name": "run_carry", "anim": "run",    "frames": 8, "ball": "all"},
+    {"name": "throw",     "anim": "throw",  "frames": 8, "ball": "0-4"},
+    {"name": "catch",     "anim": "catch",  "frames": 6, "ball": "4-5"},
+    {"name": "tackle",    "anim": "tackle", "frames": 6, "ball": "all",
+     "ground": True},
+]
+
+
+class Source:
+    """A posable model: the plain player, or the player composed with a ball."""
+
+    def __init__(self, model, bones, bone_order, mesh):
+        self.model, self.bones, self.bone_order, self.mesh = \
+            model, bones, bone_order, mesh
+        self.V, self.T, self.M = mesh.arrays()
+
+
+def order_bones(bones):
+    """Parents before children, which is what global_transforms requires.
+
+    A composition's bone dict is not guaranteed to be in that order, and
+    relying on insertion order would fail silently by skinning to a stale
+    parent transform.
+    """
+    out, seen = [], set()
+
+    def visit(b):
+        if b.name in seen:
+            return
+        if b.parent is not None:
+            visit(b.parent)
+        seen.add(b.name)
+        out.append(b)
+    for b in bones.values():
+        visit(b)
+    return out
+
+
 def load(path):
     model = wparser.parse_file(path)
     bones, bone_order = wskel.solve(model)
     mesh = wmesh.build(model, bones)
-    return model, bones, bone_order, mesh
+    return Source(model, bones, bone_order, mesh)
 
 
-def posed_frames(model, bones, bone_order, mesh, anim_name, frames):
-    """Return a list of vertex arrays, one per animation frame."""
-    V, _, _ = mesh.arrays()
+def load_composition(wamset_path, name):
+    """The player with the ball grafted in, from the .wamset."""
+    import wam.modelset as wmodelset
+    _, models, _ = wmodelset.compile_set(wamset_path, quiet=True)
+    if name not in models:
+        raise SystemExit("no composition %r in %s (have %s)"
+                         % (name, wamset_path, sorted(models)))
+    c = models[name]
+    return Source(c.model, c.bones, order_bones(c.bones), c.mesh)
+
+
+def parse_ball_range(spec, frames):
+    """'all' | '0-4' | None -> a set of frame indices that show the ball."""
+    if spec in (None, "", "none"):
+        return set()
+    if spec == "all":
+        return set(range(frames))
+    lo, _, hi = spec.partition("-")
+    return set(range(int(lo), int(hi if hi else lo) + 1))
+
+
+def posed_frames(src, anim_name, frames):
+    """Vertex arrays for one animation, one per sampled frame."""
     if anim_name in (None, "rest"):
-        return [V]
-    anim = next((a for a in model.anims if a["name"] == anim_name), None)
+        return [src.V]
+    anim = next((a for a in src.model.anims if a["name"] == anim_name), None)
     if anim is None:
         raise SystemExit("no such anim: %s (have %s)"
-                         % (anim_name, [a["name"] for a in model.anims]))
+                         % (anim_name, [a["name"] for a in src.model.anims]))
     out = []
     for i in range(frames):
         # Phase 1.0 of a loop is phase 0, so a looping clip stops short of it.
         ph = i / frames if anim["loop"] else i / max(frames - 1, 1)
-        rots = wanim.anim_rotations_at(model, bones, anim, ph)
-        out.append(wanim.skin_verts(mesh, bones, bone_order, rots))
+        rots = wanim.anim_rotations_at(src.model, src.bones, anim, ph)
+        out.append(wanim.skin_verts(src.mesh, src.bones, src.bone_order, rots))
     return out
+
+
+def is_loop(src, anim_name):
+    a = next((x for x in src.model.anims if x["name"] == anim_name), None)
+    return bool(a and a.get("loop"))
 
 
 def keep_mask(rgb):
@@ -176,27 +255,43 @@ def ground_frames(frames, rest_y):
             for V in frames]
 
 
-def build(path, pitch, dirs, anim_specs, size, ss, outline, outdir):
-    model, bones, bone_order, mesh = load(path)
-    V0, T, M = mesh.arrays()
-    rest_y = float(V0[:, 1].min())
+def build(path, wamset, pitch, dirs, size, ss, outline, outdir, clip_defs):
+    plain = load(path)
+    held = load_composition(wamset, "carry") if wamset else None
+    rest_y = float(plain.V[:, 1].min())
 
     clips = []
-    for name, n, ground in parse_anim_specs(anim_specs):
-        poses = posed_frames(model, bones, bone_order, mesh, name, n)
-        if ground:
-            poses = ground_frames(poses, rest_y)
-        src = next((a for a in model.anims if a["name"] == name), {})
-        clips.append({"name": name, "poses": poses, "ground": ground,
-                      "loop": bool(src.get("loop"))})
+    for cd in clip_defs:
+        n = cd["frames"]
+        ball = parse_ball_range(cd.get("ball"), n)
+        if ball and held is None:
+            raise SystemExit("clip %r wants the ball but no .wamset was given"
+                             % cd["name"])
+        # Pose each source once, then take each frame from whichever one is
+        # holding the ball at that point in the clip.
+        posed = {False: posed_frames(plain, cd["anim"], n)}
+        if ball:
+            posed[True] = posed_frames(held, cd["anim"], n)
+        frames = []
+        for i in range(n):
+            has = i in ball
+            V = posed[has][i]
+            frames.append((V, held if has else plain))
+        if cd.get("ground"):
+            grounded = ground_frames([f[0] for f in frames], rest_y)
+            frames = [(g, s) for g, (_, s) in zip(grounded, frames)]
+        clips.append({"name": cd["name"], "frames": frames,
+                      "ground": bool(cd.get("ground")),
+                      "loop": is_loop(plain, cd["anim"]),
+                      "ball": sorted(ball)})
 
     yaws = [360.0 * d / dirs for d in range(dirs)]
     px = size * ss
-    total_rows = sum(len(c["poses"]) for c in clips)
+    total_rows = sum(len(c["frames"]) for c in clips)
 
     # One framing across every pose of every clip AND every direction, or the
     # player changes size when it turns, strides, or starts a new action.
-    allV = np.concatenate([p for c in clips for p in c["poses"]])
+    allV = np.concatenate([V for c in clips for V, _ in c["frames"]])
     center = (allV.min(axis=0) + allV.max(axis=0)) / 2
     dist = max(wrender.fit_distance(allV, center,
                                     wrender.orbit_basis(y, pitch),
@@ -207,12 +302,13 @@ def build(path, pitch, dirs, anim_specs, size, ss, outline, outdir):
     jers = np.zeros_like(base)
     anims, row = {}, 0
     for c in clips:
-        anims[c["name"]] = {"row": row, "frames": len(c["poses"]),
-                            "loop": c["loop"], "ground": c["ground"]}
-        for V in c["poses"]:
+        anims[c["name"]] = {"row": row, "frames": len(c["frames"]),
+                            "loop": c["loop"], "ground": c["ground"],
+                            "ballFrames": c["ball"]}
+        for V, src in c["frames"]:
             for di, yaw in enumerate(yaws):
-                rgb, jmask = render_pair(V, T, M, mesh, yaw, pitch, px,
-                                         center, dist)
+                rgb, jmask = render_pair(V, src.T, src.M, src.mesh,
+                                         yaw, pitch, px, center, dist)
                 keep = keep_mask(rgb)
                 # The ring lives on the base layer so a tint never colours it.
                 b_rgb, b_a = to_rgba(rgb, keep & ~jmask, outline, silhouette=keep)
@@ -229,7 +325,7 @@ def build(path, pitch, dirs, anim_specs, size, ss, outline, outdir):
     # only: that is the standing/running player the shadow has to line up with,
     # and a tackle deliberately travels down its frame.
     solid = np.maximum(base[..., 3], jers[..., 3]) > 128
-    n0 = len(clips[0]["poses"])
+    n0 = len(clips[0]["frames"])
     # Per cell-row, not globally: the lowest row of the whole atlas belongs to
     # whichever frame sits lowest in the sheet, which says nothing about how
     # far down the foot sits inside a cell.
@@ -238,7 +334,7 @@ def build(path, pitch, dirs, anim_specs, size, ss, outline, outdir):
     foot_frac = float((max(lows) + 1) / size) if lows else 1.0
 
     os.makedirs(outdir, exist_ok=True)
-    stem = os.path.join(outdir, model.name)
+    stem = os.path.join(outdir, plain.model.name)
     Image.fromarray(base, "RGBA").save(stem + "_base.png")
     Image.fromarray(jers, "RGBA").save(stem + "_jersey.png")
     meta = {"frameWidth": size, "frameHeight": size, "directions": dirs,
@@ -258,9 +354,9 @@ def build(path, pitch, dirs, anim_specs, size, ss, outline, outdir):
 
 def contact(path, pitches, dirs, size, outdir):
     """One row per candidate pitch, at true sprite size, for choosing a camera."""
-    model, bones, bone_order, mesh = load(path)
-    _, T, M = mesh.arrays()
-    V, _, _ = mesh.arrays()
+    src = load(path)
+    V, T, M = src.V, src.T, src.M
+    mesh = src.mesh
     yaws = [360.0 * d / dirs for d in range(dirs)]
     pad, scale = 6, 4          # blow the thumbnails back up to be legible
     sheet = Image.new("RGB", (dirs * (size * scale + pad) + pad,
@@ -293,9 +389,9 @@ def main():
     ap.add_argument("model")
     ap.add_argument("--pitch", type=float, default=42.0)
     ap.add_argument("--dirs", type=int, default=8)
-    ap.add_argument("--anims", default="run:8,throw:8,catch:6,tackle:6:ground",
-                    help="name:frames[:ground], comma separated. The first clip"
-                         " defines the foot line the game seats sprites by.")
+    ap.add_argument("--wamset", default="gridiron.wamset",
+                    help="set file holding the `carry` composition — the "
+                         "player with the ball grafted into their hand")
     ap.add_argument("--size", type=int, default=64)
     ap.add_argument("--ss", type=int, default=4, help="supersample factor")
     ap.add_argument("--outline", type=int, default=7,
@@ -309,8 +405,8 @@ def main():
         contact(a.model, [float(p) for p in a.pitches.split(",")],
                 a.dirs, a.size, a.outdir)
     else:
-        build(a.model, a.pitch, a.dirs, a.anims, a.size, a.ss,
-              a.outline, a.outdir)
+        build(a.model, a.wamset, a.pitch, a.dirs, a.size, a.ss,
+              a.outline, a.outdir, DEFAULT_CLIPS)
 
 
 if __name__ == "__main__":

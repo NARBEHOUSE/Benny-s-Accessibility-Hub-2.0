@@ -61,6 +61,34 @@ catches geometry sinking through the floor and says nothing about geometry
 floating above it. A gait legitimately leaves the ground, so `run` carries a
 looser limit than a fall.
 
+## The ball
+
+`football.wam` is its own model rather than part of the player, because it is
+genuinely handed around — quarterback, back, receiver, and a defender on an
+interception all hold the same object, and it also has to exist detached while
+in flight. That is the case the language's own guidance says to split on.
+
+`gridiron.wamset` composes the two: one `carry` composition grafting the ball
+into the right hand. One is enough, because the arm is in a different place in
+each clip — the same graft reads as a ball cocked beside the helmet through the
+throw and as one carried at the hip through the run.
+
+Grafting it, rather than drawing the ball as a separate sprite positioned over
+the player, buys **occlusion**: facing away from camera the ball is correctly
+hidden behind the body. A separate sprite would float on top in about three of
+the eight facings.
+
+Two things were tried first and abandoned, both recorded in the `.wamset`:
+a tuck against the ribs (grafted to the forearm, it put both ends of the ball
+equally near the torso, so `hold`'s points-away check fired on every
+forward-facing orientation), and clearing the resulting body overlap with
+bone-space offsets (which rotate with the bone — the hand-derived transform the
+language exists to avoid).
+
+The graft carries `overlap` because a fist closing on a ball necessarily
+intersects it: the hand is a plain loft with no modelled fingers. The depth is
+bounded by a check rather than left unbounded.
+
 ## Rebuilding
 
 Requires the WAM toolchain. Point `PYTHONPATH` at its root and use its venv:
@@ -104,7 +132,7 @@ enough to want a different angle.
 
 ## Atlas layout
 
-`gridiron_base.png` and `_jersey.png` are 8 columns (directions) x 28 rows
+`gridiron_base.png` and `_jersey.png` are 8 columns (directions) x 36 rows
 (every frame of every clip, stacked) of 64px cells, so Phaser's frame index is
 `(clip.row + frame) * 8 + direction`. `gridiron.json` carries the row table and
 `footFrac`, both measured at bake time — `makePlayer()` uses `footFrac` to seat
@@ -115,6 +143,18 @@ standing player the shadow has to line up with.
 `PLAYER_SPRITE.anims` in `constants.js` is a hand-copy of that row table, so
 `dircheck.js` asserts the two agree — drift there would silently play the wrong
 animation rather than fail.
+
+Each clip also carries `ballFrames`: the frames whose art already contains the
+football. Only `run` needs both an empty-handed and a carrying row set — every
+`tackleShake` call site passes the ball carrier, only the quarterback throws,
+and only a receiver catches, so those three clips are carrier-only. That audit
+is what keeps the atlas at 36 rows instead of 56.
+
+The handover is baked into the frames rather than toggled by the game: the
+throw holds the ball to frame 5 and the catch receives it at frame 4. The game
+reads `ballFrames` to hide its own drawn ball while the art is carrying one,
+and to delay a throw's flight until the release frame instead of launching it
+during the wind-up.
 
 One camera fits every clip at once, so the player never changes size when it
 turns, strides or starts an action. The cost is that adding a wide low pose

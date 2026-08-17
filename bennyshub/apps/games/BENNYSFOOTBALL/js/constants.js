@@ -117,11 +117,22 @@ const PLAYER_SPRITE = {
     // `row` is the first atlas row; a frame index is row * dirs + direction.
     // `hold` keeps the last frame up instead of releasing back to the run,
     // which is what a tackled player should do until the next snap.
+    //
+    // `ballFrames` are the frames whose art already contains the football,
+    // modelled into the player's hand. While one of those is on screen the
+    // separately drawn ball is hidden, or there would be two of them.
     anims: {
-        run:    { row: 0,  frames: 8, loop: true },
-        throw:  { row: 8,  frames: 8, fps: 15 },
-        catch:  { row: 16, frames: 6, fps: 13 },
-        tackle: { row: 22, frames: 6, fps: 12, hold: true }
+        run:       { row: 0,  frames: 8, loop: true, ballFrames: [] },
+        // Same run cycle, rendered from the composition that grafts the ball
+        // into the hand. The carrier uses this; everyone else uses `run`.
+        run_carry: { row: 8,  frames: 8, loop: true, ballFrames: [0,1,2,3,4,5,6,7] },
+        // The ball leaves the hand at frame 5 — the release is baked into the
+        // art, so the flight is delayed to match rather than starting on the
+        // wind-up.
+        throw:     { row: 16, frames: 8, fps: 15, ballFrames: [0,1,2,3,4] },
+        // Mirror image: the ball arrives at frame 4 and is secured.
+        catch:     { row: 24, frames: 6, fps: 13, ballFrames: [4,5] },
+        tackle:    { row: 30, frames: 6, fps: 12, hold: true, ballFrames: [0,1,2,3,4,5] }
     },
     // The disc is 26px across and spans y -13..+13 about the container origin,
     // and every tackle/catch/distance calculation in the game treats that
@@ -135,9 +146,9 @@ const PLAYER_SPRITE = {
     // the same size on the field as before the action clips existed.
     displayH: 52,
     footOffsetY: 8,     // world y of the foot line, so it lands on the shadow
-    // Where a carried ball rides, relative to the container origin. The body
-    // spans roughly y -40..+8 about that origin, so this sits at chest height
-    // where the hands are, not at the feet.
+    // Where the drawn ball rides when it is NOT part of the sprite — a loose
+    // ball, or a carrier still rendered as a disc. The body spans roughly
+    // y -40..+8 about the container origin, so this sits at chest height.
     ballOffset: { x: 11, y: -20 },
     footFrac: 0.9219,   // where the feet sit in a frame — measured by the bake
     // Below this speed (world px/sec) a player is standing, not running.

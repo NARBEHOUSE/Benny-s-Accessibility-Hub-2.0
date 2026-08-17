@@ -19,10 +19,9 @@ import numpy as np
 import bake
 
 
-def clearances(model, bones, bone_order, mesh, anim, frames,
-               ground=False, rest_y=0.0):
+def clearances(src, anim, frames, ground=False, rest_y=0.0):
     """Lowest vertex y for each sampled frame, as the bake will emit it."""
-    poses = bake.posed_frames(model, bones, bone_order, mesh, anim, frames)
+    poses = bake.posed_frames(src, anim, frames)
     if ground:
         poses = bake.ground_frames(poses, rest_y)
     return [float(V[:, 1].min()) for V in poses]
@@ -42,9 +41,8 @@ def main():
     ap.add_argument("--sink-limit", type=float, default=-0.03)
     a = ap.parse_args()
 
-    model, bones, bone_order, mesh = bake.load(a.model)
-    V0, _, _ = mesh.arrays()
-    rest_y = float(V0[:, 1].min())
+    src = bake.load(a.model)
+    rest_y = float(src.V[:, 1].min())
     bad = 0
     for spec in a.anims.split(","):
         parts = spec.split(":")
@@ -53,8 +51,7 @@ def main():
         ground = "ground" in parts[2:]
         nums = [p for p in parts[2:] if p != "ground"]
         limit = float(nums[0]) if nums else a.float_limit
-        vals = clearances(model, bones, bone_order, mesh, name, n,
-                          ground, rest_y)
+        vals = clearances(src, name, n, ground, rest_y)
         hi, lo = max(vals), min(vals)
         flag = ""
         if hi > limit:
