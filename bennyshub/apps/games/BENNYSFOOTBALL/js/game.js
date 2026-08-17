@@ -9,7 +9,7 @@
 class GameScene extends Phaser.Scene {
     constructor() { super({ key: 'GameScene' }); }
 
-    preload() { loadHelmets(this); }
+    preload() { loadHelmets(this); loadPlayerSprites(this); }
 
     init(data) {
         this.isSeason = !!data.isSeason;
@@ -460,11 +460,61 @@ class GameScene extends Phaser.Scene {
         const c = this.add.container(0, 0).setDepth(3);
         // Larger, darker shadow so every team color pops off the green field.
         const shadow = this.add.ellipse(3, 7, 34, 11, 0x000000, 0.52);
+
+        if (playerSpritesReady(this)) {
+            const P = PLAYER_SPRITE, h = P.displayH;
+            // Put the measured foot line at footOffsetY so the body straddles
+            // the origin like the disc did and lands on the existing shadow.
+            const sy = P.footOffsetY - (P.footFrac - 0.5) * h;
+            const jersey = this.add.sprite(0, sy, P.jerseyKey, 0)
+                .setDisplaySize(h, h).setTint(colorObj.hex);
+            const base = this.add.sprite(0, sy, P.baseKey, 0).setDisplaySize(h, h);
+            // The label rides above the helmet rather than across the chest,
+            // where the shoulder pads would swallow it.
+            const num = this.add.text(0, sy - h * 0.46, label,
+                { fontSize: '9px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5);
+            // Index 3 stays the label — _setPlayerLabel() addresses it by position.
+            c.add([shadow, jersey, base, num]);
+            c._spr = { base, jersey, dir: 0, phase: 0, lastX: null, lastY: null };
+            return c;
+        }
+
         const body = this.add.circle(0, 0, 13, colorObj.hex).setStrokeStyle(2.5, 0x000000);
         const shine = this.add.circle(-4, -4, 4, colorObj.light, 0.6);
         const num = this.add.text(0, 0, label, { fontSize: '9px', fontFamily: 'Arial Black', color: '#ffffff', stroke: '#000', strokeThickness: 2 }).setOrigin(0.5);
         c.add([shadow, body, shine, num]);
         return c;
+    }
+
+    // Drive each sprite's facing and run-cycle frame from how the container
+    // actually moved this tick. Everything in this game moves players with
+    // tweens, so velocity is not stored anywhere — differencing position is
+    // what keeps the legs in step with whatever tween is running, including
+    // kickoff returns and tackle rushes that never go through jog().
+    _updatePlayerSprites(delta) {
+        if (!this.offense || !this.defense) return;
+        const P = PLAYER_SPRITE;
+        const dt = Math.max(delta, 1) / 1000;
+        [...this.offense, ...this.defense].forEach(p => {
+            const s = p && p._spr;
+            if (!s) return;
+            if (s.lastX === null) { s.lastX = p.x; s.lastY = p.y; }
+            const dx = p.x - s.lastX, dy = p.y - s.lastY;
+            s.lastX = p.x; s.lastY = p.y;
+
+            const speed = Math.sqrt(dx * dx + dy * dy) / dt;
+            if (speed > P.runSpeed) {
+                s.dir = spriteDirIndex(Math.atan2(dy, dx));
+                // Advance the cycle by distance travelled, not by wall time.
+                s.phase += (speed * dt) / P.stridePx * P.frames;
+            } else {
+                s.phase = 0;   // planted: hold the contact frame
+            }
+            const f = ((Math.floor(s.phase) % P.frames) + P.frames) % P.frames;
+            const idx = f * P.dirs + s.dir;
+            s.base.setFrame(idx);
+            s.jersey.setFrame(idx);
+        });
     }
 
     // Update the position label shown on a player sprite (list[3] is the text child).
@@ -535,6 +585,9 @@ class GameScene extends Phaser.Scene {
     // ─── Animation helpers ─────────────────────────────────────────────────────
     // A little squash/stretch bob makes a moving player look like they're running.
     startBob(p) {
+        // The baked run cycle already carries the sense of running; squashing
+        // the sprite on top of it reads as a wobble rather than a stride.
+        if (p._spr) return;
         if (p._bob) return;
         p._bob = this.tweens.add({
             targets: p, scaleY: 0.84, scaleX: 1.12,
@@ -3447,6 +3500,7 @@ class GameScene extends Phaser.Scene {
         // Dynamic depth sort: players closer to the bottom of the screen (higher Y)
         // are drawn on top; ball carrier always on top; tackled player under everyone.
         this._sortPlayerDepths();
+        this._updatePlayerSprites(delta);
 
         // Real-time game clock: ticks down only while a play is live.
         if (this.gs && this.gs.timeRemaining > 0 && this.clockShouldRun()) {

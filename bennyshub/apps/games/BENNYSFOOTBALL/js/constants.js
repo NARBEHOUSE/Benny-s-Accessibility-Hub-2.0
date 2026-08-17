@@ -87,6 +87,7 @@ const LS_AUDIO       = 'bennyFootball_audio';
 const LS_GAME_STATE  = 'bennyFootball_gameState';
 const LS_EASY_THROW  = 'bennyFootball_easyThrow';
 const LS_COLORBLIND  = 'bennyFootball_colorblind';
+const LS_SPRITE3D    = 'bennyFootball_sprite3d';
 
 // Returns true when the "no-charge" accessibility mode is enabled.
 // When on, passing auto-throws at ideal power right after receiver selection,
@@ -96,6 +97,92 @@ function easyThrowOn() {
 }
 function setEasyThrow(on) {
     try { localStorage.setItem(LS_EASY_THROW, on ? '1' : '0'); } catch(e) {}
+}
+
+// ─── 3D player sprites ───────────────────────────────────────────────────────
+// Players can render either as the original flat colour discs or as baked
+// sprites of a low-poly model (source + bake pipeline live in ./art). The
+// sprites are two layers: an untinted base carrying skin, silver pants, the
+// grey facemask and the black outline, plus a white jersey layer that gets
+// tinted to the team colour at runtime — so team identity is one texture, not
+// ten. Set the default to '0' to ship the discs instead.
+const PLAYER_SPRITE = {
+    baseKey:   'player_base',
+    jerseyKey: 'player_jersey',
+    basePath:   'images/players/gridiron_run_base.png',
+    jerseyPath: 'images/players/gridiron_run_jersey.png',
+    frameW: 64, frameH: 64,
+    dirs: 8,            // yaw steps, 45° apart
+    frames: 8,          // run-cycle frames
+    // The disc is 26px across and spans y -13..+13 about the container origin,
+    // and every tackle/catch/distance calculation in the game treats that
+    // origin as the player. So the sprite has to straddle it the same way —
+    // seating it by the feet instead drops the whole body above the point the
+    // game thinks the player is at.
+    displayH: 46,       // on-field height in world px (discs are 26 across)
+    footOffsetY: 8,     // world y of the foot line, so it lands on the shadow
+    footFrac: 0.9688,   // where the feet sit in a frame — measured by the bake
+    // Below this speed (world px/sec) a player is standing, not running.
+    runSpeed: 10,
+    // World px of travel per full stride. Drives the cycle off actual speed so
+    // the legs never skate.
+    stridePx: 58
+};
+
+function sprite3dOn() {
+    try { return (localStorage.getItem(LS_SPRITE3D) || '1') === '1'; } catch(e) { return true; }
+}
+function setSprite3d(on) {
+    try { localStorage.setItem(LS_SPRITE3D, on ? '1' : '0'); } catch(e) {}
+}
+
+// Queue the player sprite sheets. Call from a scene's preload().
+function loadPlayerSprites(scene) {
+    const cfg = { frameWidth: PLAYER_SPRITE.frameW, frameHeight: PLAYER_SPRITE.frameH };
+    if (!scene.textures.exists(PLAYER_SPRITE.baseKey)) {
+        scene.load.spritesheet(PLAYER_SPRITE.baseKey, PLAYER_SPRITE.basePath, cfg);
+    }
+    if (!scene.textures.exists(PLAYER_SPRITE.jerseyKey)) {
+        scene.load.spritesheet(PLAYER_SPRITE.jerseyKey, PLAYER_SPRITE.jerseyPath, cfg);
+    }
+}
+
+// True only when the toggle is on AND both sheets actually loaded, so a missing
+// or corrupt PNG falls back to discs rather than rendering nothing.
+function playerSpritesReady(scene) {
+    if (!sprite3dOn()) return false;
+    const ok = scene.textures.exists(PLAYER_SPRITE.baseKey)
+            && scene.textures.exists(PLAYER_SPRITE.jerseyKey);
+    if (!ok && !playerSpritesReady._warned) {
+        playerSpritesReady._warned = true;
+        // Silence here is the trap: the setting reads 3D (localStorage works
+        // anywhere) while the art never arrived, so the game looks unchanged
+        // and nothing says why.
+        console.warn(
+            "[football] Players set to 3D, but the sprite sheets did not load — "
+            + "falling back to classic discs.\n"
+            + (location.protocol === 'file:'
+                ? "Cause: this page was opened with file://. Phaser fetches every "
+                  + "image over XHR, which a file:// page is not allowed to do, so "
+                  + "ALL art fails here — the team helmets are silently falling back "
+                  + "to their vector versions too. Run the hub with `npm start`, or "
+                  + "serve this folder over HTTP."
+                : "Check that images/players/gridiron_run_base.png and "
+                  + "_jersey.png exist and are reachable from this page.")
+        );
+    }
+    return ok;
+}
+
+// Screen heading (radians, +x right / +y down) -> direction column in the atlas.
+// The model faces +Z and the bake orbits the camera, so yaw 0 shows the player
+// facing the camera — i.e. toward the bottom of the screen. Walking through the
+// turnaround: yaw 0 faces down, 90 faces left, 180 faces up, 270 faces right,
+// which is heading + 270°.
+function spriteDirIndex(rad) {
+    const deg = rad * 180 / Math.PI;
+    const yaw = ((deg + 270) % 360 + 360) % 360;
+    return Math.round(yaw / (360 / PLAYER_SPRITE.dirs)) % PLAYER_SPRITE.dirs;
 }
 
 // ─── Colorblind mode ─────────────────────────────────────────────────────────

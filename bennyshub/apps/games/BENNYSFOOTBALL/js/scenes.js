@@ -183,6 +183,7 @@ class SettingsScene extends Phaser.Scene {
         const season   = seasonMgr();
         const cbMode   = colorblindMode();
         const cbLabel  = (COLORBLIND_MODES.find(m => m.id === cbMode) || COLORBLIND_MODES[0]).label;
+        const sprite3d = sprite3dOn();
 
         const opts = [
             { label: `Sound Effects: ${sfxOn  ? 'ON' : 'OFF'}`, value: 'sfx' },
@@ -192,7 +193,9 @@ class SettingsScene extends Phaser.Scene {
             { label: `Easy Throw: ${easyThrow ? 'ON' : 'OFF'}`, value: 'easythrow',
               hint: easyThrow ? 'no charge needed — pick receiver and it throws' : 'hold to charge throw & kick power' },
             { label: `Colorblind: ${cbLabel}`,                   value: 'colorblind',
-              hint: 'cycles through Normal, Deuteranopia, Protanopia, Tritanopia' }
+              hint: 'cycles through Normal, Deuteranopia, Protanopia, Tritanopia' },
+            { label: `Players: ${sprite3d ? '3D' : 'CLASSIC'}`,  value: 'sprite3d',
+              hint: sprite3d ? 'modelled players with team helmets and pads' : 'flat colour discs — simplest to read' }
         ];
         if (season.isActive()) {
             opts.push({ label: 'RESET SEASON', value: 'reset_season', hint: 'wipe all season data' });
@@ -263,6 +266,14 @@ class SettingsScene extends Phaser.Scene {
             setColorblindMode(next);
             const lbl = (COLORBLIND_MODES.find(m => m.id === next) || COLORBLIND_MODES[0]).label;
             a.speak(`Colorblind mode: ${lbl}.`, true);
+            this._buildMenu(idx);
+        } else if (value === 'sprite3d') {
+            const on = !sprite3dOn();
+            setSprite3d(on);
+            // makePlayer() reads this when the teams are built, so a game
+            // already in progress keeps whatever it started with.
+            a.speak(on ? 'Players: 3D. Takes effect next game.'
+                       : 'Players: classic discs. Takes effect next game.', true);
             this._buildMenu(idx);
         } else if (value === 'reset_season') {
             this._confirmingReset = true;
