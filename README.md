@@ -22,7 +22,7 @@ The system is built on **Electron** (Node.js + Chromium) with specific Python co
 
 * `main.js` — Electron main process, launches the hub
 * `preload.js` — Secure bridge between web pages and Node.js
-* `bennyshub/` — All HTML/CSS/JS applications (games, tools, hub interface)
+* `bennyshub/` — All HTML/CSS/JS applications (tools, hub interface, and a small games manifest — see [Games](#-games) below for why the game code itself isn't in this repo)
 
 ### Python Components (Windows-specific)
 
@@ -36,28 +36,21 @@ These run as separate processes when needed:
 
 ## Features
 
-### 🎮 Games (18 total)
+### 🎮 Games
 
-Located in `bennyshub/apps/games/`:
+The games themselves (Benny's Baseball, Football, Bowling, Mini Golf, and a dozen-plus others) don't live in this repo. They're actively developed and kept up to date on **[bennyshub.com](https://narbehouse.github.io/bennyshub/)** ([source](https://github.com/NARBEHOUSE/Narbehouse.github.io/tree/main/bennyshub/apps/games)), and this hub sources them from there instead of carrying its own duplicate copy that would only drift out of sync. `bennyshub/apps/games/games.json` ships **blank** by default — the live site's own manifest is fetched at runtime, so there's nothing to keep in sync here by hand.
 
-* **Benny's Baseball** — Full season simulation; pick plays, no reaction time needed
-* **Benny's Basketball Shooter** — Arcade shooter with bonus mode
-* **Benny's Battle Boats** — Battleship-style fleet game; vs computer or 2-player
-* **Benny's Bowling** — 3D physics-based bowling (Three.js / Ammo.js)
-* **Benny's Bug Blaster** — Tower defense; place boots and defenses against waves of bugs
-* **Benny's Chess & Checkers** — Classic board games vs computer or friend
-* **Benny's Connect Four** — Drop pieces and connect four in a row; vs computer or friend
-* **Benny's Dice** — 3D dice with Free Throw, Yarkle, and Fahtzee modes
-* **Benny's Football** — 16-game season; call plays, time passes, make the playoffs
-* **Benny's Matchy Match** — Memory matching with competitive mode and a built-in card editor
-* **Benny's Mega Slot** — Casino-style slot machine with bonus modes and themes
-* **Benny's Mini Golf** — Top-down golf for up to 4 players with a course creator
-* **Benny's P3GL** — Peggle-style arcade game with campaign and level editor
-* **Benny Says** — Simon-style memory sequence game
-* **Benny's Tic Tac Toe** — vs computer or friend
-* **Benny's Word Jumble** — Unscramble the word to advance
-* **Trivia Master** — Build your own trivia games with images and video support
-* **Benny's Dice** — Roll dice with realistic physics
+**How a game launches**, in order:
+
+1. **Live** — the hub fetches the current game list from bennyshub.com and, when you pick a game, loads it straight from there in the same sandboxed iframe every tool uses. Requires an internet connection; always reflects whatever is live on the site, including brand-new games added after this copy of the hub was last updated.
+2. **Local fallback** — if the live site can't be reached (offline, or it's down), the hub falls back to a locally cached copy of that specific game, if one has been synced.
+3. **Not available** — if neither works (no internet and never synced), the hub says so rather than showing a broken game.
+
+Games are Ben's actual switch-accessible builds, so each one already knows how to exit back to *this* hub (not a website menu) regardless of whether it was loaded from bennyshub.com or a local file — that's built into the game itself via `postMessage`, not something this hub has to arrange per-game.
+
+**Playing offline**: open **Settings → Sync Games** to download a local copy of every game for offline play. It's a one-time (or occasional) download — re-run it any time to pick up updates. Synced games live in `bennyshub/apps/games/<GAME>/` on disk but are gitignored; they're a local cache, not something you'd commit.
+
+**Adding your own games manually**: you don't need bennyshub.com at all if you'd rather curate your own set with no live dependency. Drop a game's folder under `bennyshub/apps/games/<GAME>/` and add a matching entry to `bennyshub/apps/games/games.json` (shape shown in that file's own `_exampleEntry` — `id`, `title`, `description`, `path`, `image`, `genres`). Anything listed there works whether or not the live site is reachable, since the hub always checks for a manually-added or synced local copy first before showing "unavailable."
 
 ### 🛠️ Tools
 
@@ -90,7 +83,7 @@ An AI-powered augmentative and alternative communication (AAC) board designed to
 
 ### 💬 Messenger (Discord)
 
-A fully rewritten switch-accessible Discord client, embedded as an iframe within the hub:
+A fully rewritten switch-accessible Discord client, normally embedded as an iframe within the hub (it can also be launched as its own standalone Electron window when that's a better fit):
 
 * Full DM and channel support with message history
 * Improved AI-powered keyboard context suggestions
