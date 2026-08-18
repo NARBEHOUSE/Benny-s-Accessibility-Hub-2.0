@@ -165,6 +165,19 @@ function ensureDataDirs() {
   if (!fs.existsSync(STREAMING_DATA_DIR)) {
     fs.mkdirSync(STREAMING_DATA_DIR, { recursive: true });
   }
+
+  // predictive_ngrams.json is real per-user typed data and is never
+  // committed (see .gitignore) - seed it from the tracked, generic starter
+  // dataset on first run so the keyboard has decent predictions out of the
+  // box, without ever letting real usage data end up in the repo.
+  const PREDICTIONS_SEED_PATH = path.join(BENNYSHUB_DIR, 'shared', 'predictive_ngrams.seed.json');
+  if (!fs.existsSync(KEYBOARD_PREDICTIONS_PATH) && fs.existsSync(PREDICTIONS_SEED_PATH)) {
+    try {
+      fs.copyFileSync(PREDICTIONS_SEED_PATH, KEYBOARD_PREDICTIONS_PATH);
+    } catch (e) {
+      console.error('Failed to seed predictive_ngrams.json:', e.message);
+    }
+  }
 }
 
 // ============ LOCAL HTTP SERVER ============

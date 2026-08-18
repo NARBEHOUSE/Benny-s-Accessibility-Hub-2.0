@@ -56,7 +56,7 @@ Games are Ben's actual switch-accessible builds, so each one already knows how t
 
 Located in `bennyshub/apps/tools/`:
 
-* **Keyboard** — Predictive on-screen keyboard with KenLM n-gram suggestions, two-button accessible
+* **Keyboard** — Predictive on-screen keyboard with KenLM n-gram suggestions, two-button accessible. Its predictions are shared hub-wide: Keyboard, Journal, and Messenger all read from and write to the same `bennyshub/shared/predictive_ngrams.json` corpus, so words learned in one show up as suggestions in the others. Ships with a generic starter dataset (`predictive_ngrams.seed.json`) so predictions work reasonably well from the first run; the real, growing usage file is seeded from that on first launch and is never committed (real typed data shouldn't leave your machine)
 * **Phrase & Media Board** — Quick-access communication tiles with scanning; fully editable
 * **Journal** — Voice-enabled daily journal
 * **Day Hub** — Date, time, weather, and spoken news (local / NPR / BBC)
