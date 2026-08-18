@@ -833,13 +833,16 @@
 
   // Returns the speakable text for a single cell (handles text bar specially).
   // For suggestion tiles (rows 2+) in convo/phrases mode, prepends the current text buffer
-  // so Ben hears the full sentence. In typing mode, just read the tile text directly.
+  // so Ben hears the full sentence — except "short" tiles (the complete-sentence row),
+  // which are already whole sentences and would take forever to speak twice over.
+  // In typing mode, just read the tile text directly.
   function getCellText(rowIdx, item) {
     if (rowIdx === 0) return textBuffer || 'Text bar, empty';
     const tileText = item?.dataset.tts || item?.textContent?.trim() || '';
     const prefix = textBuffer.trim();
     if (prefix && boardMode !== 'typing' && rowIdx >= 2 && tileText &&
         !item?.classList.contains('refresh-btn') &&
+        !item?.classList.contains('short') &&
         item?.id !== 'listenTile') {
       return prefix + ': ' + tileText;
     }
@@ -947,13 +950,32 @@
     setupMicHandlers();
     loadApiKeyStatus();
     bindStaticActions();
-    // Listen tile: the ONLY control for mic on/off — keyboard actions never touch the mic
+    // Listen tile: press-and-hold — mic is open only while the tile is held down
+    // (or Enter is held on the Listen row). Releasing, or 5s of silence, stops it
+    // and fetches suggestions. Trusted pointer events only — blocks programmatic
+    // .click()/synthetic events from scan code so scanning never opens the mic.
     const listenTileEl = document.getElementById('listenTile');
     if (listenTileEl) {
-      // Real user touch/click only — block programmatic .click() to prevent accidental activation on scan
-      listenTileEl.addEventListener('click', (e) => {
+      let listenPointerDown = false;
+      listenTileEl.addEventListener('pointerdown', (e) => {
         if (!e.isTrusted) return;
-        toggleListenMode();
+        listenPointerDown = true;
+        startListenPress();
+      });
+      listenTileEl.addEventListener('pointerup', (e) => {
+        if (!e.isTrusted || !listenPointerDown) return;
+        listenPointerDown = false;
+        autoFetchOnSilence(); // no-op if already stopped by the silence timer
+      });
+      listenTileEl.addEventListener('pointercancel', () => {
+        if (!listenPointerDown) return;
+        listenPointerDown = false;
+        autoFetchOnSilence();
+      });
+      listenTileEl.addEventListener('pointerleave', () => {
+        if (!listenPointerDown) return;
+        listenPointerDown = false;
+        autoFetchOnSilence();
       });
     }
     if (!LS.get('conv_apiKey', '')) setTimeout(() => openSettings(), 1200);
@@ -1057,7 +1079,8 @@
   function buildConvoGrid(container, rows, cols) {
     const shorts      = currentSuggestions.shorts?.length      ? currentSuggestions.shorts      : placeholderShorts();
     const starters    = currentSuggestions.starters?.length    ? currentSuggestions.starters    : placeholderStarters();
-    const completions = currentSuggestions.completions?.length ? currentSuggestions.completions : placeholderCompletions();
+    // Completion rows (purple) stay blank until a sentence starter is selected
+    const completions = currentSuggestions.completions || [];
     completionTiles   = [];
 
     if (rows >= 6) {
@@ -1201,17 +1224,13 @@
   function placeholderStarters() {
     return ["I think", "I feel", "I want", "What about", "Can you"];
   }
-  function placeholderCompletions() {
-    return ["that",               "not sure",              "sounds good",         "I disagree",
-            "depends",            "that's right",          "it depends",          "not really",
-            "I agree with that",  "that's a good point",   "I'm not sure about that", "sounds good to me",
-            "maybe we can try",   "I definitely agree",    "that's absolutely right"];
-  }
 
   // ── Short phrase selected: set as full message, stay on shorts row, predict next ──
   function selectShortPhrase(text) {
     logSelection(text);
-    setTextBuffer(text.trimEnd() + ' '); // always trailing space, even after period
+    const cur  = textBuffer;
+    const next = cur + (cur && !cur.endsWith(' ') ? ' ' : '') + text.trimEnd() + ' ';
+    setTextBuffer(next); // append after whatever's already in the buffer, don't replace it
     setStatus(`"${text.length > 45 ? text.slice(0, 45) + '…' : text}" — Enter to speak`);
     scanSpeak(text);
     currentRowIndex  = 2;
@@ -1492,7 +1511,7 @@ ${profanityInstruction()}`;
   let micReady         = false;
   let micFocusTimer    = null;
   let listenRowIndex   = -1;   // set by buildRows()
-  let listenSilenceTimer = null; // 3s no-audio → auto-fetch suggestions
+  let listenSilenceTimer = null; // LISTEN_SILENCE_MS no-audio → auto-fetch suggestions
 
   let rowReadCooldown = false; // suppresses startRowRead while completions are loading
 
@@ -1505,10 +1524,13 @@ ${profanityInstruction()}`;
   let gstSilenceTimer  = null;
   let gstSpeechStart   = 0;
   let gstPending       = false;
+  let gstSampleRate    = 0;
+  let gstInFlight      = null; // promise of the current/most recent sendToGoogleSTT call
   const GST_SILENCE_MS    = 900;
   const GST_RMS_THRESHOLD = 0.008;
   const GST_MIN_SPEECH_MS = 400;
   const GST_MAX_SPEECH_MS = 25000;  // hard cap — flush before 30s API limit
+  const LISTEN_SILENCE_MS = 5000;   // 5s of silence while listening → auto-stop + fetch suggestions
   // ─────────────────────────────────────────────────────────────────────────────
 
   function setupMicHandlers() {
@@ -1577,7 +1599,7 @@ ${profanityInstruction()}`;
       gstAudioCtx  = new (window.AudioContext || window.webkitAudioContext)();
       const src    = gstAudioCtx.createMediaStreamSource(stream);
       gstProcessor = gstAudioCtx.createScriptProcessor(4096, 1, 1);
-      const sr     = gstAudioCtx.sampleRate;
+      gstSampleRate = gstAudioCtx.sampleRate;
 
       gstProcessor.onaudioprocess = (ev) => {
         if (!micActive) return;
@@ -1597,11 +1619,11 @@ ${profanityInstruction()}`;
 
           // Hard cap: flush at 25s regardless of silence, to stay within the 60s API limit
           if (Date.now() - gstSpeechStart >= GST_MAX_SPEECH_MS) {
-            flushGoogleSTT(sr);
+            flushGoogleSTT();
             return;
           }
 
-          gstSilenceTimer = setTimeout(() => flushGoogleSTT(sr), GST_SILENCE_MS);
+          gstSilenceTimer = setTimeout(() => flushGoogleSTT(), GST_SILENCE_MS);
         } else if (gstSpeaking) {
           gstSpeechBuf.push(chunk.slice());
         }
@@ -1620,18 +1642,22 @@ ${profanityInstruction()}`;
     window.addEventListener('beforeunload', teardownGoogleSTTMic, { once: true });
   }
 
-  function flushGoogleSTT(sr) {
+  // Returns a promise that resolves once this chunk's transcript (if any) has
+  // been requested and appended — callers that need the transcript up to date
+  // (e.g. stopping listen mode) can await it instead of racing the network call.
+  function flushGoogleSTT() {
+    clearTimeout(gstSilenceTimer);
     const duration = Date.now() - gstSpeechStart;
     const buf = gstSpeechBuf.slice();
     gstSpeechBuf = []; gstSpeaking = false;
     if (!buf.length || duration < GST_MIN_SPEECH_MS || gstPending) {
       // Sound was too brief or STT is already pending — restart the silence timer
-      // so the mic still auto-closes after 3s of quiet even without an STT response
+      // so the mic still auto-closes after LISTEN_SILENCE_MS of quiet even without an STT response
       if (micActive) {
         clearTimeout(listenSilenceTimer);
-        listenSilenceTimer = setTimeout(autoFetchOnSilence, 3000);
+        listenSilenceTimer = setTimeout(autoFetchOnSilence, LISTEN_SILENCE_MS);
       }
-      return;
+      return gstPending ? gstInFlight : Promise.resolve();
     }
     const totalLen = buf.reduce((a, b) => a + b.length, 0);
     const int16 = new Int16Array(totalLen);
@@ -1645,7 +1671,16 @@ ${profanityInstruction()}`;
     const bytes = new Uint8Array(int16.buffer);
     let b64 = '';
     for (let i = 0; i < bytes.length; i++) b64 += String.fromCharCode(bytes[i]);
-    sendToGoogleSTT(btoa(b64), sr);
+    gstInFlight = sendToGoogleSTT(btoa(b64), gstSampleRate);
+    return gstInFlight;
+  }
+
+  // Flushes any speech that's been captured but not yet sent/transcribed —
+  // must be awaited before closeMic() so the last thing Ben said isn't dropped.
+  function flushPendingSpeech() {
+    if (gstSpeaking && gstSpeechBuf.length) return flushGoogleSTT();
+    if (gstPending && gstInFlight) return gstInFlight;
+    return Promise.resolve();
   }
 
   async function sendToGoogleSTT(b64Audio, sampleRate) {
@@ -1663,10 +1698,10 @@ ${profanityInstruction()}`;
       console.warn('[Google STT] fetch error:', err.message);
     }
     gstPending = false;
-    // Start the 3s silence timer NOW — after the transcript has been updated
+    // Start the silence timer NOW — after the transcript has been updated
     if (micActive) {
       clearTimeout(listenSilenceTimer);
-      listenSilenceTimer = setTimeout(autoFetchOnSilence, 3000);
+      listenSilenceTimer = setTimeout(autoFetchOnSilence, LISTEN_SILENCE_MS);
     }
   }
 
@@ -1677,9 +1712,9 @@ ${profanityInstruction()}`;
     micActive = true;
     if (!window.electronAPI && recognition) { try { recognition.start(); } catch {} }
     updateMicUI(true);
-    // 5s silence → auto-fetch; reset whenever speech is detected
+    // Silence → auto-fetch; reset whenever speech is detected
     clearTimeout(listenSilenceTimer);
-    listenSilenceTimer = setTimeout(autoFetchOnSilence, 3000);
+    listenSilenceTimer = setTimeout(autoFetchOnSilence, LISTEN_SILENCE_MS);
   }
 
   function closeMic() {
@@ -1695,18 +1730,25 @@ ${profanityInstruction()}`;
     updateMicUI(false);
   }
 
-  function toggleListenMode() {
+  // Opens the mic for a press-and-hold session — mousedown/keydown on the Listen
+  // tile call this directly; release (or 5s silence) stops via autoFetchOnSilence().
+  function startListenPress() {
     if (!settings.listeningEnabled) return;
-    if (micActive) { autoFetchOnSilence(); }
-    else if (micReady) {
-      // Always clear text when entering listen mode so we start fresh
-      setTextBuffer('');
-      typingBuffer = '';
-      clearTimeout(typingFetchTimer);
-      typingShownPredictions = [];
-      openMic(); scanSpeak('Listening');
-    }
-    else { setStatus('Mic not ready yet…'); }
+    if (micActive) return;
+    if (!micReady) { setStatus('Mic not ready yet…'); return; }
+    // Always clear text when entering listen mode so we start fresh
+    setTextBuffer('');
+    clearCompletionRows(); // purple rows wait for a fresh starter selection
+    typingBuffer = '';
+    clearTimeout(typingFetchTimer);
+    typingShownPredictions = [];
+    openMic(); scanSpeak('Listening');
+  }
+
+  // Legacy tap-to-toggle fallback (kept for any non-press-and-hold callers).
+  function toggleListenMode() {
+    if (micActive) autoFetchOnSilence();
+    else startListenPress();
   }
 
   // Called when the Listen Mode row becomes the scan-highlighted row.
@@ -1723,8 +1765,18 @@ ${profanityInstruction()}`;
     closeMic(); // scanning away stops the mic
   }
 
-  function autoFetchOnSilence() {
-    if (!micActive) return;
+  let autoFetchInProgress = false;
+
+  async function autoFetchOnSilence() {
+    if (!micActive || autoFetchInProgress) return;
+    autoFetchInProgress = true;
+
+    // Wait for any speech still buffered/in-flight to reach the transcript first —
+    // otherwise the sentence Ben just said gets cut off and stale context gets used
+    if (gstSpeaking || gstPending) setStatus('Catching last words…');
+    await flushPendingSpeech();
+    autoFetchInProgress = false;
+    if (!micActive) return; // mic may have been closed elsewhere while we waited
 
     // Save new transcript words for Repeat button BEFORE any early returns
     const _allWords = transcriptWindow.trim().split(/\s+/).filter(Boolean);
@@ -1798,11 +1850,11 @@ ${profanityInstruction()}`;
     const micLabel = document.getElementById('micLabel');
     if (micLabel) micLabel.textContent = `Listening (${words.length}w)`;
 
-    // Web Speech API path: reset 3s silence timer each time new speech arrives
+    // Web Speech API path: reset silence timer each time new speech arrives
     // (Google STT manages its own timer in sendToGoogleSTT)
     if (micActive && !window.electronAPI) {
       clearTimeout(listenSilenceTimer);
-      listenSilenceTimer = setTimeout(autoFetchOnSilence, 3000);
+      listenSilenceTimer = setTimeout(autoFetchOnSilence, LISTEN_SILENCE_MS);
     }
 
     const snippet = text.length > 50 ? text.slice(0, 50) + '…' : text;
@@ -1851,9 +1903,10 @@ ${profanityInstruction()}`;
   }
 
   function profanityInstruction() {
-    return settings.allowProfanity
+    const wordChoice = '\nAvoid the word "honestly" — it has been overused in past suggestions. Use it rarely, if at all, and vary sentence openings/fillers naturally instead.';
+    return wordChoice + (settings.allowProfanity
       ? '\nThis user is comfortable with casual profanity in suggestions. Include light, natural profanity (f-bomb, shit, shut up, etc.) when contextually appropriate — never gratuitous, always conversational. Default to clean language but don\'t sanitize if it fits the user\'s voice.'
-      : '';
+      : '');
   }
 
   function detectProvider(key) {
@@ -1943,8 +1996,7 @@ ${profanityInstruction()}`;
     setStatus('Getting suggestions…');
     scanSpeak('Getting suggestions');
 
-    const { shorts: sc, starters: stc, completions: cc } = getPhraseCount();
-    const perRow = stc; // cc = cols-1, items per row
+    const { shorts: sc, starters: stc } = getPhraseCount();
 
     const allWords   = transcriptWindow.trim().split(/\s+/).filter(Boolean);
     const newSince   = Math.min(lastFetchedTranscriptWordCount, allWords.length);
@@ -1977,14 +2029,13 @@ ${profanityInstruction()}`;
 `You are a communication assistant for a nonspeaking AAC user.
 ${getProfileBlurb()}${bioText ? `\n\nPERSONAL BACKGROUND (treat these facts as ground truth when answering personal questions):\n${bioText}` : ''}
 Return ONLY valid JSON — no markdown, no explanation:
-{"shorts":[],"starters":[],"completions":[]}
+{"shorts":[],"starters":[]}
 Rules:
 - shorts: exactly ${sc} complete sentences (2–6 words) predicting what the user would naturally say NEXT in this conversation — each must be a distinct, logical follow-up, not variations of the same idea; think sequential conversation flow, not alternatives
 - starters: exactly ${stc} sentence-opening fragments, 1–3 words (e.g. "I think", "What about", "I don't", "Can you", "I feel")
-- completions: exactly ${cc} items in three tiers: first ${perRow} are 1-2 words, next ${perRow} are 2-3 words, last ${perRow} are 3-4 words — all should naturally follow any of the starters, varied in tone
 - The MOST RECENT statement/question is the ONLY thing you are responding to — ignore all earlier context if the topic changed
 - For list or "favorite" questions, generate DIVERSE specific answers (different characters, movies, songs, etc.) — never cluster around one answer
-- If "User is building:" text is present, shorts and completions should naturally complete or extend that exact text
+- If "User is building:" text is present, shorts should naturally complete or extend that exact text
 ${lockTopic
   ? `- TOPIC LOCK: Stay strictly on the topic of "${topicAnchorContext}". Do NOT introduce new subjects, activities, or conversation threads — only generate responses that directly address this exact topic. Find new angles, specific examples, or follow-up statements within this topic.`
   : `- The current topic has been covered across several suggestion rounds. You may now gently steer toward a related or new topic.`}
@@ -2001,7 +2052,8 @@ ${avoidList.length ? `- AVOID these exact phrases already shown — generate fre
       const parsed = await callAI(sys, ctx, 1000);
       lastCallAPISuggestions = currentSuggestions; // save before overwriting so next call can avoid repeats
       topicShownSuggestions.push(...(parsed.shorts || [])); // accumulate all shown shorts for this topic
-      currentSuggestions = parsed;
+      // Completion rows stay empty until a starter is selected — they're not requested here
+      currentSuggestions = { shorts: parsed.shorts || [], starters: parsed.starters || [], completions: [] };
       boardMode = 'convo';
       buildControlBar(); buildGrid();
       currentRowIndex = 2; currentItemIndex = 0; scanMode = 'row';
@@ -2119,6 +2171,7 @@ Rules:
         seenExact.add(key);
         return c;
       });
+      currentSuggestions.completions = filtered; // keep data model in sync so an unrelated grid rebuild doesn't blank these
       updateCompletionTiles(filtered);
       return filtered;
     } catch {
@@ -2139,6 +2192,19 @@ Rules:
     if (rowLabels.length > 3 && comps[0])       rowLabels[3] = `Completions: ${comps[0]}`;
     if (rowLabels.length > 4 && comps[cc])      rowLabels[4] = `More completions: ${comps[cc]}`;
     if (rowLabels.length > 5 && comps[cc * 2])  rowLabels[5] = `Longer completions: ${comps[cc * 2]}`;
+  }
+
+  // ── Blank the 3 completion rows and wait for a starter to be selected again ──
+  function clearCompletionRows() {
+    currentSuggestions.completions = [];
+    completionTiles.forEach(btn => {
+      btn.textContent   = '';
+      btn.dataset.tts   = '';
+      btn.style.opacity = '0.18';
+    });
+    if (rowLabels.length > 3) rowLabels[3] = 'Completions';
+    if (rowLabels.length > 4) rowLabels[4] = 'More completions';
+    if (rowLabels.length > 5) rowLabels[5] = 'Longer completions';
   }
 
   // ── Per-row refresh — called by each row's ↺ button ─────────────
@@ -2356,7 +2422,7 @@ ${avoidInstruction}${profanityInstruction()}`
     refreshWordsBtn.textContent      = '↺';
     refreshWordsBtn.dataset.tts      = 'Refresh';
     refreshWordsBtn.dataset.skipRead = 'true';
-    refreshWordsBtn.addEventListener('click', () => { typingBuffer = ''; fetchTypingPredictions(); });
+    refreshWordsBtn.addEventListener('click', () => { typingShownPredictions = []; fetchTypingPredictions(); });
     wordsRowEl.appendChild(refreshWordsBtn);
 
     typingPredTiles.words = [];
@@ -2384,7 +2450,7 @@ ${avoidInstruction}${profanityInstruction()}`
     refreshPhrasesBtn.textContent      = '↺';
     refreshPhrasesBtn.dataset.tts      = 'Refresh';
     refreshPhrasesBtn.dataset.skipRead = 'true';
-    refreshPhrasesBtn.addEventListener('click', () => { typingBuffer = ''; fetchTypingPredictions(); });
+    refreshPhrasesBtn.addEventListener('click', () => { typingShownPredictions = []; fetchTypingPredictions(); });
     phrasesRowEl.appendChild(refreshPhrasesBtn);
 
     typingPredTiles.phrases = [];
@@ -2403,8 +2469,14 @@ ${avoidInstruction}${profanityInstruction()}`
     rowLabels.push('Phrases — type to get more');
   }
 
+  // True when `s` is empty or ends a sentence (trailing ". ", "? ", "! ", or
+  // just the bare punctuation) — i.e. the next word typed/inserted should be capitalized.
+  function endsAtSentenceStart(s) {
+    return !s.trim() || /[.!?]\s*$/.test(s);
+  }
+
   function handleKeyTile(ch) {
-    const charToAdd = !textBuffer ? ch.toUpperCase() : ch.toLowerCase();
+    const charToAdd = endsAtSentenceStart(textBuffer) ? ch.toUpperCase() : ch.toLowerCase();
     setTextBuffer(textBuffer + charToAdd);
     typingBuffer = (typingBuffer || '') + ch;
     // Fragment changed — wipe the dedup accumulator so nothing from the previous
@@ -2472,8 +2544,10 @@ ${avoidInstruction}${profanityInstruction()}`
     } else {
       base = trimmed;
     }
-    // Capitalize prediction if it lands at the start of the text
-    const word = (!base || base.endsWith(' '))
+    // Capitalize prediction only at the very start of the text or a new sentence
+    // (base.endsWith(' ') alone is unreliable here: stripping a typed fragment off
+    // the end of trimmed text can expose the space before it even mid-sentence)
+    const word = endsAtSentenceStart(base)
       ? text.charAt(0).toUpperCase() + text.slice(1)
       : text;
     const next = base + (base && !base.endsWith(' ') ? ' ' : '') + withTrailingSpace(word);
@@ -2530,25 +2604,34 @@ ${avoidInstruction}${profanityInstruction()}`
     // 2. TEXT in progress → complete the sentence already being built
     const isMidSentence = context.trim().length > 0;
 
-    // When the user is mid-word (typed fragment exists) the ONLY job is to
-    // complete the spelling into full words — sentence-continuation instructions
-    // would make the AI suggest suffixes ("ked","king") instead of whole words.
+    // Sentence typed so far, NOT counting the word fragment still being typed —
+    // this is what word-completion suggestions must actually make sense following.
+    const sentenceSoFar = (typed && context.toLowerCase().endsWith(typed))
+      ? context.slice(0, context.length - typed.length).trimEnd()
+      : context.trimEnd();
+
+    // When the user is mid-word (typed fragment exists), completions must still
+    // fit the sentence already on screen — not just match the letters typed.
     let topicInstruction, fragmentRule;
     if (typed) {
       topicInstruction = '';
-      fragmentRule =
-        `WORD COMPLETION MODE: The user has typed the letters "${typed}" and has NOT finished the word yet.\n` +
-        `- "words": exactly 5 COMPLETE words that START WITH "${typed}" — give the full word (e.g. typed "fuc" → ["fuck","fucker","fucking","fucked","fucks"]), NEVER suffixes like "ked" or "king"\n` +
-        `- "phrases": exactly 5 two-word phrases whose FIRST word starts with "${typed}" (full first word + a natural second word, e.g. "fucking hell", "fucker face")\n` +
-        `- Do NOT suggest sentence continuations — only suggest complete words beginning with "${typed}"`;
+      fragmentRule = sentenceSoFar
+        ? `SENTENCE-AWARE WORD COMPLETION: The user is building the sentence "${sentenceSoFar}" and has started typing the next word with the letters "${typed}" (not finished yet).\n` +
+          `- "words": exactly 5 COMPLETE words that (a) START WITH "${typed}" AND (b) make grammatical sense as the next word in "${sentenceSoFar}" — full words only (e.g. typed "fuc" → ["fuck","fucker","fucking","fucked","fucks"]), NEVER suffixes like "ked" or "king"\n` +
+          `- "phrases": exactly 5 short phrases (2-4 words) whose FIRST word starts with "${typed}" AND that continue "${sentenceSoFar}" as a natural, grammatically correct unit\n` +
+          `- Reject any candidate that merely matches the letters but wouldn't make sense finishing "${sentenceSoFar}"`
+        : `WORD COMPLETION MODE: The user has typed the letters "${typed}" and has NOT finished the word yet.\n` +
+          `- "words": exactly 5 COMPLETE words that START WITH "${typed}" — give the full word (e.g. typed "fuc" → ["fuck","fucker","fucking","fucked","fucks"]), NEVER suffixes like "ked" or "king"\n` +
+          `- "phrases": exactly 5 two-word phrases whose FIRST word starts with "${typed}" (full first word + a natural second word, e.g. "fucking hell", "fucker face")\n` +
+          `- Do NOT suggest sentence continuations — only suggest complete words beginning with "${typed}"`;
     } else {
       fragmentRule = '';
       topicInstruction = topicAnchorContext
         ? isMidSentence
-          ? `SENTENCE COMPLETION MODE: The user is building the sentence "${context}". Predict words/phrases that naturally CONTINUE and complete this sentence. The conversation topic is "${topicAnchorContext}" — use it for flavor, but the sentence itself is the guide. Do NOT suggest new topic names; suggest words that finish the sentence (verbs, adjectives, short completions).`
+          ? `SENTENCE COMPLETION MODE: The user is building the sentence "${context}". Predict words/phrases that naturally CONTINUE and complete this exact sentence with correct grammar — do not repeat, restart, or ignore what's already written. The conversation topic is "${topicAnchorContext}" — use it for flavor, but the sentence itself is the guide. Do NOT suggest new topic names; suggest words that finish the sentence (verbs, adjectives, short completions).`
           : `TOPIC SUGGESTION MODE: The text box is empty. The conversation topic is "${topicAnchorContext}". Suggest what the user might want to say — relevant names, opinions, reactions. If it's a list/character question, suggest specific items from that category.`
         : isMidSentence
-          ? `SENTENCE COMPLETION MODE: Predict words/phrases that naturally continue the sentence "${context}".`
+          ? `SENTENCE COMPLETION MODE: Predict words/phrases that naturally continue the exact sentence "${context}" with correct grammar — do not repeat, restart, or ignore what's already written.`
           : '';
     }
 
@@ -2584,10 +2667,13 @@ ${avoidInstruction}`
       const words   = Array.isArray(parsed.words)   ? parsed.words   : [];
       const phrases = Array.isArray(parsed.phrases) ? parsed.phrases : [];
 
-      // Client-side dedup: exact + bare single-word proper noun repeat check
+      // Client-side dedup + prefix enforcement: the AI is asked to only return words/phrases
+      // starting with the typed fragment, but it doesn't always comply — enforce it here so a
+      // mid-word fragment (e.g. "pr") never surfaces a suggestion that doesn't start with it.
       const predSeenExact = new Set(predAvoidNorm);
       const filterPred = (arr) => arr.map(s => {
         if (!s || !s.trim()) return '';
+        if (typed && !s.toLowerCase().startsWith(typed)) return '';
         if (predSeenExact.has(s.toLowerCase())) return '';
         if (isSingleWordRepeat(s, predProperNouns)) return '';
         predSeenExact.add(s.toLowerCase());
@@ -2701,6 +2787,18 @@ ${avoidInstruction}`
     scanSpeak(getCellText(currentRowIndex, item));
   }
 
+  // A row is "blank" (nothing to select) when every cell besides its own
+  // refresh button has no speakable text — e.g. a completions row before
+  // any starter has been picked. Single-item rows (text bar, listen tile)
+  // are never blank — they're always functional regardless of content.
+  function isRowBlank(rowIdx) {
+    const row = allRows[rowIdx];
+    if (!row || row.length <= 1) return false;
+    return row.every(cell =>
+      cell.classList.contains('refresh-btn') || !getCellText(rowIdx, cell).trim()
+    );
+  }
+
   // ─────────────────────────────────────────────
   // SCAN ACTIONS
   // ─────────────────────────────────────────────
@@ -2746,12 +2844,22 @@ ${avoidInstruction}`
       return;
     }
     if (scanMode === 'row') {
-      currentRowIndex = (currentRowIndex + 1) % allRows.length;
+      let next = currentRowIndex;
+      for (let i = 0; i < allRows.length; i++) {
+        next = (next + 1) % allRows.length;
+        if (!isRowBlank(next)) break;
+      }
+      currentRowIndex = next;
       highlightRow();
     } else {
       const row = allRows[currentRowIndex];
       if (row?.length) {
-        currentItemIndex = (currentItemIndex + 1) % row.length;
+        let next = currentItemIndex;
+        for (let i = 0; i < row.length; i++) {
+          next = (next + 1) % row.length;
+          if (getCellText(currentRowIndex, row[next]).trim()) break;
+        }
+        currentItemIndex = next;
         highlightItem();
       }
     }
@@ -2799,12 +2907,22 @@ ${avoidInstruction}`
       return;
     }
     if (scanMode === 'row') {
-      currentRowIndex = (currentRowIndex - 1 + allRows.length) % allRows.length;
+      let next = currentRowIndex;
+      for (let i = 0; i < allRows.length; i++) {
+        next = (next - 1 + allRows.length) % allRows.length;
+        if (!isRowBlank(next)) break;
+      }
+      currentRowIndex = next;
       highlightRow();
     } else {
       const row = allRows[currentRowIndex];
       if (row?.length) {
-        currentItemIndex = (currentItemIndex - 1 + row.length) % row.length;
+        let next = currentItemIndex;
+        for (let i = 0; i < row.length; i++) {
+          next = (next - 1 + row.length) % row.length;
+          if (getCellText(currentRowIndex, row[next]).trim()) break;
+        }
+        currentItemIndex = next;
         highlightItem();
       }
     }
@@ -2880,6 +2998,7 @@ ${avoidInstruction}`
   let enterLongOccurred = false;
   let enterLongTimer = null;
   let enterClearTimer = null;
+  let enterListenHeld = false; // Enter is being held on the Listen row (press-and-hold mic)
 
   let lastKeyPressTime = 0;
 
@@ -2910,6 +3029,17 @@ ${avoidInstruction}`
       if (now - lastKeyPressTime < inputSensitivity) return;
       enterPressed = true;
       enterLongOccurred = false;
+
+      // Listen row: Enter is press-and-hold, not select-on-release — open the mic
+      // immediately and let keyup (or 5s silence) close it and fetch suggestions.
+      const onListenRow = (currentRowIndex === listenRowIndex && scanMode === 'row'
+        && !inSettings && !inQuiz && !inConsent);
+      if (onListenRow) {
+        enterListenHeld = true;
+        startListenPress();
+        return;
+      }
+
       const onTextBar = (currentRowIndex === 0 && !inSettings && !inQuiz && !inConsent);
 
       if (boardMode === 'typing') {
@@ -2957,25 +3087,6 @@ ${avoidInstruction}`
             scanSpeak('Cleared. Getting new suggestions.');
             if (boardMode === 'convo') fetchSuggestions();
           }, 6000);
-        // 6s: listen row → refresh suggestions based on transcript, then jump to starters
-        } else if (currentRowIndex === listenRowIndex && !inSettings && !inQuiz && !inConsent) {
-          enterClearTimer = setTimeout(() => {
-            if (!enterPressed) return;
-            setStatus('Getting suggestions from conversation…');
-            scanSpeak('Getting suggestions');
-            if (boardMode === 'convo') {
-              rowReadCooldown = true;
-              callAPI().then(() => {
-                rowReadCooldown = false;
-                if (allRows.length > 2) {
-                  currentRowIndex  = 2;
-                  currentItemIndex = 0;
-                  scanMode = 'row';
-                  highlightRow();
-                }
-              }).catch(() => { rowReadCooldown = false; });
-            }
-          }, 6000);
         }
       }
     }
@@ -2994,7 +3105,12 @@ ${avoidInstruction}`
       clearTimeout(enterLongTimer); clearTimeout(enterClearTimer);
       enterLongTimer = enterClearTimer = null;
       lastKeyPressTime = Date.now();
-      if (!enterLongOccurred) selectCurrent();
+      if (enterListenHeld) {
+        enterListenHeld = false;
+        autoFetchOnSilence(); // no-op if the 5s silence timer already stopped it
+      } else if (!enterLongOccurred) {
+        selectCurrent();
+      }
     }
   });
 
@@ -3009,6 +3125,10 @@ ${avoidInstruction}`
       enterPressed = false;
       clearTimeout(enterLongTimer); clearTimeout(enterClearTimer);
       enterLongTimer = enterClearTimer = null;
+      if (enterListenHeld) {
+        enterListenHeld = false;
+        closeMic(); // too-short press flagged as accidental — discard without fetching
+      }
     }
   });
 

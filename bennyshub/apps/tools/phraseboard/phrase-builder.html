@@ -106,19 +106,67 @@
     .drop-indicator.show { opacity: 1; }
     .drop-zone { border-top: 3px solid var(--brand); margin-top: -3px; }
     .color-popup { 
-      position: absolute; 
+      position: fixed; 
       background: white; 
-      border: 1px solid var(--border); 
-      border-radius: 8px; 
-      padding: 12px; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+      border: 2px solid #333; 
+      border-radius: 12px; 
+      padding: 16px; 
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25); 
       z-index: 1000; 
       display: none;
-      grid-template-columns: repeat(10, 1fr);
-      gap: 4px;
-      width: 280px;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+      width: 360px;
+      max-height: 400px;
+      overflow-y: auto;
     }
     .color-popup.show { display: grid; }
+    .color-popup .swatch {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 2px solid #333;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .color-popup .swatch:hover {
+      transform: scale(1.15);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      z-index: 1;
+    }
+    .color-popup .custom-color-row {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-top: 12px;
+      margin-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+    .color-popup .custom-color-picker {
+      width: 60px;
+      height: 40px;
+      border: 2px solid #333;
+      border-radius: 8px;
+      cursor: pointer;
+      padding: 0;
+    }
+    .color-popup .custom-color-label {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .color-popup .apply-custom-btn {
+      background: var(--brand);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .color-popup .apply-custom-btn:hover {
+      opacity: 0.9;
+    }
     .color-btn { 
       background: var(--muted); 
       border: 1px solid var(--border); 
@@ -292,6 +340,17 @@
     footer { text-align: center; color: #6b7280; padding: 16px; }
     .hidden { display: none !important; }
     .nowrap { white-space: nowrap; }
+    .speak-cell { display: flex; align-items: center; gap: 4px; }
+    .speak-cell input { flex: 1; min-width: 0; }
+    .btn-icon { flex-shrink: 0; width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; padding: 0; color: var(--muted); transition: background 0.15s, color 0.15s; }
+    .btn-icon:hover { background: var(--brand); color: #fff; border-color: var(--brand); }
+    .btn-icon.playing { background: var(--ok); color: #fff; border-color: var(--ok); }
+    .speak-expand-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.55); z-index: 3000; display: none; align-items: center; justify-content: center; }
+    .speak-expand-modal.show { display: flex; }
+    .speak-expand-content { background: white; border-radius: 14px; padding: 20px; width: 520px; max-width: 92vw; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.2); }
+    .speak-expand-content h3 { margin: 0; font-size: 15px; color: #111827; }
+    .speak-expand-content textarea { width: 100%; min-height: 110px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 14px; resize: vertical; }
+    .speak-expand-actions { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
   </style>
 </head>
 <body>
@@ -299,9 +358,9 @@
     <h1>🧡 NARBE Phrase Board Builder</h1>
     <button class="btn yellow" id="newBtn">New</button>
     <input type="file" id="importFile" accept=".csv" class="hidden" />
-    <button class="btn secondary" id="importBtn">Import CSV</button>
-    <button class="btn orange" id="copyBtn">Copy CSV to Clipboard</button>
-    <button class="btn ok" id="downloadBtn">Download CSV</button>
+    <button class="btn secondary" id="importBtn">Import Board</button>
+    <button class="btn orange" id="copyBtn">Copy Board to Clipboard</button>
+    <button class="btn ok" id="downloadBtn">Download/Save Board</button>
     <button class="btn muted" id="saveLocal">Save to this browser</button>
     <button class="btn danger" id="clearLocal">Clear browser save</button>
   </header>
@@ -426,7 +485,13 @@
         </div>
       </td>
       <td><input class="display" type="text" placeholder="Button label" /></td>
-      <td><input class="speak" type="text" placeholder="What to speak, insert, or link to" /></td>
+      <td>
+        <div class="speak-cell">
+          <input class="speak" type="text" placeholder="What to speak, insert, or link to" />
+          <button class="btn-icon speak-play" title="Preview TTS" type="button">▶</button>
+          <button class="btn-icon speak-expand" title="Expand text" type="button">⤢</button>
+        </div>
+      </td>
       <td>
         <div class="row" style="gap: 8px;">
           <img class="img-thumb" src="" alt="" style="flex-shrink: 0;" />
@@ -440,6 +505,18 @@
   </template>
 
   <div id="colorPopup" class="color-popup"></div>
+
+  <div id="speakExpandModal" class="speak-expand-modal">
+    <div class="speak-expand-content">
+      <h3>Speak / Text / Link</h3>
+      <textarea id="speakExpandText" placeholder="What to speak, insert, or link to"></textarea>
+      <div class="speak-expand-actions">
+        <button class="btn muted" id="speakExpandClose">Cancel</button>
+        <button class="btn" id="speakExpandPreview" style="background:#0ea5e9;">&#9654; Preview</button>
+        <button class="btn ok" id="speakExpandApply">Apply</button>
+      </div>
+    </div>
+  </div>
   
   <div id="imageModal" class="image-modal">
     <div class="image-modal-content">
@@ -499,6 +576,7 @@
     let currentImageCategory = null; // for category image modal
     let currentImageBoard = false; // for board image modal
     let autoScrollInterval = null; // for auto-scrolling during drag
+    let currentSpeakExpandRow = null; // for speak expand modal
 
     // Toast notification function (replaces alert to avoid focus issues)
     function showToast(message, type = 'success') {
@@ -556,40 +634,72 @@
 
     function createColorPopup() {
       const popup = document.getElementById('colorPopup');
+      
+      // Add preset color swatches
       palette.forEach(color => {
         const swatch = document.createElement('div');
         swatch.className = 'swatch';
         swatch.style.background = color;
         swatch.title = color;
         swatch.addEventListener('click', () => {
-          if (currentColorInput) {
-            currentColorInput.value = toColorInput(color);
-            currentColorInput.dispatchEvent(new Event('input', { bubbles: true }));
-          }
-          
-          if (currentColorRows.length > 0) {
-            currentColorRows.forEach(tr => {
-              if (!tr.querySelector('.tile-color')) {
-                // Add hidden color input if it doesn't exist
-                const hiddenInput = document.createElement('input');
-                hiddenInput.type = 'color';
-                hiddenInput.className = 'tile-color';
-                hiddenInput.style.display = 'none';
-                hiddenInput.value = toColorInput(color);
-                tr.appendChild(hiddenInput);
-              } else {
-                tr.querySelector('.tile-color').value = toColorInput(color);
-              }
-              tr.querySelector('.use-override').checked = true;
-              const catNode = tr.closest('.cat');
-              updateRowBackground(catNode, tr);
-            });
-          }
-          
-          hideColorPopup();
+          applyColorToSelection(color);
         });
         popup.appendChild(swatch);
       });
+      
+      // Add custom color picker row
+      const customRow = document.createElement('div');
+      customRow.className = 'custom-color-row';
+      
+      const label = document.createElement('span');
+      label.className = 'custom-color-label';
+      label.textContent = 'Custom Color:';
+      
+      const colorPicker = document.createElement('input');
+      colorPicker.type = 'color';
+      colorPicker.className = 'custom-color-picker';
+      colorPicker.id = 'customColorPicker';
+      colorPicker.value = '#5bb0ff';
+      
+      const applyBtn = document.createElement('button');
+      applyBtn.className = 'apply-custom-btn';
+      applyBtn.textContent = 'Apply Color';
+      applyBtn.addEventListener('click', () => {
+        applyColorToSelection(colorPicker.value);
+      });
+      
+      customRow.appendChild(label);
+      customRow.appendChild(colorPicker);
+      customRow.appendChild(applyBtn);
+      popup.appendChild(customRow);
+    }
+    
+    function applyColorToSelection(color) {
+      if (currentColorInput) {
+        currentColorInput.value = toColorInput(color);
+        currentColorInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      
+      if (currentColorRows.length > 0) {
+        currentColorRows.forEach(tr => {
+          if (!tr.querySelector('.tile-color')) {
+            // Add hidden color input if it doesn't exist
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'color';
+            hiddenInput.className = 'tile-color';
+            hiddenInput.style.display = 'none';
+            hiddenInput.value = toColorInput(color);
+            tr.appendChild(hiddenInput);
+          } else {
+            tr.querySelector('.tile-color').value = toColorInput(color);
+          }
+          tr.querySelector('.use-override').checked = true;
+          const catNode = tr.closest('.cat');
+          updateRowBackground(catNode, tr);
+        });
+      }
+      
+      hideColorPopup();
     }
 
     function showColorPopup(button, colorInput) {
@@ -597,8 +707,31 @@
       currentColorInput = colorInput;
       
       const rect = button.getBoundingClientRect();
-      popup.style.left = rect.left + 'px';
-      popup.style.top = (rect.bottom + 4) + 'px';
+      
+      // Calculate position, keeping popup on screen
+      let left = rect.left;
+      let top = rect.bottom + 4;
+      
+      // Ensure popup doesn't go off right edge
+      const popupWidth = 360;
+      if (left + popupWidth > window.innerWidth - 20) {
+        left = window.innerWidth - popupWidth - 20;
+      }
+      
+      // Ensure popup doesn't go off left edge
+      if (left < 20) {
+        left = 20;
+      }
+      
+      // Ensure popup doesn't go off bottom
+      const popupHeight = 400;
+      if (top + popupHeight > window.innerHeight - 20) {
+        top = rect.top - popupHeight - 4;
+        if (top < 20) top = 20;
+      }
+      
+      popup.style.left = left + 'px';
+      popup.style.top = top + 'px';
       popup.classList.add('show');
     }
 
@@ -608,8 +741,31 @@
       currentColorRows = rows;
       
       const rect = button.getBoundingClientRect();
-      popup.style.left = rect.left + 'px';
-      popup.style.top = (rect.bottom + 4) + 'px';
+      
+      // Calculate position, keeping popup on screen
+      let left = rect.left;
+      let top = rect.bottom + 4;
+      
+      // Ensure popup doesn't go off right edge
+      const popupWidth = 360;
+      if (left + popupWidth > window.innerWidth - 20) {
+        left = window.innerWidth - popupWidth - 20;
+      }
+      
+      // Ensure popup doesn't go off left edge
+      if (left < 20) {
+        left = 20;
+      }
+      
+      // Ensure popup doesn't go off bottom
+      const popupHeight = 400;
+      if (top + popupHeight > window.innerHeight - 20) {
+        top = rect.top - popupHeight - 4;
+        if (top < 20) top = 20;
+      }
+      
+      popup.style.left = left + 'px';
+      popup.style.top = top + 'px';
       popup.classList.add('show');
     }
 
@@ -924,6 +1080,12 @@
         currentImageRow = tr;
         showImageModal(tr);
       });
+
+      // speak TTS preview and expand
+      tr.querySelector('.speak-play').addEventListener('click', () => {
+        previewTTS(tr.querySelector('.speak-play'), tr.querySelector('.speak').value.trim());
+      });
+      tr.querySelector('.speak-expand').addEventListener('click', () => openSpeakExpand(tr));
 
       if (values) {
         tr.querySelector('.tile-order-display').textContent = values.tileOrder ?? tbody.children.length;
@@ -1593,6 +1755,41 @@
       }
     }
 
+    function previewTTS(btn, text) {
+      if (!text) return;
+      window.speechSynthesis.cancel();
+      if (btn.classList.contains('playing')) {
+        btn.classList.remove('playing');
+        btn.textContent = '▶';
+        return;
+      }
+      const utter = new SpeechSynthesisUtterance(text);
+      btn.classList.add('playing');
+      btn.textContent = '■';
+      utter.onend = () => { btn.classList.remove('playing'); btn.textContent = '▶'; };
+      utter.onerror = () => { btn.classList.remove('playing'); btn.textContent = '▶'; };
+      window.speechSynthesis.speak(utter);
+    }
+
+    function openSpeakExpand(tr) {
+      currentSpeakExpandRow = tr;
+      document.getElementById('speakExpandText').value = tr.querySelector('.speak').value;
+      document.getElementById('speakExpandModal').classList.add('show');
+      setTimeout(() => document.getElementById('speakExpandText').focus(), 50);
+    }
+
+    function closeSpeakExpand() {
+      window.speechSynthesis.cancel();
+      document.getElementById('speakExpandModal').classList.remove('show');
+      currentSpeakExpandRow = null;
+    }
+
+    function applySpeakExpand() {
+      if (!currentSpeakExpandRow) return;
+      currentSpeakExpandRow.querySelector('.speak').value = document.getElementById('speakExpandText').value;
+      closeSpeakExpand();
+    }
+
     function selectAllRows(catNode, checked) {
       catNode.querySelectorAll('.sel').forEach(cb => cb.checked = checked);
     }
@@ -1682,6 +1879,17 @@
         e.preventDefault();
         applyModalImage();
       }
+    });
+
+    // Speak expand modal event listeners
+    document.getElementById('speakExpandApply').addEventListener('click', applySpeakExpand);
+    document.getElementById('speakExpandClose').addEventListener('click', closeSpeakExpand);
+    document.getElementById('speakExpandPreview').addEventListener('click', () => {
+      const btn = document.getElementById('speakExpandPreview');
+      previewTTS(btn, document.getElementById('speakExpandText').value.trim());
+    });
+    document.getElementById('speakExpandModal').addEventListener('click', (e) => {
+      if (e.target.id === 'speakExpandModal') closeSpeakExpand();
     });
 
     // wire up top actions

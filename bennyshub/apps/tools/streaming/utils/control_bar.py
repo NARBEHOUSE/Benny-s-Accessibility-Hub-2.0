@@ -4,7 +4,50 @@ import sys
 import time
 import json
 import threading
+import subprocess
 from typing import Optional, Dict, Any, List
+
+# Fix encoding for Windows console
+if sys.stdout:
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except:
+        pass
+if sys.stderr:
+    try:
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except:
+        pass
+
+# Set up file logging so we can see what's happening
+LOG_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "control_bar.log")
+def log(msg):
+    """Log to both console and file, handling Unicode safely."""
+    # Sanitize message for console output
+    try:
+        safe_msg = str(msg).encode('ascii', errors='replace').decode('ascii')
+    except:
+        safe_msg = str(msg)
+    
+    try:
+        print(safe_msg)
+    except:
+        pass  # Ignore print errors
+    
+    try:
+        os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+        with open(LOG_FILE, 'a', encoding='utf-8') as f:
+            f.write(f"{time.strftime('%H:%M:%S')} {msg}\n")
+    except:
+        pass
+
+# Append session separator on startup (don't clear - keep history for debugging)
+try:
+    os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+    with open(LOG_FILE, 'a', encoding='utf-8') as f:
+        f.write(f"\n=== Control Bar Started {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
+except:
+    pass
 
 import tkinter as tk
 
@@ -18,101 +61,94 @@ from urllib.parse import urlparse
 import ctypes
 import shutil
 
-def _close_chrome_window_gracefully():
+
+def _get_chrome_profile_path():
+    """Get the default Chrome profile path."""
+    local_app_data = os.environ.get("LOCALAPPDATA", "")
+    return os.path.join(local_app_data, "Google", "Chrome", "User Data", "Default")
+
+
+def _mark_chrome_clean_exit():
     """
-    Close Chrome window gracefully using keyboard shortcuts.
-    This avoids the 'Restore pages' error on next launch.
+    Mark Chrome as having exited cleanly by updating the Preferences file.
+    This prevents the "Restore pages?" dialog after force kill.
     """
     try:
-        # First, focus Chrome
+        prefs_path = os.path.join(_get_chrome_profile_path(), "Preferences")
+        if not os.path.exists(prefs_path):
+            log(f"[Chrome] Preferences file not found at {prefs_path}")
+            return
+        
+        import json
+        with open(prefs_path, 'r', encoding='utf-8') as f:
+            prefs = json.load(f)
+        
+        # Set exit_type to "Normal" to prevent restore dialog
+        if "profile" not in prefs:
+            prefs["profile"] = {}
+        prefs["profile"]["exit_type"] = "Normal"
+        prefs["profile"]["exited_cleanly"] = True
+        
+        with open(prefs_path, 'w', encoding='utf-8') as f:
+            json.dump(prefs, f)
+        
+        log("[Chrome] Marked Chrome as clean exit in Preferences")
+    except Exception as e:
+        log(f"[Chrome] Error marking clean exit: {e}")
+
+
+def _close_chrome_gracefully():
+    """
+    Close Chrome by force killing all processes, then marking as clean exit.
+    This ensures Chrome fully closes and doesn't show "Restore pages?" on next launch.
+    """
+    try:
         chrome_hwnds = _enum_chrome_windows()
         if not chrome_hwnds:
-            return True  # No Chrome windows to close
+            log("[Chrome] No Chrome windows to close")
+            return True
         
-        # Focus the Chrome window
-        hwnd = chrome_hwnds[0]
-        try:
-            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-            win32gui.SetForegroundWindow(hwnd)
-            time.sleep(0.2)
-        except Exception:
-            pass
+        log(f"[Chrome] Found {len(chrome_hwnds)} Chrome window(s), force killing...")
         
-        # Send Alt+F4 to close the window gracefully (this lets Chrome save session properly)
-        try:
-            # Alt down
-            win32api.keybd_event(0x12, 0, 0, 0)  # VK_MENU (Alt)
-            time.sleep(0.05)
-            # F4 down
-            win32api.keybd_event(0x73, 0, 0, 0)  # VK_F4
-            time.sleep(0.05)
-            # F4 up
-            win32api.keybd_event(0x73, 0, 2, 0)
-            # Alt up
-            win32api.keybd_event(0x12, 0, 2, 0)
-            time.sleep(0.3)
-        except Exception as e:
-            print(f"[Chrome] Alt+F4 failed: {e}")
-        
-        # Wait for Chrome to close gracefully
-        start_wait = time.time()
-        while time.time() - start_wait < 3.0:
-            if not is_chrome_running():
-                print("[Chrome] Closed gracefully")
-                return True
-            time.sleep(0.2)
-        
-        # If still running, try WM_CLOSE as fallback
-        chrome_hwnds = _enum_chrome_windows()
-        for hwnd in chrome_hwnds:
+        # Force kill all Chrome processes
+        killed = False
+        for proc in psutil.process_iter(['pid', 'name']):
             try:
-                win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
-            except Exception:
+                if proc.info['name'] and proc.info['name'].lower() == 'chrome.exe':
+                    proc.kill()
+                    killed = True
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
         
-        # Final wait
-        time.sleep(1.0)
-        return not is_chrome_running()
+        if killed:
+            log("[Chrome] Killed Chrome processes")
+            time.sleep(0.5)  # Brief wait for processes to terminate
+            
+            # Mark Chrome as having exited cleanly to prevent restore dialog
+            _mark_chrome_clean_exit()
+        
+        # Verify all Chrome windows are gone
+        remaining = _enum_chrome_windows()
+        if not remaining:
+            log("[Chrome] All Chrome windows closed")
+            return True
+        else:
+            log(f"[Chrome] {len(remaining)} window(s) still remaining")
+            return False
         
     except Exception as e:
-        print(f"[Chrome] Error closing: {e}")
+        log(f"[Chrome] Error in close: {e}")
         return False
 
 
 def _kill_chrome_gracefully():
     """
-    Attempts to close Chrome windows gracefully first, then force kills if any remain.
-    This helps avoid the 'Restore pages' bubble on next launch.
+    Close Chrome completely and prevent restore dialog.
     """
-    # Try the gentle approach first
-    if _close_chrome_window_gracefully():
-        return
-    
-    # If still running, try WM_CLOSE on remaining windows
-    chrome_hwnds = _enum_chrome_windows()
-    if chrome_hwnds:
-        for hwnd in chrome_hwnds:
-            try:
-                win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
-            except Exception:
-                pass
-        
-        # Give it a moment to write session files
-        start_wait = time.time()
-        while time.time() - start_wait < 2.0:
-            if not is_chrome_running():
-                return
-            time.sleep(0.2)
-    
-    # Only force kill as absolute last resort (avoid if possible)
-    # This can cause the "restore pages" message
-    print("[Chrome] Warning: Force killing Chrome - may cause restore message")
-    for p in psutil.process_iter(['name']):
-        if "chrome" in (p.info['name'] or "").lower():
-            try:
-                p.terminate()
-            except Exception:
-                pass
+    log("[Chrome] Starting force close...")
+    _close_chrome_gracefully()
+    log("[Chrome] Force close complete")
+
 
 # Optional low-level hotkey library (strong combo handling)
 try:
@@ -156,13 +192,14 @@ except Exception:
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
 EPISODE_SHEET = os.path.join(DATA_DIR, "EPISODE_SELECTION.xlsx")
 LAST_WATCHED_FILE = os.path.join(DATA_DIR, "last_watched.json")
+CURRENT_URL_FILE = os.path.join(DATA_DIR, "current_url.txt")  # Written by server.py
 APP_TITLE_MAIN = "Accessible Menu"  # comm-v10.py window title
 
 BUTTON_FONT = ("Arial Black", 20)   # was 16; ~25% larger
 BAR_HEIGHT = 88                     # was 70; ~25% taller
 BAR_OPACITY = 0.96
 POLL_INTERVAL = 0.75
-SCAN_DEBOUNCE = 0.35  # seconds after a scan/select before we accept another
+SCAN_DEBOUNCE = 0.15  # seconds cooldown - fast navigation
 SPACE_HOLD_DELAY = 3.0   # seconds to hold before auto-scan starts
 SPACE_HOLD_REPEAT = 2.0  # repeat interval while holding Space
 
@@ -174,25 +211,31 @@ PlatformProfile = Dict[str, Any]
 
 PROFILES: List[PlatformProfile] = [
     {"name": "YouTube", "match": ["youtube.com", "youtu.be"],
-     "playpause": ["k", "space"], "fullscreen": ["f"], "post_nav": ["f"]},
+     "playpause": ["k", "space"], "fullscreen": ["f"], "post_nav": ["f"], "use_keyboard": False},
+    # Disney+ auto-plays and auto-fullscreens - no post_nav needed, use keyboard for responsiveness
     {"name": "Disney+", "match": ["disneyplus.com"],
-     "playpause": ["space"], "fullscreen": ["f"], "post_nav": ["f"]},
+     "playpause": ["space"], "fullscreen": ["f"], "post_nav": [], "use_keyboard": True},
+    # Netflix auto-plays and auto-fullscreens - no post_nav needed
     {"name": "Netflix", "match": ["netflix.com"],
-     "playpause": ["space"], "fullscreen": ["f"], "post_nav": ["f"]},
+     "playpause": ["space"], "fullscreen": ["f"], "post_nav": [], "use_keyboard": True},
+    # Prime Video auto-plays - no post_nav needed
     {"name": "Prime Video", "match": ["primevideo.com", "amazon.com"],
-     "playpause": ["space"], "fullscreen": ["f"], "post_nav": ["f"]},
+     "playpause": ["space"], "fullscreen": ["f"], "post_nav": [], "use_keyboard": True},
+    # Hulu auto-plays - no post_nav needed
     {"name": "Hulu", "match": ["hulu.com"],
-     "playpause": ["space"], "fullscreen": ["f"], "post_nav": ["f"]},
+     "playpause": ["space"], "fullscreen": ["f"], "post_nav": [], "use_keyboard": True},
+    # Paramount+ auto-plays - no post_nav needed
     {"name": "Paramount+", "match": ["paramountplus.com"],
-     "playpause": ["space"], "fullscreen": ["f"], "post_nav": ["f"]},
+     "playpause": ["space"], "fullscreen": ["f"], "post_nav": [], "use_keyboard": True},
+    # Max auto-plays - no post_nav needed
     {"name": "Max", "match": ["max.com", "hbomax.com"],
-     "playpause": ["space"], "fullscreen": ["f"], "post_nav": ["f"]},
+     "playpause": ["space"], "fullscreen": ["f"], "post_nav": [], "use_keyboard": True},
     {"name": "PlutoTV", "match": ["pluto.tv"],
-     "playpause": ["space"], "fullscreen": ["f"], "post_nav": ["m", "f"]},
+     "playpause": ["space"], "fullscreen": ["f"], "post_nav": ["m", "f"], "use_keyboard": True},
     {"name": "Plex", "match": ["plex.tv", "app.plex.tv", ":32400"],
-     "playpause": ["space"], "fullscreen": ["f"], "post_nav": ["x", "enter", "p", "f"]},
+     "playpause": ["space"], "fullscreen": ["f"], "post_nav": ["x", "enter", "p", "f"], "use_keyboard": False},
     {"name": "Generic", "match": ["."],  # fallback
-     "playpause": ["space"], "fullscreen": ["f"], "post_nav": ["f"]},
+     "playpause": ["space"], "fullscreen": ["f"], "post_nav": ["f"], "use_keyboard": False},
 ]
 
 # ------------------------------ Episode cache (kept for compatibility, unused) ------------------------------
@@ -216,11 +259,14 @@ def _safe_to_persist(url: str) -> bool:
         if u.scheme == "file":
             return False
         host = (u.netloc or "").lower()
-        if ("plex.tv" in host) or ("plex.direct" in host) or host.startswith("127.0.0.1"):
+        # Never persist Plex or local hub URLs
+        if ("plex.tv" in host) or ("plex.direct" in host):
+            return False
+        if host.startswith("127.0.0.1") or host.startswith("localhost"):
             return False
         allowed = [
             "netflix.com","disneyplus.com","paramountplus.com","primevideo.com","amazon.com",
-            "hulu.com","max.com","hbomax.com","pluto.tv","youtube.com","youtu.be"
+            "hulu.com","max.com","hbomax.com","play.max.com","play.hbomax.com","pluto.tv","youtube.com","youtu.be"
         ]
         return any(h in host for h in allowed)
     except Exception:
@@ -229,15 +275,27 @@ def _safe_to_persist(url: str) -> bool:
 def set_last_position(show_title: str, season: int, episode: int, url: str, linear_index: Optional[int] = None):
     # Only persist if the URL is allowed
     if not _safe_to_persist(url):
+        print(f"[SAVE] Skipped (not allowed): {show_title} → {url[:50]}...")
         return
     data = load_last_watched()
-    rec = {"season": int(season), "episode": int(episode), "url": url}
+    
+    # Remove existing entry first so it goes to end (most recent)
+    if show_title in data:
+        del data[show_title]
+    
+    rec = {
+        "season": int(season), 
+        "episode": int(episode), 
+        "url": url,
+        "timestamp": int(time.time() * 1000)  # JS-style timestamp for sorting
+    }
     if linear_index is not None:
         rec["linear_index"] = int(linear_index)
     data[show_title] = rec
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(LAST_WATCHED_FILE, "w") as f:
         json.dump(data, f, indent=2)
+    print(f"[SAVE] {show_title} → {url[:60]}...")
 
 # ---- Console window helpers (keep the terminal out of the way) ----
 
@@ -275,24 +333,216 @@ def is_chrome_running() -> bool:
 
 
 def _enum_chrome_windows() -> List[int]:
-    """Find ALL Chrome windows regardless of title."""
+    """Find ALL Chrome windows regardless of title, including fullscreen windows."""
     handles: List[int] = []
     def _enum(hwnd, _res):
         try:
-            if not win32gui.IsWindowVisible(hwnd):
-                return
-            # Check if window belongs to chrome.exe process
+            # Check if window belongs to chrome.exe process (don't require IsWindowVisible for fullscreen)
             try:
                 _, pid = win32process.GetWindowThreadProcessId(hwnd)
                 proc = psutil.Process(pid)
                 if proc.name().lower() == "chrome.exe":
-                    handles.append(hwnd)
+                    # Check window has some size (not a hidden helper window)
+                    try:
+                        rect = win32gui.GetWindowRect(hwnd)
+                        width = rect[2] - rect[0]
+                        height = rect[3] - rect[1]
+                        if width > 100 and height > 100:  # Main window, not a tiny helper
+                            handles.append(hwnd)
+                    except:
+                        # If we can't get rect, still add if visible
+                        if win32gui.IsWindowVisible(hwnd):
+                            handles.append(hwnd)
             except Exception:
                 pass
         except Exception:
             pass
     win32gui.EnumWindows(_enum, None)
     return handles
+
+
+# --- CDP-based URL grabber (Chrome launched with --remote-debugging-port=9222) ---
+def get_current_url_from_file() -> Optional[str]:
+    """
+    Read the current playback URL from the temp file written by server.py.
+    This is the most reliable method since it's set when playback starts.
+    """
+    try:
+        if os.path.exists(CURRENT_URL_FILE):
+            with open(CURRENT_URL_FILE, 'r') as f:
+                url = f.read().strip()
+                if url and (url.startswith('http://') or url.startswith('https://')):
+                    print(f"[URL-FILE] Got URL: {url[:60]}...")
+                    return url
+    except Exception as e:
+        print(f"[URL-FILE] Error: {e}")
+    return None
+
+
+def get_chrome_url_via_uiautomation() -> Optional[str]:
+    """
+    Get Chrome's current URL using pywinauto UI Automation.
+    This reads the address bar directly without needing CDP.
+    """
+    try:
+        from pywinauto import Desktop
+        
+        print("[UIA] Looking for Chrome window...")
+        desktop = Desktop(backend='uia')
+        
+        # Find Chrome window
+        try:
+            chrome = desktop.window(title_re='.*- Google Chrome$')
+        except:
+            try:
+                chrome = desktop.window(title_re='.*Chrome.*')
+            except:
+                print("[UIA] No Chrome window found")
+                return None
+        
+        print(f"[UIA] Found Chrome: {chrome.window_text()[:50]}...")
+        
+        # Try to find the address bar
+        try:
+            # Chrome's address bar is an Edit control with specific name
+            addr_bar = chrome.child_window(title='Address and search bar', control_type='Edit')
+            url = addr_bar.get_value()
+            if url and (url.startswith('http://') or url.startswith('https://')):
+                print(f"[UIA] Got URL: {url[:60]}...")
+                return url
+        except Exception as e:
+            print(f"[UIA] Address bar method failed: {e}")
+        
+        # Fallback: find any Edit control with a URL
+        try:
+            edits = chrome.descendants(control_type='Edit')
+            for edit in edits[:10]:
+                try:
+                    val = edit.get_value()
+                    if val and (val.startswith('http://') or val.startswith('https://')):
+                        print(f"[UIA] Found URL in Edit control: {val[:60]}...")
+                        return val
+                except:
+                    pass
+        except Exception as e:
+            print(f"[UIA] Fallback method failed: {e}")
+        
+        print("[UIA] Could not find URL")
+        return None
+        
+    except ImportError:
+        print("[UIA] pywinauto not available")
+        return None
+    except Exception as e:
+        print(f"[UIA] Error: {e}")
+        return None
+
+
+def get_chrome_url_via_cdp() -> Optional[str]:
+    """
+    Get Chrome's current URL via CDP (Chrome DevTools Protocol).
+    Requires Chrome to be launched with --remote-debugging-port=9222.
+    """
+    try:
+        import requests
+        print("[CDP] Fetching URL from Chrome via port 9222...")
+        r = requests.get("http://127.0.0.1:9222/json", timeout=1.0)
+        if not r.ok:
+            print(f"[CDP] Request failed: {r.status_code}")
+            return None
+        
+        tabs = r.json()
+        print(f"[CDP] Found {len(tabs)} tabs")
+        
+        # Priority: streaming service URLs
+        streaming_domains = ["netflix.com", "disneyplus.com", "paramountplus.com", 
+                           "primevideo.com", "amazon.com", "hulu.com", "max.com", 
+                           "hbomax.com", "play.max.com", "pluto.tv", "youtube.com", "youtu.be"]
+        
+        best_url = None
+        for tab in tabs:
+            if tab.get("type") == "page" and tab.get("url"):
+                url = tab.get("url")
+                
+                # Skip internal pages
+                if url.startswith("chrome://") or url.startswith("chrome-extension://"):
+                    continue
+                
+                # Skip localhost/hub pages
+                if "localhost" in url or "127.0.0.1" in url:
+                    continue
+                
+                # Check if it's a streaming service
+                url_lower = url.lower()
+                for domain in streaming_domains:
+                    if domain in url_lower:
+                        print(f"[CDP] Found streaming URL: {url[:60]}...")
+                        return url
+                
+                # Keep first valid URL as fallback
+                if best_url is None:
+                    best_url = url
+        
+        if best_url:
+            print(f"[CDP] Using fallback URL: {best_url[:60]}...")
+        return best_url
+    except requests.exceptions.ConnectionError:
+        print("[CDP] Connection refused - Chrome not running with CDP")
+        return None
+    except Exception as e:
+        print(f"[CDP] Error: {e}")
+        return None
+
+
+# --- Clipboard-based URL grabber (FAST version) ---
+def get_chrome_url_via_clipboard() -> Optional[str]:
+    """
+    Get Chrome's current URL quickly:
+    1. Focus Chrome, 2. F11 exit fullscreen, 3. Ctrl+L, 4. Ctrl+C, 5. Read clipboard
+    """
+    import pyperclip
+    
+    log("[CLIPBOARD] Quick URL grab...")
+    
+    try:
+        chrome_hwnds = _enum_chrome_windows()
+        if not chrome_hwnds:
+            log("[CLIPBOARD] No Chrome window")
+            return None
+        
+        hwnd = chrome_hwnds[0]
+        pyperclip.copy('')  # Clear clipboard
+        
+        # Focus Chrome
+        try:
+            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+            ctypes.windll.user32.keybd_event(0x12, 0, 0, 0)  # Alt down
+            ctypes.windll.user32.keybd_event(0x12, 0, 2, 0)  # Alt up
+            win32gui.SetForegroundWindow(hwnd)
+            time.sleep(0.15)
+        except:
+            pass
+        
+        # F11 to exit fullscreen, Ctrl+L to select URL, Ctrl+C to copy
+        pyautogui.press('f11')
+        time.sleep(0.2)
+        pyautogui.hotkey('ctrl', 'l')
+        time.sleep(0.1)
+        pyautogui.hotkey('ctrl', 'c')
+        time.sleep(0.15)
+        
+        # Read clipboard
+        url = pyperclip.paste()
+        log(f"[CLIPBOARD] Got: {url[:60] if url else 'EMPTY'}")
+        
+        if url and url.startswith('http'):
+            return url.strip()
+        return None
+            
+    except Exception as e:
+        log(f"[CLIPBOARD] Error: {e}")
+        return None
+
 
 # NEW: enumerate all visible top-level windows (not limited to Chrome)
 def _enum_visible_windows() -> List[int]:
@@ -360,16 +610,57 @@ def focus_hub_window() -> bool:
     return False
 
 
-def focus_chrome_window() -> bool:
-    for hwnd in _enum_chrome_windows():
+def focus_chrome_window(prefer_title: str = None) -> bool:
+    """
+    Focus a Chrome window. If prefer_title is given, try to find a window
+    with that text in the title first.
+    """
+    chrome_windows = _enum_chrome_windows()
+    
+    # Log ALL Chrome windows found for debugging
+    log(f"[focus_chrome_window] Found {len(chrome_windows)} Chrome window(s)")
+    for i, hwnd in enumerate(chrome_windows):
         try:
+            title = win32gui.GetWindowText(hwnd)
+            visible = win32gui.IsWindowVisible(hwnd)
+            log(f"[focus_chrome_window]   Window {i}: hwnd={hwnd}, visible={visible}, title='{title[:60]}'")
+        except:
+            log(f"[focus_chrome_window]   Window {i}: hwnd={hwnd}, could not get title")
+    
+    # If we have a preferred title, try to find that window first
+    if prefer_title:
+        prefer_lower = prefer_title.lower()
+        for hwnd in chrome_windows:
+            try:
+                title = win32gui.GetWindowText(hwnd).lower()
+                if prefer_lower in title:
+                    log(f"[focus_chrome_window] Found preferred window: {title[:50]}")
+                    win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+                    win32gui.SetForegroundWindow(hwnd)
+                    time.sleep(0.05)
+                    return True
+            except Exception:
+                continue
+    
+    # Fallback: focus any Chrome window
+    for hwnd in chrome_windows:
+        try:
+            title = win32gui.GetWindowText(hwnd)
+            log(f"[focus_chrome_window] Focusing: {title[:50] if title else 'untitled'}")
             win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
             win32gui.SetForegroundWindow(hwnd)
             time.sleep(0.05)
             return True
         except Exception:
             continue
+    
+    log("[focus_chrome_window] No Chrome windows found")
     return False
+
+
+def focus_plex_chrome() -> bool:
+    """Focus the Chrome window running Plex specifically."""
+    return focus_chrome_window(prefer_title="plex")
 
 
 def close_chrome():
@@ -439,16 +730,77 @@ except Exception:
 
 
 def get_active_chrome_url_via_cdp() -> Optional[str]:
+    """Get the best streaming URL from Chrome via CDP. Single attempt, no retries."""
     if not requests:
         return None
+    
     try:
         r = requests.get("http://127.0.0.1:9222/json", timeout=0.3)
-        tabs = r.json() if r.ok else []
+        if not r.ok:
+            return None
+        tabs = r.json()
+        
+        # Priority: streaming service URLs and Plex
+        streaming_domains = ["netflix.com", "disneyplus.com", "paramountplus.com", 
+                           "primevideo.com", "amazon.com", "hulu.com", "max.com", 
+                           "hbomax.com", "play.max.com", "pluto.tv", "youtube.com", 
+                           "youtu.be", "plex.tv", "plex.direct", ":32400"]
+        
         for t in tabs:
             if t.get("type") == "page" and t.get("url"):
-                return t.get("url")
+                url = t.get("url")
+                if url.startswith("chrome://") or "localhost" in url or "127.0.0.1" in url:
+                    continue
+                url_lower = url.lower()
+                for domain in streaming_domains:
+                    if domain in url_lower:
+                        return url
+        return None
     except Exception:
         return None
+
+
+def get_active_chrome_url_via_cdp_with_retries() -> Optional[str]:
+    """Get URL with retries - ONLY use during bootstrap, not for button actions."""
+    if not requests:
+        print("[CDP] requests module not available")
+        return None
+    
+    for attempt in range(3):
+        try:
+            r = requests.get("http://127.0.0.1:9222/json", timeout=1.0)
+            if not r.ok:
+                print(f"[CDP] Attempt {attempt+1}: Request failed")
+                time.sleep(0.3)
+                continue
+            tabs = r.json()
+            
+            streaming_domains = ["netflix.com", "disneyplus.com", "paramountplus.com", 
+                               "primevideo.com", "amazon.com", "hulu.com", "max.com", 
+                               "hbomax.com", "play.max.com", "pluto.tv", "youtube.com", 
+                               "youtu.be", "plex.tv", "plex.direct", ":32400"]
+            
+            best_url = None
+            for t in tabs:
+                if t.get("type") == "page" and t.get("url"):
+                    url = t.get("url")
+                    if url.startswith("chrome://") or "localhost" in url or "127.0.0.1" in url:
+                        continue
+                    url_lower = url.lower()
+                    for domain in streaming_domains:
+                        if domain in url_lower:
+                            return url
+                    if best_url is None:
+                        best_url = url
+            
+            if best_url:
+                return best_url
+                
+        except requests.exceptions.ConnectionError:
+            time.sleep(0.3)
+        except Exception:
+            time.sleep(0.3)
+    
     return None
 
 # ---------------- CDP helpers (no focus change) ----------------
@@ -529,9 +881,45 @@ def cdp_navigate(ws_url: str, url: str) -> bool:
 
 
 def cdp_toggle_play(ws_url: str) -> bool:
+    """Toggle play/pause via CDP. Works with most streaming services."""
+    # Disney+ and other services may have video in shadow DOM or iframes
+    # Try multiple selectors to find the video element
     js = """
-(() => { const v = document.querySelector('video'); if (!v) return 'no video';
-  if (v.paused) { try{v.play();}catch(e){} return 'play'; } else { v.pause(); return 'pause'; } })();
+(() => {
+    // Try direct video element first
+    let v = document.querySelector('video');
+    
+    // If not found, check shadow DOMs (Disney+ uses these)
+    if (!v) {
+        const shadowHosts = document.querySelectorAll('*');
+        for (const host of shadowHosts) {
+            if (host.shadowRoot) {
+                v = host.shadowRoot.querySelector('video');
+                if (v) break;
+            }
+        }
+    }
+    
+    // Try iframes as fallback
+    if (!v) {
+        const iframes = document.querySelectorAll('iframe');
+        for (const iframe of iframes) {
+            try {
+                v = iframe.contentDocument?.querySelector('video');
+                if (v) break;
+            } catch(e) {}
+        }
+    }
+    
+    if (!v) return 'no video';
+    if (v.paused) { 
+        try { v.play(); } catch(e) {} 
+        return 'play'; 
+    } else { 
+        v.pause(); 
+        return 'pause'; 
+    }
+})();
 """
     return cdp_runtime_eval(ws_url, js)
 
@@ -648,10 +1036,14 @@ def send_to_chrome(_seq: List[str], _delay: float = 0.05, fallback_media_key: bo
     # Note: _seq and _delay are for future implementation
     if fallback_media_key:
         try:
-            win32api.keybd_event(0xB3, 0, 0, 0)
-            win32api.keybd_event(0xB3, 0, 2, 0)
-        except Exception:
-            pass
+            print("[send_to_chrome] Sending VK_MEDIA_PLAY_PAUSE (0xB3)")
+            KEYEVENTF_EXTENDEDKEY = 0x0001
+            KEYEVENTF_KEYUP = 0x0002
+            ctypes.windll.user32.keybd_event(0xB3, 0, KEYEVENTF_EXTENDEDKEY, 0)
+            ctypes.windll.user32.keybd_event(0xB3, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0)
+            print("[send_to_chrome] Media key sent")
+        except Exception as e:
+            print(f"[send_to_chrome] Error: {e}")
 
 # ------------------------------ Resolver (kept minimal) ------------------------------
 
@@ -687,6 +1079,26 @@ class ControlBar(tk.Tk):
         self._restarting_chrome = False
         self._restart_deadline = 0.0
         self._btn_idx: Dict[str, int] = {}
+        
+        # Cache platform detection to avoid URL lookups on every button press
+        self._cached_platform: Optional[str] = None
+        self._cached_is_plex: bool = False
+        self._cached_ws_url: Optional[str] = None
+        
+        # Early Plex detection from last_watched.json as fallback (before CDP is available)
+        if self.show_title:
+            try:
+                show_key = self.show_title.lower().strip()
+                lw = load_last_watched()
+                if show_key in lw:
+                    saved_url = lw[show_key].get("url", "") if isinstance(lw[show_key], dict) else str(lw[show_key])
+                    if _is_plex_url(saved_url):
+                        self._cached_is_plex = True
+                        log(f"[Init] Detected Plex from last_watched.json for '{self.show_title}'")
+            except Exception as e:
+                log(f"[Init] Error checking last_watched for Plex: {e}")
+        
+        log(f"[Init] _cached_is_plex initial value: {self._cached_is_plex}")
         
         # We need to initialize the row container first since _build_ui uses it
         self.row = None
@@ -731,13 +1143,62 @@ class ControlBar(tk.Tk):
             except Exception:
                 pass
 
-        # One-shot bootstrap: Apply post-navigation keys (x,enter,p,f for Plex, f for fullscreen, etc.)
+        # One-shot bootstrap: Fullscreen browser (if not already in F11 fullscreen), then apply post-navigation keys
         # This runs FIRST, before any focus-stealing mechanisms
         def _bootstrap_once():
             self._automation_in_progress = True
             try:
-                url = self._last_url_hint()
+                # First: Check if Chrome is in TRUE fullscreen (F11 mode - no window frame)
+                print("[Bootstrap] Checking Chrome fullscreen state...")
+                chrome_hwnds = _enum_chrome_windows()
+                if chrome_hwnds:
+                    hwnd = chrome_hwnds[0]
+                    try:
+                        # Check window style - true F11 fullscreen has no border/caption
+                        style = win32gui.GetWindowLong(hwnd, win32con.GWL_STYLE)
+                        has_caption = bool(style & win32con.WS_CAPTION)
+                        has_border = bool(style & win32con.WS_BORDER)
+                        
+                        # True fullscreen (F11) has no caption and no border
+                        is_true_fullscreen = not has_caption and not has_border
+                        print(f"[Bootstrap] Window style: {hex(style)}, Caption: {has_caption}, Border: {has_border}, True F11 Fullscreen: {is_true_fullscreen}")
+                        
+                        if is_true_fullscreen:
+                            print("[Bootstrap] Chrome already in F11 fullscreen, skipping")
+                        else:
+                            # Not in true fullscreen, send F11
+                            print("[Bootstrap] Chrome not in F11 fullscreen, sending F11...")
+                            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+                            ctypes.windll.user32.keybd_event(0x12, 0, 0, 0)  # Alt down
+                            ctypes.windll.user32.keybd_event(0x12, 0, 2, 0)  # Alt up
+                            win32gui.SetForegroundWindow(hwnd)
+                            time.sleep(0.15)
+                            pyautogui.press('f11')
+                            print("[Bootstrap] F11 sent for fullscreen")
+                            time.sleep(0.3)
+                    except Exception as e:
+                        print(f"[Bootstrap] Fullscreen check/F11 failed: {e}")
+                else:
+                    print("[Bootstrap] No Chrome window found")
+                
+                # Then: Apply post-navigation keys (x,enter,p,f for Plex, etc.)
+                # Use retry version ONLY here during bootstrap
+                url = get_active_chrome_url_via_cdp_with_retries()
+                if not url and self.show_title:
+                    lw = load_last_watched().get(self.show_title.lower().strip())
+                    if isinstance(lw, dict):
+                        url = lw.get("url")
+                    elif isinstance(lw, str):
+                        url = lw
+                
+                # Cache the platform for instant button responses
+                log(f"[Bootstrap] URL detected: {url}")
                 prof = get_profile_for_url(url)
+                self._cached_platform = prof.get("name", "Generic")
+                self._cached_is_plex = url and ("plex" in url.lower() or ":32400" in url.lower()) if url else False
+                self._cached_ws_url = cdp_find_ws(url) if url else None
+                log(f"[Bootstrap] Cached platform: {self._cached_platform}, is_plex: {self._cached_is_plex}, url_lower: {url.lower() if url else 'None'}")
+                
                 print(f"[Bootstrap] Applying post_nav for {prof.get('name', 'Unknown')}: {prof.get('post_nav', [])}")
                 self._apply_post_nav(prof)
             except Exception as e:
@@ -1020,47 +1481,122 @@ class ControlBar(tk.Tk):
             self._space_hold_job = self.after(100, _check)
 
     def _on_space_release(self, _evt=None):
+        was_holding = self._space_hold_active
         self._space_pressed = False
+        
         if self._space_hold_job:
             try:
                 self.after_cancel(self._space_hold_job)
             except Exception:
                 pass
             self._space_hold_job = None
-        if self._space_hold_active:
+        
+        # If we were in hold mode, just exit hold mode without scanning
+        if was_holding:
             self._space_hold_active = False
             return
         
+        # Check cooldown before allowing scan
         now = time.time()
         if now - self._last_action_ts < SCAN_DEBOUNCE:
             return
         
+        self._last_action_ts = now  # Update timestamp BEFORE action
         self._scan_forward()
-        # Update timestamp AFTER logic to prevent stacked events if processing is slow
-        self._last_action_ts = time.time()
 
     def _space_hold_tick(self):
         if not self.winfo_exists() or not self._space_pressed:
             self._space_hold_active = False
             return
-        self._scan_backward()
+        
+        # Check cooldown even for auto-scan
+        now = time.time()
+        if now - self._last_action_ts >= SCAN_DEBOUNCE:
+            self._last_action_ts = now
+            self._scan_backward()
+        
         self._space_hold_job = self.after(int(SPACE_HOLD_REPEAT * 1000), self._space_hold_tick)
 
     def _on_return_press(self, _evt=None):
         pass
 
     def _on_return_release(self, _evt=None):
+        # Check cooldown before allowing selection
+        now = time.time()
+        if now - self._last_action_ts < SCAN_DEBOUNCE:
+            return
         self._select_current()
 
     # ---------- Housekeeping ----------
     def _watch_chrome(self):
+        """
+        Chrome watcher - periodically saves the current URL to last_watched.json.
+        This ensures we don't lose our place even if the user watches multiple episodes.
+        """
+        print(f"[WATCH] Started Chrome watcher for show: {self.show_title}")
+        
+        last_saved_url = None
+        save_interval = 30  # Save URL every 30 seconds
+        ticks = 0
+        
         while True:
             time.sleep(POLL_INTERVAL)
             if not self.winfo_exists():
                 break
+            
             running = is_chrome_running()
+            if not running:
+                print("[WATCH] Chrome not running, stopping watcher")
+                break
+                
             if getattr(self, "_restarting_chrome", False):
                 continue
+            
+            ticks += 1
+            
+            # Every 30 seconds (save_interval / POLL_INTERVAL ticks), save the current URL
+            if ticks >= int(save_interval / POLL_INTERVAL) and self.show_title:
+                ticks = 0
+                try:
+                    url = self._grab_current_url_silent()
+                    if url and url != last_saved_url:
+                        if _safe_to_persist(url):
+                            set_last_position(self.show_title, -1, -1, url)
+                            last_saved_url = url
+                            print(f"[WATCH] Auto-saved URL: {url[:60]}...")
+                except Exception as e:
+                    print(f"[WATCH] Error saving URL: {e}")
+
+    def _grab_current_url_silent(self) -> Optional[str]:
+        """
+        Grab the current Chrome URL silently (without stealing focus or disrupting playback).
+        Uses multiple methods in order of preference.
+        """
+        # Method 1: Try CDP first (fastest, no UI interaction)
+        try:
+            import requests
+            r = requests.get("http://127.0.0.1:9222/json", timeout=0.5)
+            if r.ok:
+                for tab in r.json():
+                    if tab.get("type") == "page":
+                        url = tab.get("url", "")
+                        if url and not url.startswith("chrome://") and "localhost" not in url:
+                            if _safe_to_persist(url):
+                                return url
+        except:
+            pass
+        
+        # Method 2: Read from the temp file (updated by server when episode changes via Next/Prev)
+        try:
+            if os.path.exists(CURRENT_URL_FILE):
+                with open(CURRENT_URL_FILE, 'r') as f:
+                    url = f.read().strip()
+                    if url and _safe_to_persist(url):
+                        return url
+        except:
+            pass
+        
+        return None
 
     def _raise_forever(self):
         if not self.winfo_exists():
@@ -1115,22 +1651,260 @@ class ControlBar(tk.Tk):
             pass
         self.after(1500, self._pulse_labels)
 
-    def _send_media_prev_next(self, direction: str) -> bool:
-        # Fallback to global media keys
+    def _send_key_to_chrome(self, key: str, modifiers: list = None) -> bool:
+        """Send a key to Chrome by focusing it and using pyautogui.
+        This is the most reliable method for controlling playback.
+        
+        Args:
+            key: The key to send (e.g., 'space', 'left', 'right')
+            modifiers: Optional list of modifier keys (e.g., ['shift'])
+        """
+        print(f"[_send_key_to_chrome] Sending key='{key}', modifiers={modifiers}, is_plex={self._cached_is_plex}")
         try:
-            vk = 0xB0 if (direction or "").lower() == "next" else 0xB1
-            win32api.keybd_event(vk, 0, 0, 0)
-            win32api.keybd_event(vk, 0, 2, 0)
+            # Find and focus Chrome window
+            chrome_hwnds = _enum_chrome_windows()
+            if not chrome_hwnds:
+                print("[_send_key_to_chrome] No Chrome window found")
+                return False
+            
+            hwnd = chrome_hwnds[0]
+            print(f"[_send_key_to_chrome] Found Chrome hwnd={hwnd}")
+            
+            # Get current foreground window to see if we already have focus
+            current_fg = win32gui.GetForegroundWindow()
+            print(f"[_send_key_to_chrome] Current foreground: {current_fg}, Chrome: {hwnd}")
+            
+            # Focus Chrome window using Alt trick (more reliable)
+            try:
+                ctypes.windll.user32.AllowSetForegroundWindow(-1)
+                # Alt trick to allow focus change
+                ctypes.windll.user32.keybd_event(0x12, 0, 0, 0)  # Alt down
+                ctypes.windll.user32.keybd_event(0x12, 0, 2, 0)  # Alt up
+                win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+                win32gui.SetForegroundWindow(hwnd)
+                print(f"[_send_key_to_chrome] Focused Chrome")
+            except Exception as e:
+                print(f"[_send_key_to_chrome] Focus failed: {e}")
+                return False
+            
+            # Give Plex more time if needed (Plex seems slower to respond)
+            delay = 0.3 if self._cached_is_plex else 0.15
+            print(f"[_send_key_to_chrome] Waiting {delay}s for focus...")
+            time.sleep(delay)
+            
+            # Verify focus switched
+            new_fg = win32gui.GetForegroundWindow()
+            print(f"[_send_key_to_chrome] New foreground: {new_fg}, expected: {hwnd}, match: {new_fg == hwnd}")
+            
+            # Send the key using pyautogui (most reliable)
+            if modifiers:
+                # Use hotkey for key combinations (e.g., shift+left, shift+right)
+                pyautogui.hotkey(*modifiers, key)
+                print(f"[_send_key_to_chrome] Hotkey {modifiers}+{key} sent via pyautogui")
+            else:
+                pyautogui.press(key)
+                print(f"[_send_key_to_chrome] Key '{key}' sent via pyautogui")
+            
             return True
-        except Exception:
+        except Exception as e:
+            print(f"[_send_key_to_chrome] Error: {e}")
             return False
 
+    def _send_media_key_global(self, vk_code: int):
+        """Send a media key globally using SendInput API (more reliable than keybd_event).
+        
+        Args:
+            vk_code: Virtual key code (0xB3=play/pause, 0xB1=prev, 0xB0=next)
+        """
+        try:
+            # Define INPUT structure for SendInput
+            class KEYBDINPUT(ctypes.Structure):
+                _fields_ = [
+                    ("wVk", ctypes.c_ushort),
+                    ("wScan", ctypes.c_ushort),
+                    ("dwFlags", ctypes.c_ulong),
+                    ("time", ctypes.c_ulong),
+                    ("dwExtraInfo", ctypes.POINTER(ctypes.c_ulong))
+                ]
+            
+            class INPUT(ctypes.Structure):
+                _fields_ = [
+                    ("type", ctypes.c_ulong),
+                    ("ki", KEYBDINPUT)
+                ]
+            
+            # Constants
+            INPUT_KEYBOARD = 1
+            KEYEVENTF_EXTENDEDKEY = 0x0001
+            KEYEVENTF_KEYUP = 0x0002
+            
+            # Create key down event
+            ki_down = KEYBDINPUT(
+                wVk=vk_code,
+                wScan=0,
+                dwFlags=KEYEVENTF_EXTENDEDKEY,
+                time=0,
+                dwExtraInfo=ctypes.cast(0, ctypes.POINTER(ctypes.c_ulong))
+            )
+            input_down = INPUT(type=INPUT_KEYBOARD, ki=ki_down)
+            
+            # Create key up event
+            ki_up = KEYBDINPUT(
+                wVk=vk_code,
+                wScan=0,
+                dwFlags=KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
+                time=0,
+                dwExtraInfo=ctypes.cast(0, ctypes.POINTER(ctypes.c_ulong))
+            )
+            input_up = INPUT(type=INPUT_KEYBOARD, ki=ki_up)
+            
+            # Send both events
+            inputs = (INPUT * 2)(input_down, input_up)
+            result = ctypes.windll.user32.SendInput(2, ctypes.pointer(inputs), ctypes.sizeof(INPUT))
+            print(f"[_send_media_key_global] SendInput result: {result} (expected 2)")
+            
+            if result != 2:
+                print(f"[_send_media_key_global] WARNING: SendInput returned {result}, expected 2")
+            
+        except Exception as e:
+            print(f"[_send_media_key_global] Error: {e}")
+
+    def _focus_chrome_and_send_media_key(self, vk_code: int) -> bool:
+        """Focus Chrome window and send a media key.
+        
+        Args:
+            vk_code: Virtual key code (e.g., 0xB3 for play/pause)
+        """
+        try:
+            # Find and focus Chrome window
+            chrome_hwnds = _enum_chrome_windows()
+            if not chrome_hwnds:
+                print("[MediaKey] No Chrome window found")
+                return False
+            
+            hwnd = chrome_hwnds[0]
+            
+            # Focus Chrome window
+            try:
+                ctypes.windll.user32.AllowSetForegroundWindow(-1)
+                win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+                win32gui.SetForegroundWindow(hwnd)
+            except Exception as e:
+                print(f"[MediaKey] Focus failed: {e}")
+                return False
+            
+            # Brief pause to ensure focus
+            time.sleep(0.05)
+            
+            # Send the media key
+            win32api.keybd_event(vk_code, 0, 0, 0)
+            win32api.keybd_event(vk_code, 0, 2, 0)
+            
+            return True
+        except Exception as e:
+            print(f"[MediaKey] Error: {e}")
+            return False
+
+    def _is_plex_now(self) -> bool:
+        """
+        Check if we're currently on Plex using multiple methods.
+        Returns True if any method indicates Plex.
+        This is a fallback check in case _cached_is_plex didn't get set properly.
+        """
+        # 1. Check cached value (fastest)
+        if self._cached_is_plex:
+            return True
+        
+        # 2. Check Chrome window title for "Plex"
+        try:
+            def check_title(hwnd, titles):
+                if win32gui.IsWindowVisible(hwnd):
+                    cls = win32gui.GetClassName(hwnd)
+                    if cls == "Chrome_WidgetWin_1":
+                        title = win32gui.GetWindowText(hwnd)
+                        if title:
+                            titles.append(title.lower())
+                return True
+            
+            titles = []
+            win32gui.EnumWindows(check_title, titles)
+            if any("plex" in t for t in titles):
+                log("[_is_plex_now] Detected Plex from Chrome window title")
+                self._cached_is_plex = True  # Update cache
+                return True
+        except Exception as e:
+            log(f"[_is_plex_now] Error checking window title: {e}")
+        
+        # 3. Check last_watched.json for this show
+        if self.show_title:
+            try:
+                show_key = self.show_title.lower().strip()
+                lw = load_last_watched()
+                if show_key in lw:
+                    saved_url = lw[show_key].get("url", "") if isinstance(lw[show_key], dict) else str(lw[show_key])
+                    if _is_plex_url(saved_url):
+                        log(f"[_is_plex_now] Detected Plex from last_watched for '{self.show_title}'")
+                        self._cached_is_plex = True  # Update cache
+                        return True
+            except Exception as e:
+                log(f"[_is_plex_now] Error checking last_watched: {e}")
+        
+        return False
+
     def on_prev(self):
-        self._send_media_prev_next("previous")
+        """Previous: Plex uses media key for prev episode, others use left arrow to skip back 10s."""
+        is_plex = self._is_plex_now()
+        log(f"[on_prev] called. is_plex={is_plex}")
+        try:
+            if is_plex:
+                # Plex: Focus Plex Chrome first, then send media key
+                log("[on_prev] Plex - focusing Plex Chrome before media key")
+                focused = focus_plex_chrome()
+                log(f"[on_prev] Plex Chrome focus result: {focused}")
+                time.sleep(0.15)
+                log("[on_prev] Plex - Sending VK_MEDIA_PREV_TRACK (0xB1)")
+                win32api.keybd_event(0xB1, 0, 0, 0)
+                win32api.keybd_event(0xB1, 0, 2, 0)
+                log("[on_prev] Media key sent")
+            else:
+                # Other platforms: Focus Chrome and send left arrow to skip back 10s
+                log("[on_prev] Non-Plex - Focusing Chrome and sending Left Arrow")
+                if focus_chrome_window():
+                    time.sleep(0.1)
+                    pyautogui.press('left')
+                    log("[on_prev] Left arrow sent via pyautogui")
+                else:
+                    log("[on_prev] Could not focus Chrome")
+        except Exception as e:
+            log(f"[on_prev] Error: {e}")
         self._refocus_for(1.0)
 
     def on_next(self):
-        self._send_media_prev_next("next")
+        """Next: Plex uses media key for next episode, others use right arrow to skip forward 10s."""
+        is_plex = self._is_plex_now()
+        log(f"[on_next] called. is_plex={is_plex}")
+        try:
+            if is_plex:
+                # Plex: Focus Plex Chrome first, then send media key
+                log("[on_next] Plex - focusing Plex Chrome before media key")
+                focused = focus_plex_chrome()
+                log(f"[on_next] Plex Chrome focus result: {focused}")
+                time.sleep(0.15)
+                log("[on_next] Plex - Sending VK_MEDIA_NEXT_TRACK (0xB0)")
+                win32api.keybd_event(0xB0, 0, 0, 0)
+                win32api.keybd_event(0xB0, 0, 2, 0)
+                log("[on_next] Media key sent")
+            else:
+                # Other platforms: Focus Chrome and send right arrow to skip forward 10s
+                log("[on_next] Non-Plex - Focusing Chrome and sending Right Arrow")
+                if focus_chrome_window():
+                    time.sleep(0.1)
+                    pyautogui.press('right')
+                    log("[on_next] Right arrow sent via pyautogui")
+                else:
+                    log("[on_next] Could not focus Chrome")
+        except Exception as e:
+            log(f"[on_next] Error: {e}")
         self._refocus_for(1.0)
 
     def _refresh_buttons(self):
@@ -1141,22 +1915,20 @@ class ControlBar(tk.Tk):
 
     def on_toggle_menu_comm(self):
         self.menu_state = "comm"
-        # Pause playback explicitly
-        ws = cdp_find_ws(self._last_url_hint())
-        if ws:
+        # Pause playback using cached websocket or media key - instant
+        if self._cached_ws_url:
             try:
-                # Force pause
                 js = "(() => { const v = document.querySelector('video'); if (v && !v.paused) { v.pause(); } })();"
-                cdp_runtime_eval(ws, js)
+                cdp_runtime_eval(self._cached_ws_url, js)
             except Exception:
                 pass
         else:
-            # Fallback toggle if no CDP (assume it was playing)
-            # on_play_pause toggle logic is complex, let's just trigger play/pause key
+            # Use media key for pause
             try:
-                 win32api.keybd_event(0xB3, 0, 0, 0) # VK_MEDIA_PLAY_PAUSE
+                 win32api.keybd_event(0xB3, 0, 0, 0)  # VK_MEDIA_PLAY_PAUSE
                  win32api.keybd_event(0xB3, 0, 2, 0)
-            except: pass
+            except:
+                pass
 
         self._refresh_buttons()
 
@@ -1213,52 +1985,99 @@ class ControlBar(tk.Tk):
     def _write_nav_signal(self, signal_data: dict):
         """Write navigation signal for Electron hub to pick up."""
         try:
-            # Path: streaming/utils -> streaming -> tools -> apps -> bennyshub
-            nav_file = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "nav_signal.json")
-            nav_file = os.path.abspath(nav_file)
-            signal_data["timestamp"] = time.time()
-            
+            # Get absolute path to bennyshub folder (this file is in bennyshub/apps/tools/streaming/utils/)
+            # Go up 4 levels: utils -> streaming -> tools -> apps -> bennyshub
+            current_file = os.path.abspath(__file__)
+            bennyshub_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_file)))))
+            nav_file = os.path.join(bennyshub_dir, "nav_signal.json")
+
+            # Only stamp a timestamp if the caller hasn't already fixed one
+            # (_write_nav_signal_repeated reuses a single timestamp across
+            # retries so Electron's dedup treats them as the same event).
+            signal_data.setdefault("timestamp", time.time())
+
             with open(nav_file, 'w') as f:
                 json.dump(signal_data, f)
-            
-            print(f"[CONTROL-BAR] Navigation signal written: {signal_data}")
+
+            print(f"[CONTROL-BAR] Navigation signal written to {nav_file}: {signal_data}")
         except Exception as e:
             print(f"[CONTROL-BAR] Error writing nav signal: {e}")
+
+    def _write_nav_signal_repeated(self, signal_data: dict, attempts: int = 3, interval: float = 0.35):
+        """Write the nav signal several times, reusing one timestamp.
+
+        This project's folder lives inside a live-synced OneDrive folder, and
+        Electron's watcher only reads the file on a 300ms poll with no retry
+        of its own - a single transient read miss (e.g. sync I/O touching the
+        file) leaves the hub stuck showing whatever was on screen. Repeating
+        the write gives the watcher several clean chances to catch it.
+
+        The timestamp is fixed once up front (not regenerated per attempt) so
+        Electron's `signal.timestamp > lastNavTimestamp` dedup only acts on it
+        once - otherwise every retry looks like a brand-new signal and each
+        one re-triggers mainWindow.focus()/setFullScreen(), which desyncs OS
+        keyboard focus from the renderer (spacebar/enter stop working).
+        """
+        signal_data = dict(signal_data)
+        signal_data["timestamp"] = time.time()
+        for i in range(attempts):
+            self._write_nav_signal(dict(signal_data))
+            if i < attempts - 1:
+                time.sleep(interval)
 
     def on_open_keyboard(self):
         """Close Chrome and navigate the Electron hub to the keyboard app."""
         try:
+            # Save URL before closing (same as exit button)
+            self._save_url_before_close("keyboard")
+            
             self.withdraw()
             # Close Chrome browser
             _kill_chrome_gracefully()
             time.sleep(0.3)
-            
-            # Write navigation signal for keyboard
-            self._write_nav_signal({
+
+            # Write navigation signal for keyboard (repeated - see
+            # _write_nav_signal_repeated for why a single write isn't reliable)
+            self._write_nav_signal_repeated({
                 "target": "keyboard",
                 "path": "apps/tools/keyboard/index.html",
                 "title": "Keyboard"
             })
-            
+
+            # Aggressively focus the Electron app
+            self._force_focus_electron_app()
+
         except Exception as e:
             print(f"Error navigating to keyboard: {e}")
-        
+
         os._exit(0)
 
     def on_open_messenger(self):
-        """Close Chrome and navigate the Electron hub to the in-iframe messenger."""
+        """Close Chrome and navigate the Electron hub to the messenger app.
+
+        The messenger now runs as an iframe tool inside the hub (backend.py +
+        index.html/app.js), the same as every other tool — there's no separate
+        ben_discord_app.py process to launch anymore. Same nav-signal pattern
+        as on_open_keyboard."""
         try:
+            # Save URL before closing (same as exit button)
+            self._save_url_before_close("messenger")
+
             self.withdraw()
             # Close Chrome browser
             _kill_chrome_gracefully()
             time.sleep(0.3)
 
-            # Write navigation signal for messenger
-            self._write_nav_signal({
+            # Write navigation signal for messenger (repeated - see
+            # _write_nav_signal_repeated for why a single write isn't reliable)
+            self._write_nav_signal_repeated({
                 "target": "messenger",
                 "path": "apps/tools/messenger/index.html",
                 "title": "Messenger"
             })
+
+            # Aggressively focus the Electron app
+            self._force_focus_electron_app()
 
         except Exception as e:
             print(f"Error navigating to messenger: {e}")
@@ -1268,25 +2087,120 @@ class ControlBar(tk.Tk):
     def on_close_all(self):
         """Close Chrome and return to the Electron hub main menu."""
         try:
+            # Save URL before closing (same as exit button)
+            self._save_url_before_close("close_all")
+            
             self.withdraw()
             # Close Chrome browser
             _kill_chrome_gracefully()
             time.sleep(0.3)
-            
-            # Write navigation signal to return to main menu
-            self._write_nav_signal({
+
+            # Write navigation signal to return to main menu (repeated - see
+            # _write_nav_signal_repeated for why a single write isn't reliable)
+            self._write_nav_signal_repeated({
                 "action": "close",
                 "target": "menu"
             })
-            
+
             # Aggressively focus the Electron app
-            time.sleep(0.2)
             self._force_focus_electron_app()
-            
+
         except Exception as e:
             print(f"Error closing: {e}")
-        
+
         os._exit(0)
+    
+    def _save_url_before_close(self, source="unknown"):
+        """Save the current URL before closing Chrome (shared logic for exit/keyboard/messenger/close_all)."""
+        log(f"[{source}] Saving URL, show_title={self.show_title}")
+        
+        # Check if this is Plex content by looking at last_watched.json
+        is_plex = False
+        if self.show_title:
+            try:
+                show_key = self.show_title.lower().strip()
+                lw = load_last_watched()
+                if show_key in lw:
+                    saved_url = lw[show_key].get("url", "") if isinstance(lw[show_key], dict) else str(lw[show_key])
+                    is_plex = "plex" in saved_url.lower()
+            except:
+                pass
+        
+        if is_plex:
+            log(f"[{source}] Plex content - skipping URL grab")
+            return
+        
+        if not self.show_title:
+            log(f"[{source}] No show title - skipping URL grab")
+            return
+        
+        # Non-Plex content - try to grab URL using multiple methods
+        log(f"[{source}] Non-Plex content - grabbing URL...")
+        url = None
+        
+        # Method 1: Try CDP first (fastest, no UI disruption)
+        try:
+            url = self._grab_current_url_silent()
+            if url:
+                log(f"[{source}] Got URL via CDP/file: {url[:60]}...")
+        except Exception as e:
+            log(f"[{source}] CDP method failed: {e}")
+        
+        # Method 2: If CDP failed, try clipboard method
+        if not url:
+            try:
+                url = get_chrome_url_via_clipboard()
+                if url:
+                    log(f"[{source}] Got URL via clipboard: {url[:60]}...")
+            except Exception as e:
+                log(f"[{source}] Clipboard method failed: {e}")
+        
+        # Method 3: If still no URL, try reading from current_url.txt file
+        if not url:
+            try:
+                url = get_current_url_from_file()
+                if url:
+                    log(f"[{source}] Got URL from file: {url[:60]}...")
+            except Exception as e:
+                log(f"[{source}] File method failed: {e}")
+        
+        log(f"[{source}] Final URL: {url}")
+        if url:
+            is_safe = _safe_to_persist(url)
+            log(f"[{source}] URL safe to persist: {is_safe}")
+            if is_safe:
+                # DIRECT FILE WRITE - bypass helper function to ensure it works
+                try:
+                    show_key = self.show_title.lower().strip()
+                    data = {}
+                    if os.path.exists(LAST_WATCHED_FILE):
+                        with open(LAST_WATCHED_FILE, 'r') as f:
+                            data = json.load(f)
+                    
+                    # Remove old entry so new one goes to end
+                    if show_key in data:
+                        del data[show_key]
+                    
+                    data[show_key] = {
+                        "season": -1,
+                        "episode": -1,
+                        "url": url,
+                        "timestamp": int(time.time() * 1000)
+                    }
+                    
+                    os.makedirs(os.path.dirname(LAST_WATCHED_FILE), exist_ok=True)
+                    with open(LAST_WATCHED_FILE, 'w') as f:
+                        json.dump(data, f, indent=2)
+                    
+                    log(f"[{source}] ✓ SAVED: {show_key} → {url[:60]}...")
+                except Exception as write_err:
+                    log(f"[{source}] Direct write failed: {write_err}")
+                    # Try the helper as backup
+                    set_last_position(self.show_title, -1, -1, url)
+            else:
+                log(f"[{source}] URL not in allowed list: {url}")
+        else:
+            log(f"[{source}] Could not get URL from any method")
 
     def _force_focus_electron_app(self):
         """Aggressively bring Electron app to foreground."""
@@ -1298,7 +2212,7 @@ class ControlBar(tk.Tk):
                 try:
                     if win32gui.IsWindowVisible(hwnd):
                         title = win32gui.GetWindowText(hwnd) or ""
-                        if "Benny" in title or "Hub" in title:
+                        if "Benny's Access Hub" in title or "NARBE" in title:
                             target_hwnd = hwnd
                 except Exception:
                     pass
@@ -1350,60 +2264,81 @@ class ControlBar(tk.Tk):
             print(f"Error focusing Electron app: {e}")
 
     def on_play_pause(self):
-        if not self._activated_once:
-            self._activated_once = True
-            did = False
-            ws = cdp_find_ws(self._last_url_hint())
-            if ws:
-                did = cdp_click_center(ws)
-                cdp_ensure_play_and_fullscreen(ws)
+        """Toggle play/pause - Media key for Plex (after focusing), spacebar for others."""
+        is_plex = self._is_plex_now()
+        log(f"[on_play_pause] called. is_plex={is_plex}")
+        try:
+            if is_plex:
+                # Plex: Focus Plex Chrome first, then send media key
+                log("[on_play_pause] Plex - focusing Plex Chrome before media key")
+                focused = focus_plex_chrome()
+                log(f"[on_play_pause] Plex Chrome focus result: {focused}")
+                time.sleep(0.15)
+                log("[on_play_pause] Plex - sending VK_MEDIA_PLAY_PAUSE (0xB3)")
+                win32api.keybd_event(0xB3, 0, 0, 0)
+                win32api.keybd_event(0xB3, 0, 2, 0)
+                log("[on_play_pause] Media key sent")
             else:
-                try:
-                    sw, sh = pyautogui.size()
-                    pyautogui.click(sw // 2, sh // 2)
-                    did = True
-                except Exception:
-                    pass
-            self._refocus_bar()
-            if did:
-                return
-        ws = cdp_find_ws(self._last_url_hint())
-        ok = cdp_toggle_play(ws)
-        if not ok:
-            send_to_chrome([" "])
-        self._refocus_bar()
+                # Non-Plex: Focus Chrome and send spacebar
+                log("[on_play_pause] Non-Plex - focusing Chrome and sending spacebar")
+                focused = focus_chrome_window()
+                log(f"[on_play_pause] Chrome focus result: {focused}")
+                if focused:
+                    time.sleep(0.15)
+                    pyautogui.press('space')
+                    log("[on_play_pause] Spacebar sent")
+                else:
+                    log("[on_play_pause] Could not focus Chrome")
+        except Exception as e:
+            log(f"[on_play_pause] Error: {e}")
+        self._refocus_for(1.0)
+    
+    def _last_url_hint(self) -> Optional[str]:
+        """Get URL hint for CDP - checks active Chrome URL first, then last_watched."""
+        url = get_active_chrome_url_via_cdp()
+        if url:
+            return url
+        if not self.show_title:
+            return None
+        lw = load_last_watched().get(self.show_title.lower().strip() if self.show_title else "")
+        if isinstance(lw, str):
+            return lw
+        if isinstance(lw, dict):
+            return lw.get("url")
+        return None
 
     def on_volume_up(self):
-        ws = cdp_find_ws(self._last_url_hint())
-        if not cdp_adjust_volume(ws, 0.1):
-            try:
-                for _ in range(5):
-                    win32api.keybd_event(0xAF, 0, 0, 0)
-                    win32api.keybd_event(0xAF, 0, 2, 0)
-            except Exception:
-                pass
-        self._refocus_bar()
+        """Increase volume - INSTANT response."""
+        try:
+            win32api.keybd_event(0xAF, 0, 0, 0)  # VK_VOLUME_UP
+            win32api.keybd_event(0xAF, 0, 2, 0)
+            win32api.keybd_event(0xAF, 0, 0, 0)
+            win32api.keybd_event(0xAF, 0, 2, 0)
+        except Exception:
+            pass
+        self.after(20, self._refocus_bar)
 
     def on_volume_down(self):
-        ws = cdp_find_ws(self._last_url_hint())
-        if not cdp_adjust_volume(ws, -0.1):
-            try:
-                for _ in range(5):
-                    win32api.keybd_event(0xAE, 0, 0, 0)
-                    win32api.keybd_event(0xAE, 0, 2, 0)
-            except Exception:
-                pass
-        self._refocus_bar()
+        """Decrease volume - INSTANT response."""
+        try:
+            win32api.keybd_event(0xAE, 0, 0, 0)  # VK_VOLUME_DOWN
+            win32api.keybd_event(0xAE, 0, 2, 0)
+            win32api.keybd_event(0xAE, 0, 0, 0)
+            win32api.keybd_event(0xAE, 0, 2, 0)
+        except Exception:
+            pass
+        self.after(20, self._refocus_bar)
 
     def on_fullscreen_toggle(self):
-        ws = cdp_find_ws(self._last_url_hint())
+        # Use cached websocket for instant response
+        ws = self._cached_ws_url
         done = False
         if ws and websocket:
             try:
-                w = websocket.create_connection(ws, timeout=0.8)
+                w = websocket.create_connection(ws, timeout=0.15)
                 try:
-                    _cdp_send(w, "Input.dispatchKeyEvent", {"type": "keyDown", "key": "f", "code": "KeyF", "windowsVirtualKeyCode": 0x46, "keyCode": 0x46})
-                    _cdp_send(w, "Input.dispatchKeyEvent", {"type": "keyUp", "key": "f", "code": "KeyF", "windowsVirtualKeyCode": 0x46, "keyCode": 0x46})
+                    _cdp_send(w, "Input.dispatchKeyEvent", {"type": "keyDown", "key": "f", "code": "KeyF", "windowsVirtualKeyCode": 0x46, "keyCode": 0x46}, 1, 0.1)
+                    _cdp_send(w, "Input.dispatchKeyEvent", {"type": "keyUp", "key": "f", "code": "KeyF", "windowsVirtualKeyCode": 0x46, "keyCode": 0x46}, 2, 0.1)
                     done = True
                 finally:
                     try: w.close()
@@ -1411,52 +2346,83 @@ class ControlBar(tk.Tk):
             except Exception:
                 done = False
         if not done:
-            if focus_chrome_window():
-                try:
-                    win32api.keybd_event(0x46, 0, 0, 0)
-                    win32api.keybd_event(0x46, 0, 2, 0)
-                except Exception:
-                    pass
-        self._refocus_bar()
+            # Fallback to keyboard - send F11 for browser fullscreen
+            try:
+                win32api.keybd_event(0x7A, 0, 0, 0)  # VK_F11
+                win32api.keybd_event(0x7A, 0, 2, 0)
+            except Exception:
+                pass
+        self.after(20, self._refocus_bar)
 
     def on_mute_toggle(self):
         pass
 
     def on_exit(self):
-        # 1. Hide the control bar immediately
+        # Save URL before closing (shared logic)
+        self._save_url_before_close("Exit")
+
+        # 1. Hide the control bar
         try:
             self.withdraw()
             self.update_idletasks()
         except Exception:
             pass
 
-        # 2. Close ALL Chrome windows - just kill them all
+        # 2. Close Chrome windows
         try:
-            print("[Exit] Closing all Chrome windows...")
             _kill_chrome_gracefully()
-        except Exception as e:
-            print(f"[Exit] Error closing Chrome: {e}")
-        
-        # 3. Focus the Electron app
-        time.sleep(0.3)
+        except Exception:
+            pass
+
+        # 3. Send a signal that only makes Electron restore/focus/fullscreen
+        # itself - Exit must land back on whatever the streaming iframe was
+        # already showing (recently-watched/catalog), NOT the hub home menu.
+        # "focus_home" intentionally matches none of the action/target/path
+        # branches handleNavSignal() checks for in index.html, so the iframe
+        # is left untouched; only Close All should use {"action": "close"}.
+        try:
+            self._write_nav_signal_repeated({
+                "action": "focus_home"
+            })
+        except Exception:
+            pass
+
+        # 4. Focus Electron
         try:
             self._force_focus_electron_app()
-        except Exception as e:
-            print(f"[Exit] Error focusing Electron: {e}")
-            
-        # 4. Hard exit the control bar
+        except Exception:
+            pass
+
+        # 5. Exit
         os._exit(0)
 
     def _apply_post_nav(self, prof: PlatformProfile) -> bool:
-        """Apply post-navigation keys for platform (e.g., x,enter,p,f for Plex, f for YouTube)."""
+        """Apply post-navigation keys for platform (e.g., x,enter,p,f for Plex, f for YouTube).
+        
+        For keyboard-preferred platforms (Disney+, Netflix, etc.), these services auto-play
+        and auto-fullscreen, so we skip the CDP automation and post_nav keys to avoid
+        accidentally pausing the video.
+        """
+        # Check if this platform prefers keyboard and has no post_nav keys
+        # These platforms (Disney+, Netflix, etc.) auto-play and auto-fullscreen
+        post_nav_keys = prof.get("post_nav") or []
+        if prof.get("use_keyboard", False) and not post_nav_keys:
+            print(f"[PostNav] Skipping for {prof.get('name', 'Unknown')} - auto-plays, no post_nav needed")
+            return True
+        
+        # For platforms that need CDP automation (Plex, YouTube)
         ok = False
-        ws = cdp_find_ws(self._last_url_hint())
-        if ws:
+        ws = self._cached_ws_url  # Use cached websocket
+        if ws and not prof.get("use_keyboard", False):
             try:
                 ok = cdp_ensure_play_and_fullscreen(ws)
             except Exception:
                 ok = False
         if ok:
+            return True
+        
+        # If no post_nav keys to send, we're done
+        if not post_nav_keys:
             return True
 
         played_fullscreen = False
@@ -1487,7 +2453,6 @@ class ControlBar(tk.Tk):
                     return None
 
                 # Send post_nav keys with proper delays (1 second for Plex sequence)
-                post_nav_keys = prof.get("post_nav") or []
                 platform_name = prof.get("name", "").lower()
                 
                 # Use longer delays for Plex (x, enter, p, f needs time between each)
@@ -1514,19 +2479,20 @@ class ControlBar(tk.Tk):
         return played_fullscreen
 
     def _ensure_fullscreen_once(self, prof: PlatformProfile):
+        # Use cached websocket for instant response
         try:
-            ws = cdp_find_ws(self._last_url_hint())
+            ws = self._cached_ws_url
             if ws:
                 cdp_ensure_play_and_fullscreen(ws)
                 return
         except Exception:
             pass
-        if focus_chrome_window():
-            try:
-                win32api.keybd_event(0x46, 0, 0, 0)
-                win32api.keybd_event(0x46, 0, 2, 0)
-            except Exception:
-                pass
+        # Fallback: send F11
+        try:
+            win32api.keybd_event(0x7A, 0, 0, 0)  # VK_F11
+            win32api.keybd_event(0x7A, 0, 2, 0)
+        except Exception:
+            pass
         self._refocus_bar()
 
     def _refocus_for(self, seconds: float):
@@ -1551,14 +2517,20 @@ def main():
     ap.add_argument("--delay", type=float, default=0.0, help="Seconds to wait before showing the bar")
     args = ap.parse_args()
 
+    log(f"[MAIN] Control bar starting with args: mode={args.mode}, show={args.show}, delay={args.delay}")
+
     if args.delay > 0:
+        log(f"[MAIN] Waiting {args.delay} seconds before showing bar...")
         time.sleep(args.delay)
 
     if args.app_title:
         APP_TITLE_MAIN = args.app_title
 
+    log(f"[MAIN] Creating ControlBar for show: {args.show}")
     app = ControlBar(args.mode, args.show)
+    log("[MAIN] Starting mainloop...")
     app.mainloop()
+    log("[MAIN] Mainloop ended")
 
 
 if __name__ == "__main__":

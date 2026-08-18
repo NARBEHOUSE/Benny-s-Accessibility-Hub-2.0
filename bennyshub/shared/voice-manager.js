@@ -149,9 +149,19 @@ window.NarbeVoiceManager = (function() {
         englishVoices = [availableVoices[0]];
       }
 
-      // Restore voice by name if possible, otherwise validate index
+      // Restore voice by name — try exact match first, then fuzzy on the first
+      // word after "Microsoft" so "Microsoft George" matches "Microsoft George Desktop - English (United Kingdom)".
       if (settings.voiceName) {
-        const savedVoiceIndex = englishVoices.findIndex(voice => voice.name === settings.voiceName);
+        let savedVoiceIndex = englishVoices.findIndex(voice => voice.name === settings.voiceName);
+        if (savedVoiceIndex < 0) {
+          const m = settings.voiceName.match(/microsoft\s+(\w+)/i);
+          const partial = m ? m[1].toLowerCase() : '';
+          if (partial) {
+            savedVoiceIndex = englishVoices.findIndex(voice =>
+              voice.name.toLowerCase().includes(partial)
+            );
+          }
+        }
         if (savedVoiceIndex >= 0) {
           settings.voiceIndex = savedVoiceIndex;
           console.log(`NarbeVoiceManager: Restored voice "${settings.voiceName}" at index ${savedVoiceIndex}`);

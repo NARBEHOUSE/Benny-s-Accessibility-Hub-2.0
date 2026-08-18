@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NARBE Phrase & Media Board</title>
+  <script src="../../../shared/electron-bridge.js"></script>
   <style>
     :root {
       --brand: #5bb0ff;
@@ -28,6 +29,26 @@
     [data-theme="dark"] {
       --brand: #2d3748;
       --bg: #1a202c;
+      --card: #2d3748;
+      --text: #ffffff;
+      --border: #4a5568;
+      --muted-red: #9b4d4d;
+      --muted-blue: #4a6fa5;
+      --muted-green: #4a7c5f;
+      --muted-yellow: #a89d5a;
+    }
+    
+    /* Ensure colored buttons have white text in dark mode */
+    [data-theme="dark"] .grid-button {
+      color: #ffffff;
+    }
+    
+    [data-theme="dark"] .grid-button:hover {
+      background: #3d4a5c;
+    }
+    
+    [data-theme="dark"] .sentence-display {
+      color: #ffffff;
     }
     
     /* Blue theme */
@@ -563,13 +584,18 @@
       modalScanIndex: 0,
       modalButtons: [],
       pendingAction: null,
+      modalSpacePressed: false,
+      modalSpaceStartTime: 0,
+      modalEnterPressed: false,
       lastKeyPressTime: 0,
-      debounceDelay: 500,
+      debounceDelay: window.NarbeScanManager ? window.NarbeScanManager.getSettings().inputSensitivity : 200,
       returnActionExecuted: false,
       playerKind: 'unknown',
       isPlaylist: false,
       videoModalActive: false,
-      userScanPreference: 'row' // 'row' or 'cell'
+      userScanPreference: 'row', // 'row' or 'cell'
+      ttsBlockInput: false, // Block scan input while TTS is speaking a phrase
+      ttsBlockTimer: null // Timer for post-TTS input delay
     };
 
     // Expose state globally for header title updater
@@ -728,6 +754,9 @@ function updateHeaderForCurrentView(){
       state.modalButtons = [];
       state.pendingAction = null;
       state.modalScanIndex = -1;
+      state.modalSpacePressed = false;
+      state.modalSpaceStartTime = 0;
+      state.modalEnterPressed = false;
     }
 
     function highlightModalButton() {
@@ -742,6 +771,13 @@ function updateHeaderForCurrentView(){
       if (!state.modalActive || state.modalButtons.length === 0) return;
       if (state.modalScanIndex === -1) state.modalScanIndex = 0;
       else state.modalScanIndex = (state.modalScanIndex + 1) % state.modalButtons.length;
+      highlightModalButton();
+    }
+
+    function scanModalBackward() {
+      if (!state.modalActive || state.modalButtons.length === 0) return;
+      if (state.modalScanIndex === -1) state.modalScanIndex = state.modalButtons.length - 1;
+      else state.modalScanIndex = (state.modalScanIndex - 1 + state.modalButtons.length) % state.modalButtons.length;
       highlightModalButton();
     }
 
@@ -770,9 +806,35 @@ function updateHeaderForCurrentView(){
       });
     }
 
-    function speak(text, isChild = false, gender = null, specificVoiceIndex = null) {
+    function speak(text, isChild = false, gender = null, specificVoiceIndex = null, blockInput = false) {
       const voiceSettings = window.NarbeVoiceManager.getSettings();
       if (!voiceSettings.ttsEnabled || !text) return;
+      
+      // Helper to set up input blocking with onend callback
+      function setupInputBlocking(utterance) {
+        if (blockInput) {
+          // Clear any existing timer
+          if (state.ttsBlockTimer) {
+            clearTimeout(state.ttsBlockTimer);
+            state.ttsBlockTimer = null;
+          }
+          state.ttsBlockInput = true;
+          utterance.onend = () => {
+            // Add 1 second delay after TTS finishes before allowing input
+            state.ttsBlockTimer = setTimeout(() => {
+              state.ttsBlockInput = false;
+              state.ttsBlockTimer = null;
+            }, 1000);
+          };
+          utterance.onerror = () => {
+            // Also unblock on error
+            state.ttsBlockTimer = setTimeout(() => {
+              state.ttsBlockInput = false;
+              state.ttsBlockTimer = null;
+            }, 1000);
+          };
+        }
+      }
       
       if (specificVoiceIndex !== null) {
         const voices = window.NarbeVoiceManager.getEnglishVoices();
@@ -780,6 +842,7 @@ function updateHeaderForCurrentView(){
           window.NarbeVoiceManager.cancel();
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.voice = voices[specificVoiceIndex];
+          setupInputBlocking(utterance);
           window.speechSynthesis.speak(utterance);
           return;
         }
@@ -791,8 +854,38 @@ function updateHeaderForCurrentView(){
         utterance.voice = state.childVoices[gender];
         utterance.pitch = gender === 'girl' ? 1.8 : 1.6;
         utterance.rate = 1.3;
+        setupInputBlocking(utterance);
         window.speechSynthesis.speak(utterance);
       } else {
+        // For NarbeVoiceManager.speak, we need to handle blocking differently
+        if (blockInput) {
+          if (state.ttsBlockTimer) {
+            clearTimeout(state.ttsBlockTimer);
+            state.ttsBlockTimer = null;
+          }
+          state.ttsBlockInput = true;
+          // Use speechSynthesis events since NarbeVoiceManager uses it internally
+          const checkSpeaking = setInterval(() => {
+            if (!window.speechSynthesis.speaking) {
+              clearInterval(checkSpeaking);
+              state.ttsBlockTimer = setTimeout(() => {
+                state.ttsBlockInput = false;
+                state.ttsBlockTimer = null;
+              }, 1000);
+            }
+          }, 100);
+          // Failsafe: unblock after 10 seconds max
+          setTimeout(() => {
+            clearInterval(checkSpeaking);
+            if (state.ttsBlockInput) {
+              state.ttsBlockInput = false;
+              if (state.ttsBlockTimer) {
+                clearTimeout(state.ttsBlockTimer);
+                state.ttsBlockTimer = null;
+              }
+            }
+          }, 10000);
+        }
         window.NarbeVoiceManager.speak(text);
       }
     }
@@ -1018,7 +1111,35 @@ function updateHeaderForCurrentView(){
         { text: 'Scan Settings', icon: '🎯', action: () => navigateTo('scan') },
         { text: 'Highlight Colors', icon: '🎨', action: () => navigateTo('highlight') },
         { text: 'Theme', icon: '🌈', action: () => navigateTo('theme') },
-        { text: 'Toggle Sentence', icon: '💬', action: () => { toggleSentenceMode(); renderSettingsMenu(true); }, className: state.sentenceMode ? 'active-green' : '' }
+        { text: 'Toggle Sentence', icon: '💬', action: () => { toggleSentenceMode(); renderSettingsMenu(true); }, className: state.sentenceMode ? 'active-green' : '' },
+        { text: 'Volume Up', icon: '🔈', action: async () => { 
+          const isElectron = typeof window !== 'undefined' && window.electronAPI;
+          if (isElectron && window.electronAPI.system) {
+            try {
+              await window.electronAPI.system.volumeUp();
+              speak('Volume increased');
+            } catch (err) {
+              console.error('Volume up error:', err);
+              speak('Error changing volume');
+            }
+          } else {
+            speak('Volume control not available');
+          }
+        }},
+        { text: 'Volume Down', icon: '🔉', action: async () => { 
+          const isElectron = typeof window !== 'undefined' && window.electronAPI;
+          if (isElectron && window.electronAPI.system) {
+            try {
+              await window.electronAPI.system.volumeDown();
+              speak('Volume decreased');
+            } catch (err) {
+              console.error('Volume down error:', err);
+              speak('Error changing volume');
+            }
+          } else {
+            speak('Volume control not available');
+          }
+        }}
       ];
       
       const availableSlots = totalSlots - 1; // Reserve one slot for back/next button
@@ -1091,7 +1212,7 @@ function updateHeaderForCurrentView(){
         const btn = createButton(`${size}×${size}`, '⊞', () => { 
           setGridSize(size, size); 
           speak(`Grid size ${size} by ${size} selected`);
-          navigateBack(); 
+          renderGridSizeMenu(true); 
         });
         if (state.gridSize.rows === size && state.gridSize.cols === size) btn.classList.add('active-green');
         el.mainGrid.appendChild(btn);
@@ -1674,7 +1795,7 @@ function updateHeaderForCurrentView(){
              if (!state.videoModalActive) {
                 if (element === el.sentenceDisplay && state.sentenceMode) {
                   const displayText = el.sentenceDisplay.textContent.trim();
-                  if (displayText) { if (window.NarbeVoiceManager.getSettings().ttsEnabled) speak(displayText); }
+                  if (displayText) { if (window.NarbeVoiceManager.getSettings().ttsEnabled) speak(displayText, false, null, null, true); } // blockInput=true
                   else { if (window.NarbeVoiceManager.getSettings().ttsEnabled) speak('sentence is empty'); }
                 } else if (element === el.deleteWordBtn && state.sentenceMode) {
                   selectionText = 'Deleting';
@@ -1683,9 +1804,9 @@ function updateHeaderForCurrentView(){
                   selectionText = 'Clearing all';
                   clearSentence();
                 } else if (element !== el.sentenceDisplay && element !== el.deleteWordBtn && element !== el.clearSentenceBtn) {
-                  // For phrase buttons (with data-speakText), onTileClick handles TTS, so don't double-speak
+                  // For phrase buttons (with data-speak-text attribute), onTileClick handles TTS, so don't double-speak
                   // For other buttons (settings, back, next, etc.), we need to speak
-                  if (!element.dataset.speakText) {
+                  if (!element.hasAttribute('data-speak-text')) {
                     selectionText = cleanTextForTTS(element.textContent);
                   }
                   element.click();
@@ -1719,7 +1840,7 @@ function updateHeaderForCurrentView(){
           if (!state.videoModalActive) {
             if (element === el.sentenceDisplay && state.sentenceMode) {
               const displayText = el.sentenceDisplay.textContent.trim();
-              if (displayText) { if (window.NarbeVoiceManager.getSettings().ttsEnabled) speak(displayText); }
+              if (displayText) { if (window.NarbeVoiceManager.getSettings().ttsEnabled) speak(displayText, false, null, null, true); } // blockInput=true
               else { if (window.NarbeVoiceManager.getSettings().ttsEnabled) speak('sentence is empty'); }
             } else if (element === el.deleteWordBtn && state.sentenceMode) {
               selectionText = 'Deleting';
@@ -1728,9 +1849,9 @@ function updateHeaderForCurrentView(){
               selectionText = 'Clearing all';
               clearSentence();
             } else if (element !== el.sentenceDisplay && element !== el.deleteWordBtn && element !== el.clearSentenceBtn) {
-              // For phrase buttons (with data-speakText), onTileClick handles TTS, so don't double-speak
+              // For phrase buttons (with data-speak-text attribute), onTileClick handles TTS, so don't double-speak
               // For other buttons (settings, back, next, etc.), we need to speak
-              if (!element.dataset.speakText) {
+              if (!element.hasAttribute('data-speak-text')) {
                 selectionText = cleanTextForTTS(element.textContent);
               }
               element.click();
@@ -1758,6 +1879,8 @@ function updateHeaderForCurrentView(){
         const speeds = [1000, 2000, 3000, 4000];
         // Use the speed from manager, fallback to 2000 if invalid index
         state.scanSpeed = speeds[settings.scanSpeedIndex] !== undefined ? speeds[settings.scanSpeedIndex] : 2000;
+        // Sync input sensitivity - scan-manager handles the actual blocking, but we use this for our debounce
+        state.debounceDelay = settings.inputSensitivity || 200;
         
         // Update scanning state if needed
         if (state.autoScan) {
@@ -1776,18 +1899,51 @@ function updateHeaderForCurrentView(){
     let backwardScanTimer = null;
     let backwardScanInterval = null;
     let returnActionTimer = null;
+    let modalBackwardScanTimer = null;
+    let modalBackwardScanInterval = null;
     
     window.addEventListener('keydown', (e) => {
       // Allow F12/DevTools
       if (e.key === 'F12') return;
 
+      // Block scan input while TTS is speaking a phrase
+      if (state.ttsBlockInput && (e.code === 'Space' || e.code === 'Enter')) {
+        e.preventDefault();
+        return;
+      }
+
       const now = Date.now();
       if (now - state.lastKeyPressTime < state.debounceDelay) { e.preventDefault(); return; }
 
-      // Modal handling
+      // Modal handling - track state on keydown, action on keyup (same pattern as main scan)
       if (state.modalActive) {
-        if (e.code === 'Space') { e.preventDefault(); scanModalForward(); return; }
-        else if (e.code === 'Enter') { e.preventDefault(); selectModalButton(); return; }
+        if (e.code === 'Space' && !state.modalSpacePressed) {
+          e.preventDefault();
+          state.modalSpacePressed = true;
+          state.modalSpaceStartTime = Date.now();
+          // Set timeout for backwards scanning (same as main scan)
+          modalBackwardScanTimer = setTimeout(() => {
+            if (state.modalSpacePressed && state.modalActive) {
+              scanModalBackward();
+              modalBackwardScanInterval = setInterval(() => {
+                if (state.modalSpacePressed && state.modalActive) scanModalBackward();
+                else { clearInterval(modalBackwardScanInterval); modalBackwardScanInterval = null; }
+              }, state.scanSpeed);
+            }
+          }, 3000);
+          return;
+        } else if (e.code === 'Space' && state.modalSpacePressed) {
+          // Already pressed, ignore repeats
+          e.preventDefault();
+          return;
+        } else if (e.code === 'Enter' && !state.modalEnterPressed) {
+          e.preventDefault();
+          state.modalEnterPressed = true;
+          return;
+        } else if (e.code === 'Enter' && state.modalEnterPressed) {
+          e.preventDefault(); // ignore key-repeat
+          return;
+        }
       }
 
       // Auto Scan Logic
@@ -1843,7 +1999,27 @@ function updateHeaderForCurrentView(){
     });
 
     window.addEventListener('keyup', (e) => {
-      if (state.modalActive) return;
+      // Handle modal spacebar release - scan forward on keyup (same pattern as main scan)
+      if (state.modalActive) {
+        if (e.code === 'Space' && state.modalSpacePressed) {
+          e.preventDefault();
+          const duration = Date.now() - state.modalSpaceStartTime;
+          state.modalSpacePressed = false;
+          state.modalSpaceStartTime = 0;
+          // Clear backward scan timers
+          if (modalBackwardScanTimer) { clearTimeout(modalBackwardScanTimer); modalBackwardScanTimer = null; }
+          if (modalBackwardScanInterval) { clearInterval(modalBackwardScanInterval); modalBackwardScanInterval = null; }
+          // Short press = scan forward (only if not already backward scanning)
+          if (duration < 3000) {
+            scanModalForward();
+          }
+        } else if (e.code === 'Enter' && state.modalEnterPressed) {
+          e.preventDefault();
+          state.modalEnterPressed = false;
+          selectModalButton();
+        }
+        return;
+      }
       if (state.autoScan) return; // Auto scan handles action on keydown
 
       const now = Date.now();
@@ -1867,6 +2043,49 @@ function updateHeaderForCurrentView(){
           state.lastKeyPressTime = now;
         }
         state.returnActionExecuted = false;
+      }
+    });
+
+    // Listen for cancelled inputs from scan-manager (e.g., too-short presses blocked by anti-tremor)
+    document.addEventListener('narbe-input-cancelled', (e) => {
+      if (e.detail && (e.detail.key === ' ' || e.detail.code === 'Space')) {
+        // Handle modal state reset and action
+        if (state.modalActive) {
+          const wasModalBackwardScanning = !!modalBackwardScanInterval;
+          state.modalSpacePressed = false;
+          state.modalSpaceStartTime = 0;
+          // Clear modal backward scan timers
+          if (modalBackwardScanTimer) { clearTimeout(modalBackwardScanTimer); modalBackwardScanTimer = null; }
+          if (modalBackwardScanInterval) { clearInterval(modalBackwardScanInterval); modalBackwardScanInterval = null; }
+          // If cancelled due to 'too-short', still perform modal scan - user intended to press (only if not already backward scanning)
+          if (e.detail.reason === 'too-short' && !wasModalBackwardScanning) {
+            scanModalForward();
+          }
+          return;
+        }
+        // If cancelled due to 'too-short', still perform forward scan - user intended to press
+        const wasBackwardScanning = !!backwardScanInterval;
+        state.spacePressed = false;
+        state.spaceStartTime = 0;
+        if (backwardScanTimer) { clearTimeout(backwardScanTimer); backwardScanTimer = null; }
+        if (backwardScanInterval) { clearInterval(backwardScanInterval); backwardScanInterval = null; }
+        // Perform forward scan for short presses (not backward scanning, not auto-scan mode)
+        if (e.detail.reason === 'too-short' && !wasBackwardScanning && !state.autoScan) {
+          scanForward();
+          state.lastKeyPressTime = Date.now();
+        }
+      }
+      if (e.detail && (e.detail.key === 'Enter' || e.detail.code === 'Enter' || e.detail.code === 'NumpadEnter')) {
+        const wasLongPress = state.returnActionExecuted;
+        state.returnPressed = false;
+        state.returnStartTime = 0;
+        state.returnActionExecuted = false;
+        if (returnActionTimer) { clearTimeout(returnActionTimer); returnActionTimer = null; }
+        // Perform select for short presses (not auto-scan mode)
+        if (e.detail.reason === 'too-short' && !wasLongPress && !state.autoScan) {
+          selectCurrent();
+          state.lastKeyPressTime = Date.now();
+        }
       }
     });
 
@@ -2061,12 +2280,13 @@ function updateHeaderForCurrentView(){
       }
       
       // Handle regular phrases (non-URLs) - keep same TTS function
+      // Pass blockInput=true to prevent accidental scan interruption
       if (state.sentenceMode) { 
         state.sentence.push(text); 
         updateSentenceDisplay(); 
       } else { 
         const cleanText = cleanTextForTTS(text); 
-        if (cleanText) speak(cleanText); 
+        if (cleanText) speak(cleanText, false, null, null, true); // blockInput=true for phrases
       }
     }
 

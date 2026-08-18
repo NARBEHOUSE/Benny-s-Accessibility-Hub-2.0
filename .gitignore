@@ -44,11 +44,23 @@ bennyshub/apps/tools/streaming/data/*.xlsx
 # Voice settings (may contain user preferences)
 bennyshub/shared/voice-settings.json
 
+# Predictive-text corpus (real typed words/phrases - not for public repo).
+# Glob covers any export/variant filename (e.g. predictive_ngrams_predictions.json,
+# backup copies) - only the checked-in blank predictive_ngrams.example.json is exempt.
+bennyshub/shared/predictive_ngrams*.json
+!bennyshub/shared/predictive_ngrams.example.json
+
+# Games are sourced live from bennyshub.com and cached locally on demand -
+# see games.json / README for the sync mechanism. Never commit game folders here.
+bennyshub/apps/games/*/
+!bennyshub/apps/games/games.json
+
 # Logs
 *.log
 crash.log
 
 # Runtime signal files
+bennyshub/nav_signal.json
 bennyshub/apps/nav_signal.json
 
 # OS files

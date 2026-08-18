@@ -59,10 +59,14 @@ window.BenApp = (function () {
   function persistReadIds() {
     try { localStorage.setItem(READ_KEY, JSON.stringify(Array.from(readIds))); } catch (e) {}
   }
-  // Per-thread last-activity timestamp (from the backend) and the timestamp the
-  // user has "read" up to. This lets DMs/channels highlight as unread even
-  // before their full message history is loaded into messagesByTid.
+  // Per-thread last-activity timestamp (from the backend, either direction —
+  // drives sort order) and last-*incoming*-activity timestamp (drives the
+  // unread flag, so sending a message never makes a thread look unread to
+  // Ben himself), plus the timestamp the user has "read" up to. This lets
+  // DMs/channels sort/highlight correctly even before their full message
+  // history is loaded into messagesByTid.
   var threadLastTs = {};
+  var threadLastIncomingTs = {};
   var READ_TS_KEY = 'benmsg-read-ts';
   var readTsByTid = (function () {
     try { return JSON.parse(localStorage.getItem(READ_TS_KEY) || '{}') || {}; } catch (e) { return {}; }
@@ -73,14 +77,18 @@ window.BenApp = (function () {
   // Record each thread's last-activity ts as reported by the backend.
   function captureThreadTimestamps(list) {
     (list || []).forEach(function (t) {
-      if (t && t.tid && typeof t.last_ts === 'number' && t.last_ts > (threadLastTs[t.tid] || 0)) {
+      if (!t || !t.tid) return;
+      if (typeof t.last_ts === 'number' && t.last_ts > (threadLastTs[t.tid] || 0)) {
         threadLastTs[t.tid] = t.last_ts;
+      }
+      if (typeof t.last_incoming_ts === 'number' && t.last_incoming_ts > (threadLastIncomingTs[t.tid] || 0)) {
+        threadLastIncomingTs[t.tid] = t.last_incoming_ts;
       }
     });
   }
   function threadHasUnread(tid) {
     // Timestamp-based: any incoming activity newer than what the user has read.
-    if ((threadLastTs[tid] || 0) > (readTsByTid[tid] || 0)) return true;
+    if ((threadLastIncomingTs[tid] || 0) > (readTsByTid[tid] || 0)) return true;
     // Fallback: message-id based check for threads whose history is loaded.
     var list = messagesByTid[tid] || [];
     for (var i = 0; i < list.length; i++) {
@@ -129,13 +137,18 @@ window.BenApp = (function () {
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
+  // Time only, e.g. "9:05 PM". If the message isn't from today, a leading
+  // date is prepended, e.g. "7/8 9:05 PM".
   function fmtTime(ts) {
     try {
       var d = new Date(ts * 1000);
       var h = d.getHours(), m = d.getMinutes();
       var ap = h >= 12 ? 'PM' : 'AM';
       h = h % 12; if (h === 0) h = 12;
-      return h + ':' + (m < 10 ? '0' + m : m) + ' ' + ap;
+      var tstr = h + ':' + (m < 10 ? '0' + m : m) + ' ' + ap;
+      var now = new Date();
+      if (d.toDateString() === now.toDateString()) return tstr;
+      return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + tstr;
     } catch (e) { return ''; }
   }
   function youtubeId(text) {
@@ -289,7 +302,8 @@ window.BenApp = (function () {
     var isNew = !list.some(function (x) { return String(x.id) === String(m.id); });
     if (isNew) list.push(m);
     if (reactions) reactionsByMid[String(m.id)] = reactions;
-    if (isNew && !m.from_me && (m.ts || 0) > (threadLastTs[tid] || 0)) threadLastTs[tid] = m.ts;
+    if (isNew && (m.ts || 0) > (threadLastTs[tid] || 0)) threadLastTs[tid] = m.ts;
+    if (isNew && !m.from_me && (m.ts || 0) > (threadLastIncomingTs[tid] || 0)) threadLastIncomingTs[tid] = m.ts;
     renderThreadList();
     if (currentTid === tid && uiMode === 'message_view') {
       renderMessages(tid);
@@ -307,14 +321,16 @@ window.BenApp = (function () {
   /* ---------------- render: thread list ---------------- */
   function renderThreadList() {
     if (!elThreadList) return;
-    // sort: unread first, then channels before DMs, preserve given order otherwise
+    // sort purely by most recent activity (last message timestamp), newest
+    // first — channels and DMs mix together and stay put once read instead
+    // of re-sorting into "channels then DMs" buckets.
     var ordered = threads.slice();
     var idxMap = {};
     ordered.forEach(function (t, i) { idxMap[t.tid] = i; });
     ordered.sort(function (a, b) {
-      var ua = threadHasUnread(a.tid) ? 0 : 1;
-      var ub = threadHasUnread(b.tid) ? 0 : 1;
-      if (ua !== ub) return ua - ub;
+      var ta = threadLastTs[a.tid] || 0;
+      var tb = threadLastTs[b.tid] || 0;
+      if (ta !== tb) return tb - ta;
       return idxMap[a.tid] - idxMap[b.tid];
     });
 

@@ -2,6 +2,7 @@
   const $ = (sel) => document.querySelector(sel);
   const textBar = $("#textBar");
   const predictBar = $("#predictBar");
+  const letterPredictBar = $("#letterPredictBar");
   const kb = $("#keyboard");
   const settingsMenu = $("#settingsMenu");
 
@@ -131,11 +132,19 @@
 
   function setBuffer(txt) {
     buffer = txt;
-    const displayText = buffer + "|";
-    textBar.textContent = displayText;
+    // Use innerHTML with a wrapper span so text and cursor flow together when wrapping
+    // Only convert trailing space to &nbsp; so it's visible, keep other spaces for word wrap
+    let escapedText = buffer
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    // If there's a trailing space, convert it to &nbsp; so cursor trails it
+    if (escapedText.endsWith(' ')) {
+      escapedText = escapedText.slice(0, -1) + '&nbsp;';
+    }
+    textBar.innerHTML = '<span class="text-content">' + escapedText + '<span class="cursor">|</span></span>';
     
     // Dynamically adjust text size based on length
-    adjustTextSize(displayText);
+    adjustTextSize(buffer);
     
     ttsUseCount = 0;
     renderPredictions();
@@ -236,6 +245,43 @@
     }
   });
 
+  // Listen for cancelled inputs from scan-manager (e.g., too-short presses blocked by anti-tremor)
+  // This is CRITICAL to prevent stuck input state when spamming spacebar/enter rapidly
+  document.addEventListener('narbe-input-cancelled', (e) => {
+    if (e.detail && (e.detail.key === ' ' || e.detail.code === 'Space')) {
+      const wasBackScanning = !!backwardScanInterval;
+      // Reset space input state
+      spacebarPressed = false;
+      spacebarPressTime = null;
+      if (backwardScanInterval) {
+        clearInterval(backwardScanInterval);
+        backwardScanInterval = null;
+      }
+      // If cancelled due to 'too-short', still perform forward scan - user intended to press
+      if (e.detail.reason === 'too-short' && !wasBackScanning) {
+        if (inSettingsMode) {
+          scanSettingsForward();
+        } else {
+          scanForward();
+        }
+      }
+      backwardScanningOccurred = false;
+      console.log("Spacebar input cancelled by scan-manager, state reset");
+    }
+    if (e.detail && (e.detail.key === 'Enter' || e.detail.code === 'Enter' || e.detail.code === 'NumpadEnter')) {
+      // Reset enter input state
+      const wasLongPressTriggered = longPressTriggered;
+      returnPressed = false;
+      returnPressTime = null;
+      longPressTriggered = false;
+      // Perform select for short Enter presses if not already triggered
+      if (e.detail.reason === 'too-short' && !wasLongPressTriggered) {
+        selectButton();
+      }
+      console.log("Enter input cancelled by scan-manager, state reset");
+    }
+  });
+
   function startScanning() {
     if (!spacebarPressed) {
       spacebarPressed = true;
@@ -243,11 +289,13 @@
       backwardScanningOccurred = false; // Reset backward scanning flag
       console.log("Spacebar pressed");
       
-      const speed = scanSpeeds[currentScanSpeed];
+      // Use NarbeScanManager's interval for backward scanning, with local fallback
+      const managerInterval = getScanInterval();
+      const longPressThreshold = scanSpeeds[currentScanSpeed].longPress;
       
       setTimeout(() => {
-        if (spacebarPressed && (Date.now() - spacebarPressTime) >= speed.longPress) {
-          console.log("Long press detected - starting backward scanning");
+        if (spacebarPressed && (Date.now() - spacebarPressTime) >= longPressThreshold) {
+          console.log("Long press detected - starting backward scanning at " + managerInterval + "ms");
           backwardScanInterval = setInterval(() => {
             if (spacebarPressed) {
               backwardScanningOccurred = true; // Mark that backward scanning is happening
@@ -257,9 +305,9 @@
                 scanBackward();
               }
             }
-          }, speed.backward);
+          }, managerInterval); // Use Manager's scan interval
         }
-      }, speed.longPress);
+      }, longPressThreshold);
     }
   }
 
@@ -274,13 +322,14 @@
         backwardScanInterval = null;
       }
       
-      const speed = scanSpeeds[currentScanSpeed];
+      // Use longPress threshold from local config (this determines hold duration, not scan interval)
+      const longPressThreshold = scanSpeeds[currentScanSpeed].longPress;
       
       // Forward scan if:
       // 1. Short press (250ms to longPress threshold), OR
       // 2. Long press but no backward scanning actually occurred
-      if ((pressDuration >= 250 && pressDuration <= speed.longPress) || 
-          (pressDuration > speed.longPress && !backwardScanningOccurred)) {
+      if ((pressDuration >= 250 && pressDuration <= longPressThreshold) || 
+          (pressDuration > longPressThreshold && !backwardScanningOccurred)) {
         console.log("Triggering forward scan - either short press or long press without backward scanning");
         if (inSettingsMode) {
           scanSettingsForward();
@@ -332,11 +381,11 @@
     clearAllHighlights();
     
     if (inRowSelectionMode) {
-      // Jump to predictive text row (now at the bottom - last row)
-      currentRowIndex = rows.length + 1; // Last row index (textbar=0, keyboard=1-7, predictive=8)
+      // Jump to word predictive text row (at the very bottom)
+      currentRowIndex = rows.length + 2; // Last row index (textbar=0, keyboard=1-7, letter predict=8, word predict=9)
       inRowSelectionMode = true;
       highlightPredictiveRow();
-      console.log("Long press: Jumped to predictive text row (bottom)");
+      console.log("Long press: Jumped to word predictive text row (bottom)");
 
       // Read all predictive text words when entering predictive mode
       speakPredictions();
@@ -345,8 +394,11 @@
       if (currentRowIndex === 0) {
         highlightTextBox();
       } else if (currentRowIndex === rows.length + 1) {
+        highlightLetterPredictRow();
+        speakLetterPredictions();
+      } else if (currentRowIndex === rows.length + 2) {
         highlightPredictiveRow();
-        speakPredictions(); // Read all predictions instead of row title
+        speakPredictions();
       } else {
         highlightRow(currentRowIndex - 1); // Adjust for keyboard rows (1-7)
         speakRowTitle(currentRowIndex - 1);
@@ -358,16 +410,19 @@
   function scanForward() {
     if (inRowSelectionMode) {
       const prevRow = currentRowIndex;
-      // Navigation: textbar(0) -> keyboard(1-7) -> predictive(8)
-      currentRowIndex = (currentRowIndex + 1) % (rows.length + 2);
+      // Navigation: textbar(0) -> keyboard(1-7) -> letter predict(8) -> word predict(9)
+      currentRowIndex = (currentRowIndex + 1) % (rows.length + 3);
       console.log(`Scanning forward to row ${currentRowIndex}`);
       
       clearAllHighlights();
       if (currentRowIndex === 0) {
         highlightTextBox();
       } else if (currentRowIndex === rows.length + 1) {
+        highlightLetterPredictRow();
+        speakLetterPredictions();
+      } else if (currentRowIndex === rows.length + 2) {
         highlightPredictiveRow();
-        speakPredictions(); // Read all predictions instead of row title
+        speakPredictions();
       } else {
         highlightRow(currentRowIndex - 1); // Keyboard rows (adjust index)
         speakRowTitle(currentRowIndex - 1);
@@ -377,7 +432,13 @@
       if (currentRowIndex === 0) {
         return; // Can't navigate buttons in textbar
       } else if (currentRowIndex === rows.length + 1) {
-        // Predictive row navigation
+        // Letter prediction row navigation
+        const chips = letterPredictBar.querySelectorAll(".letter-chip");
+        currentButtonIndex = (currentButtonIndex + 1) % chips.length;
+        highlightLetterPredictButton(currentButtonIndex, prevButton);
+        speakLetterPredictButtonLabel(currentButtonIndex);
+      } else if (currentRowIndex === rows.length + 2) {
+        // Word prediction row navigation
         const chips = predictBar.querySelectorAll(".chip");
         currentButtonIndex = (currentButtonIndex + 1) % chips.length;
         highlightPredictiveButton(currentButtonIndex, prevButton);
@@ -394,15 +455,18 @@
   function scanBackward() {
     if (inRowSelectionMode) {
       const prevRow = currentRowIndex;
-      currentRowIndex = (currentRowIndex - 1 + (rows.length + 2)) % (rows.length + 2);
+      currentRowIndex = (currentRowIndex - 1 + (rows.length + 3)) % (rows.length + 3);
       console.log(`Scanning backward to row ${currentRowIndex}`);
       
       clearAllHighlights();
       if (currentRowIndex === 0) {
         highlightTextBox();
       } else if (currentRowIndex === rows.length + 1) {
+        highlightLetterPredictRow();
+        speakLetterPredictions();
+      } else if (currentRowIndex === rows.length + 2) {
         highlightPredictiveRow();
-        speakPredictions(); // Read all predictions instead of row title
+        speakPredictions();
       } else {
         highlightRow(currentRowIndex - 1);
         speakRowTitle(currentRowIndex - 1);
@@ -412,7 +476,13 @@
       if (currentRowIndex === 0) {
         return;
       } else if (currentRowIndex === rows.length + 1) {
-        // Predictive row navigation
+        // Letter prediction row navigation
+        const chips = letterPredictBar.querySelectorAll(".letter-chip");
+        currentButtonIndex = (currentButtonIndex - 1 + chips.length) % chips.length;
+        highlightLetterPredictButton(currentButtonIndex, prevButton);
+        speakLetterPredictButtonLabel(currentButtonIndex);
+      } else if (currentRowIndex === rows.length + 2) {
+        // Word prediction row navigation
         const chips = predictBar.querySelectorAll(".chip");
         currentButtonIndex = (currentButtonIndex - 1 + chips.length) % chips.length;
         highlightPredictiveButton(currentButtonIndex, prevButton);
@@ -452,7 +522,17 @@
           }
         }
       } else if (currentRowIndex === rows.length + 1) {
-        // Predictive row selection - enter button mode
+        // Letter prediction row selection - enter button mode
+        inRowSelectionMode = false;
+        currentButtonIndex = 0;
+        clearAllHighlights();
+        const chips = letterPredictBar.querySelectorAll(".letter-chip");
+        if (chips.length > 0) {
+          highlightLetterPredictButton(0);
+          speakLetterPredictButtonLabel(0);
+        }
+      } else if (currentRowIndex === rows.length + 2) {
+        // Word prediction row selection - enter button mode
         inRowSelectionMode = false;
         currentButtonIndex = 0;
         clearAllHighlights();
@@ -473,7 +553,26 @@
       if (currentRowIndex === 0) {
         return;
       } else if (currentRowIndex === rows.length + 1) {
-        // Predictive button selection
+        // Letter prediction button selection
+        const chips = letterPredictBar.querySelectorAll(".letter-chip");
+        if (chips[currentButtonIndex] && chips[currentButtonIndex].textContent.trim()) {
+          const letter = chips[currentButtonIndex].textContent.trim();
+          insertKey(letter);
+        }
+        
+        // Return to row selection mode for Letter Prediction Row
+        inRowSelectionMode = true;
+        clearAllHighlights();
+        
+        // Wait for predictions to update then highlight and speak
+        updatePredictiveButtons().then(() => {
+            highlightLetterPredictRow();
+            speakLetterPredictions();
+        });
+        return;
+        
+      } else if (currentRowIndex === rows.length + 2) {
+        // Word prediction button selection
         const chips = predictBar.querySelectorAll(".chip");
         if (chips[currentButtonIndex] && chips[currentButtonIndex].textContent.trim()) {
           const word = chips[currentButtonIndex].textContent.trim();
@@ -503,7 +602,7 @@
           }
         }
         
-        // Return to row selection mode for Predictive Row
+        // Return to row selection mode for Word Prediction Row
         inRowSelectionMode = true;
         clearAllHighlights();
         
@@ -538,10 +637,13 @@
 
   async function renderPredictions() {
     try {
-      const wasPredictiveRowHighlighted = (currentRowIndex === rows.length + 1 && inRowSelectionMode);
-      const wasInButtonMode = (currentRowIndex === rows.length + 1 && !inRowSelectionMode);
+      const wasPredictiveRowHighlighted = (currentRowIndex === rows.length + 2 && inRowSelectionMode);
+      const wasInButtonMode = (currentRowIndex === rows.length + 2 && !inRowSelectionMode);
+      const wasLetterPredictRowHighlighted = (currentRowIndex === rows.length + 1 && inRowSelectionMode);
+      const wasLetterPredictInButtonMode = (currentRowIndex === rows.length + 1 && !inRowSelectionMode);
       const savedButtonIndex = currentButtonIndex;
       
+      // Get word predictions FIRST
       let predictions = ["YES", "NO", "HELP", "THE", "I", "YOU"]; // Default fallback
       
       if (window.predictionSystem && window.predictionSystem.getHybridPredictions) {
@@ -551,6 +653,9 @@
           console.error('Error getting predictions:', e);
         }
       }
+      
+      // Now render letter predictions with the word predictions for context
+      renderLetterPredictions(predictions);
       
       console.log("Final predictions to render:", predictions);
 
@@ -601,9 +706,52 @@
         if (chips[savedButtonIndex]) {
           highlightPredictiveButton(savedButtonIndex);
         }
+      } else if (wasLetterPredictRowHighlighted) {
+        highlightLetterPredictRow();
+      } else if (wasLetterPredictInButtonMode) {
+        const chips = letterPredictBar.querySelectorAll(".letter-chip");
+        if (chips[savedButtonIndex]) {
+          highlightLetterPredictButton(savedButtonIndex);
+        }
       }
     } catch (error) {
       console.error('Error in renderPredictions:', error);
+    }
+  }
+
+  function renderLetterPredictions(wordPredictions = []) {
+    let letterPredictions = ['E', 'T', 'A', 'O', 'I', 'N']; // Default
+    
+    console.log(`[renderLetterPredictions] Word predictions passed:`, wordPredictions);
+    console.log(`[renderLetterPredictions] Buffer:`, buffer);
+    
+    if (window.predictionSystem && window.predictionSystem.getLetterPredictions) {
+      try {
+        letterPredictions = window.predictionSystem.getLetterPredictions(buffer, wordPredictions);
+        console.log(`[renderLetterPredictions] Letter predictions result:`, letterPredictions);
+      } catch (e) {
+        console.error('Error getting letter predictions:', e);
+      }
+    }
+    
+    letterPredictBar.innerHTML = "";
+    letterPredictions.slice(0, 6).forEach(letter => {
+      const chip = document.createElement("button");
+      chip.className = "letter-chip";
+      chip.textContent = letter;
+      chip.addEventListener("click", () => {
+        insertKey(letter);
+      });
+      letterPredictBar.appendChild(chip);
+    });
+    
+    // Fill remaining slots
+    while (letterPredictBar.children.length < 6) {
+      const chip = document.createElement("button");
+      chip.className = "letter-chip";
+      chip.textContent = "";
+      chip.disabled = true;
+      letterPredictBar.appendChild(chip);
     }
   }
 
@@ -620,6 +768,8 @@
     allKeys.forEach(key => key.classList.remove("highlighted"));
     const allChips = predictBar.querySelectorAll(".chip");
     allChips.forEach(chip => chip.classList.remove("highlighted"));
+    const allLetterChips = letterPredictBar.querySelectorAll(".letter-chip");
+    allLetterChips.forEach(chip => chip.classList.remove("highlighted"));
   }
 
   function highlightTextBox() {
@@ -670,6 +820,48 @@
     }
   }
 
+  function highlightLetterPredictRow() {
+    clearAllHighlights();
+    const allChips = letterPredictBar.querySelectorAll(".letter-chip");
+    allChips.forEach(chip => chip.classList.add("highlighted"));
+  }
+
+  function highlightLetterPredictButton(buttonIndex, prevButtonIndex = null) {
+    const chips = letterPredictBar.querySelectorAll(".letter-chip");
+    
+    if (prevButtonIndex !== null && chips[prevButtonIndex]) {
+      chips[prevButtonIndex].classList.remove("highlighted");
+    }
+    
+    if (chips[buttonIndex]) {
+      chips[buttonIndex].classList.add("highlighted");
+    }
+  }
+
+  function speakLetterPredictButtonLabel(buttonIndex) {
+    const chips = letterPredictBar.querySelectorAll(".letter-chip");
+    if (chips[buttonIndex] && chips[buttonIndex].textContent.trim()) {
+      const letter = chips[buttonIndex].textContent.trim();
+      speak(letter);
+    }
+  }
+
+  function speakLetterPredictions() {
+    const letterChips = letterPredictBar.querySelectorAll('.letter-chip');
+    if (letterChips.length > 0) {
+      const letters = Array.from(letterChips)
+        .map(chip => chip.textContent)
+        .filter(text => text.trim())
+        .join(", ");
+      
+      if (letters) {
+        speak(letters);
+      } else {
+        speak("no letter predictions");
+      }
+    }
+  }
+
   function speakRowTitle(rowIndex) {
     const rowTitles = [
       "controls", 
@@ -679,11 +871,18 @@
       "s t u v w x", 
       "y z 0 1 2 3", 
       "4 5 6 7 8 9", 
-      "predictive text"
+      "letter predictions",
+      "word predictions"
     ];
     
-    // Check if it's the predictive text row (index 7)
+    // Check if it's the letter predictions row (index 7)
     if (rowIndex === 7) {
+      speakLetterPredictions();
+      return;
+    }
+    
+    // Check if it's the word predictions row (index 8)
+    if (rowIndex === 8) {
       speakPredictions();
       return;
     }
@@ -761,6 +960,7 @@
     settingsMenu.classList.remove("hidden");
     kb.style.display = "none";
     predictBar.style.display = "none";
+    letterPredictBar.style.display = "none";
     textBar.style.display = "none"; // Hide text bar too
     
     settingsItems = Array.from(settingsMenu.querySelectorAll(".settings-item"));
@@ -814,6 +1014,7 @@
     settingsMenu.classList.add("hidden");
     kb.style.display = "grid";
     predictBar.style.display = "grid";
+    letterPredictBar.style.display = "grid";
     textBar.style.display = "flex"; // Show text bar again
     
     // No need to clone/replace elements - we use event delegation now
@@ -894,18 +1095,25 @@
 
   async function adjustVolume(direction) {
     try {
-      
-      const response = await fetch('/system/volume/' + direction, {
-        method: 'POST'
-      });
-      
-      if (response.ok) {
-        // const result = await response.json();
-        console.log('Volume adjusted:', direction);
-        speak(direction === "up" ? "volume up" : "volume down");
+      // Use Electron API for volume control
+      if (window.electronAPI && window.electronAPI.system) {
+        let result;
+        if (direction === "up") {
+          result = await window.electronAPI.system.volumeUp();
+        } else {
+          result = await window.electronAPI.system.volumeDown();
+        }
+        
+        if (result && result.success) {
+          console.log('Volume adjusted:', direction);
+          speak(direction === "up" ? "volume up" : "volume down");
+        } else {
+          console.error('Failed to control volume');
+          speak("volume control failed");
+        }
       } else {
-        console.error('Failed to control volume');
-        speak("volume control failed");
+        console.error('Electron API not available for volume control');
+        speak("volume control not available");
       }
     } catch (error) {
       console.error('Error controlling volume:', error);
@@ -1135,11 +1343,12 @@
   }
 
   function insertKey(k) {
-    if (settings.autocapI && k.length === 1) {
-      const prev = buffer.slice(-1);
-      if ((k === "i" || k === "I") && (!prev || /\s/.test(prev))) k = "I";
+    // Auto-capitalize first letter of every word (start of buffer or after a space)
+    if (k.length === 1 && /[a-zA-Z]/.test(k)) {
+      const prev = buffer.replace('|', '').slice(-1);
+      if (!prev || /\s/.test(prev)) k = k.toUpperCase();
     }
-    
+
     if (k === " ") {
       const currentText = buffer.replace('|', '').trim();
       const words = currentText.split(' ');
@@ -1165,42 +1374,42 @@
   }
 
   function saveTextToPredictive(text) {
-    console.log(`Text repeated 3 times via TTS: "${text}"`);
+    console.log(`Text spoken 3 times via TTS - SAVING TO FILE: "${text}"`);
     const words = text.split(/\s+/).filter(word => word.trim().length > 0);
     
-    // Record each word individually with higher priority
+    // Save each word to file (this is the ONLY place words get saved to file)
     words.forEach((word, index) => {
       if (word && word.trim().length > 0 && window.predictionSystem) {
         try {
           const cleanWord = word.trim().toUpperCase();
           
-          // Record the word multiple times to give it higher priority
+          // Save the word to file with high priority (5 counts)
           for (let i = 0; i < 5; i++) {
-            window.predictionSystem.recordLocalWord(cleanWord);
+            window.predictionSystem.saveWordToFile(cleanWord);
           }
-          console.log(`Recorded word "${cleanWord}" 5 times for high priority`);
+          console.log(`[SAVED TO FILE] Word "${cleanWord}" with 5x priority`);
           
-          // Record n-grams for context
+          // Learn letter n-grams from the word for letter predictions
+          window.predictionSystem.recordLetterNgrams(cleanWord);
+          
+          // Save n-grams for context to file
           if (index > 0) {
             const context = words.slice(0, index).join(' ');
             for (let i = 0; i < 3; i++) {
-              window.predictionSystem.recordNgram(context, cleanWord);
+              window.predictionSystem.saveNgramToFile(context, cleanWord);
             }
-            console.log(`Recorded n-gram: "${context}" -> "${cleanWord}" 3 times`);
+            console.log(`[SAVED TO FILE] N-gram: "${context}" -> "${cleanWord}" 3x`);
           }
         } catch (e) {
-          console.error('Error recording word:', e);
+          console.error('Error saving word to file:', e);
         }
       }
     });
     
-    // Force immediate re-merge and re-render
+    // Force immediate re-render
     setTimeout(() => {
-      if (window.predictionSystem) {
-        window.predictionSystem.mergeData();
-      }
       renderPredictions();
-      console.log('Forced prediction system update after TTS recording');
+      console.log('Predictions updated after TTS file save');
     }, 200);
   }
 
@@ -1216,23 +1425,22 @@
         console.log("3x TTS usage detected - recording words with high priority");
         saveTextToPredictive(text);
         ttsUseCount = 0;
-        
-        // Clear the buffer after saving to predictions to start fresh
-        setTimeout(() => {
-          setBuffer("");
-          console.log('Buffer cleared after 3x TTS - ready for fresh input');
-        }, 1000);
       }
     }
   });
 
   const originalSetBuffer = setBuffer;
   setBuffer = function(newBuffer) {
-    const wasPredictiveRowHighlighted = (currentRowIndex === rows.length + 1 && inRowSelectionMode);
+    const wasLetterPredictRowHighlighted = (currentRowIndex === rows.length + 1 && inRowSelectionMode);
+    const wasPredictiveRowHighlighted = (currentRowIndex === rows.length + 2 && inRowSelectionMode);
     
     originalSetBuffer(newBuffer);
     updatePredictiveButtons().then(() => {
-      if (wasPredictiveRowHighlighted) {
+      if (wasLetterPredictRowHighlighted) {
+        setTimeout(() => {
+          highlightLetterPredictRow();
+        }, 50);
+      } else if (wasPredictiveRowHighlighted) {
         setTimeout(() => {
           highlightPredictiveRow();
         }, 50);

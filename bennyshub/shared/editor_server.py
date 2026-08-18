@@ -48,6 +48,9 @@ EDITORS = {
     'phraseboard': ('apps/tools/phraseboard', 'phrase-builder.html'),
     'phrase': ('apps/tools/phraseboard', 'phrase-builder.html'),  # alias
     'peggle': ('apps/games/BENNYSPEGGLE', 'editor.html'),
+    'shownsound': ('apps/games/BENNYSSHOWNSOUND', 'editor.html'),
+    'shown': ('apps/games/BENNYSSHOWNSOUND', 'editor.html'),  # alias
+    'keyboard': ('apps/tools/keyboard', 'index.html'),  # for HF API testing
 }
 
 # Chrome path
@@ -75,7 +78,10 @@ class EditorHandler(http.server.SimpleHTTPRequestHandler):
     
     def log_message(self, format, *args):
         """Print logs to console."""
-        sys.stderr.write(f"[EditorServer] {format % args}\n")
+        if args:
+            sys.stderr.write(f"[EditorServer] {format % args}\n")
+        else:
+            sys.stderr.write(f"[EditorServer] {format}\n")
     
     def do_GET(self):
         """Handle GET requests including API endpoints."""
@@ -367,8 +373,11 @@ class EditorHandler(http.server.SimpleHTTPRequestHandler):
             elif service == 'freesound-proxy':
                 target_host = 'https://aged-thunder-a674.narbehousellc.workers.dev'
                 target_url = f"{target_host}/{api_path}"
+            elif service == 'huggingface':
+                target_host = 'https://api-inference.huggingface.co'
+                target_url = f"{target_host}/{api_path}"
             else:
-                self.send_json({'error': f'Unknown service: {service}. Supported: tmdb, opensymbols, freesound, freesound-proxy'}, 400)
+                self.send_json({'error': f'Unknown service: {service}. Supported: tmdb, opensymbols, freesound, freesound-proxy, huggingface'}, 400)
                 return
             
             # Add query string
@@ -381,7 +390,12 @@ class EditorHandler(http.server.SimpleHTTPRequestHandler):
             req = urllib.request.Request(target_url, method=method)
             req.add_header('User-Agent', 'BennysHub/1.0')
             req.add_header('Accept', 'application/json')
-            
+
+            # Forward Authorization header if present (needed for services like Hugging Face)
+            auth_header = self.headers.get('Authorization')
+            if auth_header:
+                req.add_header('Authorization', auth_header)
+
             # For POST requests, forward the body
             body_data = None
             if method == 'POST':
@@ -409,10 +423,18 @@ class EditorHandler(http.server.SimpleHTTPRequestHandler):
             except urllib.error.URLError as e:
                 self.log_message(f"Proxy URL Error: {e.reason}")
                 self.send_json({'error': f'Failed to connect to API: {e.reason}'}, 502)
-                
+
+            except Exception as e:
+                import traceback
+                tb = traceback.format_exc()
+                self.log_message(f"Proxy Request Exception: {str(e)}\n{tb}")
+                self.send_json({'error': str(e), 'traceback': tb}, 500)
+
         except Exception as e:
-            self.log_message(f"Proxy Error: {str(e)}")
-            self.send_json({'error': str(e)}, 500)
+            import traceback
+            tb = traceback.format_exc()
+            self.log_message(f"Proxy Handler Exception: {str(e)}\n{tb}")
+            self.send_json({'error': str(e), 'traceback': tb}, 500)
 
 
 class ThreadingServer(socketserver.ThreadingMixIn, socketserver.TCPServer):

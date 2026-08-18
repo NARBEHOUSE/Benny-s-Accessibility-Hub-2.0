@@ -1,10 +1,18 @@
 {
-  "name": "Your Name",
-  "age": 25,
-  "interests": ["music", "sports", "movies"],
-  "communication_style": "casual",
-  "humor": "moderate",
-  "topics_to_avoid": [],
-  "preferred_response_length": "short",
-  "notes": "Add any additional context about the user here."
+  "personality": {
+    "communicationStyle": { "directness": 0.7, "humor": 0.5, "sarcasm": 0.3, "wordiness": 0.4 },
+    "interests": {
+      "Example Category": ["example item 1", "example item 2"]
+    }
+  },
+  "bioText": "Add background facts here that the AI should treat as true when answering personal questions (e.g. family members' names, favorite things, daily routine).",
+  "selectionHistory": { "counts": {}, "topWords": [] },
+  "topicBoard": {
+    "Comedy": ["That's hilarious", "I love that show", "So funny", "Classic", "Stop it"],
+    "Superheroes": ["That's my favorite hero", "What about the other one?", "I love that universe"],
+    "Gaming": ["I've played that", "That's a great game", "What level are you on?", "I need to try that"],
+    "Family": ["How is everyone?", "Tell them I said hi", "That's nice to hear", "I miss them", "Great news"],
+    "General": ["Interesting", "I agree", "I don't think so", "Tell me more", "That makes sense", "Not really"]
+  },
+  "settings": { "listeningEnabled": true, "allowProfanity": false }
 }

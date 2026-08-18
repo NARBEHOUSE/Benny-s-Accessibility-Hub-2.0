@@ -261,12 +261,13 @@
         }
       } else {
         // Fallback to HTTP fetch for testing outside Electron
-        const response = await fetch('/api/entries');
+        const response = await fetch('entries.json');
         if (response.ok) {
           const data = await response.json();
           if (data.entries) {
             entries = data.entries;
             localStorage.setItem("journal_entries", JSON.stringify(entries));
+            console.log(`[Browser] Loaded ${entries.length} journal entries`);
             return;
           }
         }
@@ -279,6 +280,7 @@
     try {
       const stored = localStorage.getItem("journal_entries");
       entries = stored ? JSON.parse(stored) : [];
+      console.log(`[localStorage] Loaded ${entries.length} journal entries`);
     } catch {
       entries = [];
     }
@@ -508,6 +510,35 @@
     }
   });
 
+  // Listen for cancelled inputs from scan-manager (e.g., too-short presses blocked by anti-tremor)
+  document.addEventListener('narbe-input-cancelled', (e) => {
+    if (e.detail && (e.detail.key === ' ' || e.detail.code === 'Space')) {
+      // If cancelled due to 'too-short', still perform forward scan - user intended to press
+      const wasBackwardScanning = backwardScanningOccurred;
+      spacebarPressed = false;
+      spacebarPressTime = null;
+      backwardScanningOccurred = false;
+      if (backwardScanInterval) {
+        clearInterval(backwardScanInterval);
+        backwardScanInterval = null;
+      }
+      // Perform forward scan for short presses (not backward scanning)
+      if (e.detail.reason === 'too-short' && !wasBackwardScanning) {
+        handleScan();
+      }
+    }
+    if (e.detail && (e.detail.key === 'Enter' || e.detail.code === 'Enter' || e.detail.code === 'NumpadEnter')) {
+      const wasLongPress = longPressTriggered;
+      returnPressed = false;
+      returnPressTime = null;
+      longPressTriggered = false;
+      // Perform select for short presses
+      if (e.detail.reason === 'too-short' && !wasLongPress) {
+        handleSelect();
+      }
+    }
+  });
+
   function startScanning() {
     if (!spacebarPressed) {
       spacebarPressed = true;
@@ -719,6 +750,7 @@
 
   function insertKey(k) {
     if (k === " ") {
+      recordTypedWord();
       let textWithSpace = keyboardBuffer + " ";
       let processedText = handleAutoPunctuation(textWithSpace);
       setKeyboardBuffer(processedText);
@@ -897,13 +929,16 @@
           const word = chips[keyboardButtonIndex].textContent.trim();
           const currentPartial = getCurrentWord();
           let newBuffer = keyboardBuffer;
+          let context = keyboardBuffer;
           if (currentPartial && !keyboardBuffer.endsWith(" ")) {
-            newBuffer = keyboardBuffer.slice(0, -currentPartial.length) + word + " ";
+            context = keyboardBuffer.slice(0, -currentPartial.length);
+            newBuffer = context + word + " ";
           } else {
             if (!keyboardBuffer.endsWith(" ") && keyboardBuffer.length) newBuffer += " ";
             newBuffer += word + " ";
           }
           await setKeyboardBuffer(newBuffer);
+          recordSelectedWord(word, context);
         }
       } else {
         const key = keyboardRows[keyboardRowIndex - 1][keyboardButtonIndex];
@@ -990,6 +1025,36 @@
     return parts[parts.length - 1] || "";
   }
 
+  // Feeds the shared prediction data (bennyshub/shared/predictive_ngrams.json)
+  // so words typed in the journal improve predictions everywhere, same as the keyboard app.
+  function recordTypedWord() {
+    if (!window.predictionSystem) return;
+    const words = keyboardBuffer.trim().split(/\s+/);
+    const lastWord = words[words.length - 1];
+    if (!lastWord) return;
+    try {
+      window.predictionSystem.recordLocalWord(lastWord);
+      if (words.length > 1) {
+        window.predictionSystem.recordNgram(words.slice(0, -1).join(' '), lastWord);
+      }
+    } catch (e) {
+      console.error('Error recording word:', e);
+    }
+  }
+
+  function recordSelectedWord(word, context) {
+    if (!window.predictionSystem) return;
+    try {
+      window.predictionSystem.recordLocalWord(word);
+      const trimmedContext = context.trim();
+      if (trimmedContext) {
+        window.predictionSystem.recordNgram(trimmedContext, word);
+      }
+    } catch (e) {
+      console.error('Error recording prediction:', e);
+    }
+  }
+
   async function renderPredictions() {
     let predictions = ["YES", "NO", "GOOD", "BAD", "FUN", "HAPPY"];
 
@@ -1009,13 +1074,16 @@
       chip.addEventListener("click", () => {
         const partial = getCurrentWord();
         let newBuf = keyboardBuffer;
+        let context = keyboardBuffer;
         if (partial && !keyboardBuffer.endsWith(" ")) {
-          newBuf = keyboardBuffer.slice(0, -partial.length) + w + " ";
+          context = keyboardBuffer.slice(0, -partial.length);
+          newBuf = context + w + " ";
         } else {
           if (!keyboardBuffer.endsWith(" ") && keyboardBuffer.length) newBuf += " ";
           newBuf += w + " ";
         }
         setKeyboardBuffer(newBuf);
+        recordSelectedWord(w, context);
       });
       predictBar.appendChild(chip);
     });
@@ -1279,6 +1347,7 @@
         speak(formatCurrentViewDate());
       } else if (action === "close-view-modal") {
         changeViewModal.classList.add("hidden");
+        renderEntries();  // Refresh entries display with the new date
         updateScanItems();
         highlightCurrentItem();
       }
@@ -1391,7 +1460,7 @@
   async function init() {
     console.log("Initializing Ben's Journal App...");
 
-    // Load entries from server/localStorage
+    // Load entries from server/localStorage FIRST
     await loadEntries();
     await loadQuestions();
     loadUsedQuestions();

@@ -101,6 +101,14 @@ function createWindow() {
   // Keep the window title fixed (control_bar.py looks it up by exact title).
   win.on('page-title-updated', (e) => { e.preventDefault(); });
   win.setTitle(APP_WINDOW_TITLE);
+  // msg-open-video drops fullscreen before minimizing (minimizing a fullscreen
+  // window is unreliable on Windows and left Chrome buried behind us); put it
+  // back when the control bar restores us on exit.
+  win.on('restore', () => {
+    if (!windowed) {
+      try { win.setFullScreen(true); win.setAlwaysOnTop(true, 'screen-saver'); } catch (_) {}
+    }
+  });
   // Show and grab focus once the page is rendered so the scan switches stay on this app.
   win.once('ready-to-show', () => {
     if (!windowed) win.setAlwaysOnTop(true, 'screen-saver');
@@ -196,8 +204,10 @@ const { shell } = require('electron');
 ipcMain.handle('msg-open-video', (_, url) => {
   if (!url) return false;
   try {
-    // Get the messenger out of the way so Chrome is visible.
-    if (win) { try { win.setAlwaysOnTop(false); win.minimize(); } catch (_) {} }
+    // Get the messenger out of the way so Chrome is visible. Leave fullscreen
+    // first — minimize() on a fullscreen window is flaky on Windows and could
+    // leave us covering the video. The 'restore' handler re-enters fullscreen.
+    if (win) { try { win.setAlwaysOnTop(false); win.setFullScreen(false); win.minimize(); } catch (_) {} }
 
     const launcher = path.join(APP_DIR, 'play_video.py');
     if (fs.existsSync(launcher)) {

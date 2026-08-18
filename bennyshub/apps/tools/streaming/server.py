@@ -24,8 +24,11 @@ from urllib.parse import urlparse, parse_qs
 import pynput # Ensure pynput is imported if we use it, otherwise skip
 import win32api
 import win32process
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import urllib.parse
 
 PORT = 8000
+URL_SAVE_PORT = 8765  # Port for URL save server (same as old app)
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(DIRECTORY, "data")
 CONTROL_BAR_PATH = os.path.abspath(os.path.join(DIRECTORY, "utils", "control_bar.py"))
@@ -35,6 +38,140 @@ CHROME_PATH = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 
 # Shared directory (for scan-manager.js and voice-manager.js)
 SHARED_DIR = os.path.abspath(os.path.join(DIRECTORY, "..", "..", "..", "shared"))
+
+# --- Active Show Tracking (like MenuFrame.active_show in old app) ---
+ACTIVE_SHOW = None  # Global variable to track current show being watched
+
+def set_active_show(title):
+    """Set the currently active show for URL tracking."""
+    global ACTIVE_SHOW
+    ACTIVE_SHOW = title
+    print(f"[ACTIVE-SHOW] Set to: {title}")
+
+def get_active_show():
+    """Get the currently active show."""
+    return ACTIVE_SHOW
+
+# --- URL Save Server (port 8765, same as old app) ---
+class URLSaveHandler(BaseHTTPRequestHandler):
+    """HTTP handler that receives URL updates from Chrome extension/bookmarklet."""
+
+    def log_message(self, format, *args):
+        # Suppress default logging
+        pass
+
+    def do_GET(self):
+        # Parse the URL from the request query string
+        qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        url = qs.get("url", [None])[0]
+
+        # Get the active show
+        show = get_active_show()
+
+        # Check if URL should be saved
+        if not show or not url:
+            print(f"[URL-SAVE] Rejected - no show or URL: show={show}, url={url}")
+            self.send_response(204)
+            self.end_headers()
+            return
+
+        # Check if URL is from allowed streaming domain
+        if not _should_track_url_changes(url):
+            print(f"[URL-SAVE] Rejected - not allowed domain: {url[:60]}...")
+            self.send_response(204)
+            self.end_headers()
+            return
+
+        # Save the URL
+        try:
+            data = {}
+            if os.path.exists(LAST_WATCHED_FILE):
+                with open(LAST_WATCHED_FILE, 'r') as f:
+                    try: data = json.load(f)
+                    except: pass
+
+            # Remove existing to ensure most recent is at the end
+            if show in data:
+                del data[show]
+
+            data[show] = {
+                "season": -1,
+                "episode": -1,
+                "url": url
+            }
+
+            with open(LAST_WATCHED_FILE, 'w') as f:
+                json.dump(data, f, indent=2)
+
+            print(f"[URL-SAVE] {show} → {url}")
+        except Exception as e:
+            print(f"[URL-SAVE] Error saving: {e}")
+
+        self.send_response(204)
+        self.end_headers()
+
+def start_url_save_server():
+    """Start the URL save server on port 8765 (like old app)."""
+    try:
+        server = HTTPServer(("127.0.0.1", URL_SAVE_PORT), URLSaveHandler)
+        print(f"[URL-SAVE-SERVER] Started on port {URL_SAVE_PORT}")
+        server.serve_forever()
+    except Exception as e:
+        print(f"[URL-SAVE-SERVER] Failed to start: {e}")
+
+# Start URL save server in background thread
+threading.Thread(target=start_url_save_server, daemon=True).start()
+
+# --- Get Chrome URL via CDP (Chrome DevTools Protocol) ---
+def get_chrome_url_via_cdp():
+    """Get the best streaming URL from Chrome via CDP on port 9222."""
+    try:
+        import requests
+        r = requests.get("http://127.0.0.1:9222/json", timeout=0.5)
+        if not r.ok:
+            print(f"[CDP] Request failed with status {r.status_code}")
+            return None
+        tabs = r.json()
+        print(f"[CDP] Found {len(tabs)} tabs")
+
+        # Priority: streaming service URLs first
+        streaming_domains = ["netflix.com", "disneyplus.com", "paramountplus.com",
+                           "primevideo.com", "amazon.com", "hulu.com", "max.com",
+                           "hbomax.com", "play.max.com", "pluto.tv", "youtube.com", "youtu.be"]
+
+        best_url = None
+        for tab in tabs:
+            if tab.get("type") == "page" and tab.get("url"):
+                url = tab.get("url")
+                print(f"[CDP] Tab: {url[:80]}...")
+
+                # Skip internal pages
+                if url.startswith("chrome://") or url.startswith("chrome-extension://"):
+                    continue
+
+                # Skip localhost/hub pages
+                if "localhost" in url or "127.0.0.1" in url:
+                    continue
+
+                # Check if it's a streaming service (highest priority)
+                url_lower = url.lower()
+                for domain in streaming_domains:
+                    if domain in url_lower:
+                        print(f"[CDP] Found streaming URL: {url[:60]}...")
+                        return url
+
+                # Keep first non-localhost URL as fallback
+                if best_url is None:
+                    best_url = url
+
+        if best_url:
+            print(f"[CDP] Using fallback URL: {best_url[:60]}...")
+        else:
+            print("[CDP] No suitable URL found in any tab")
+        return best_url
+    except Exception as e:
+        print(f"[CDP] Error getting URL: {e}")
+    return None
 
 # --- Hub Window Management ---
 def find_hub_window():
@@ -143,6 +280,23 @@ def force_foreground_window(window_title_fragment):
         print(f"[FOCUS] Error: {e}")
     return False
 
+# Global to track the current URL being played
+CURRENT_PLAYBACK_URL = None
+
+def set_current_playback_url(url):
+    """Track the URL currently being played - used for saving on exit."""
+    global CURRENT_PLAYBACK_URL
+    CURRENT_PLAYBACK_URL = url
+    # Also write to a temp file so control_bar can read it
+    try:
+        temp_file = os.path.join(DATA_DIR, "current_url.txt")
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(temp_file, 'w') as f:
+            f.write(url or "")
+        print(f"[URL-TRACK] Saved current URL: {url[:60] if url else 'None'}...")
+    except Exception as e:
+        print(f"[URL-TRACK] Error saving: {e}")
+
 def launch_control_bar(mode="basic", show_title=None, delay=0.0):
     try:
         cmd = [sys.executable, CONTROL_BAR_PATH, "--mode", mode, "--app-title", "Streaming Hub"]
@@ -150,25 +304,48 @@ def launch_control_bar(mode="basic", show_title=None, delay=0.0):
             cmd += ["--show", show_title]
         if delay > 0:
             cmd += ["--delay", str(delay)]
-        subprocess.Popen(cmd)
-        print(f"Launched control bar: {cmd}")
+
+        print(f"[CONTROL-BAR] sys.executable = {sys.executable}")
+        print(f"[CONTROL-BAR] CONTROL_BAR_PATH = {CONTROL_BAR_PATH}")
+        print(f"[CONTROL-BAR] Path exists: {os.path.exists(CONTROL_BAR_PATH)}")
+        print(f"[CONTROL-BAR] Launching: {cmd}")
+
+        # Launch with output redirected to a log file in temp folder for debugging
+        import tempfile
+        log_path = os.path.join(tempfile.gettempdir(), "bennys_control_bar_debug.log")
+        with open(log_path, "w") as log_file:
+            proc = subprocess.Popen(cmd, stdout=log_file, stderr=subprocess.STDOUT, bufsize=1, universal_newlines=True,
+                                     creationflags=subprocess.CREATE_NO_WINDOW)
+        print(f"[CONTROL-BAR] Process started with PID: {proc.pid}")
+        print(f"[CONTROL-BAR] Debug log: {log_path}")
     except Exception as e:
-        print(f"Failed to launch control bar: {e}")
+        print(f"[CONTROL-BAR] Failed to launch: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 def open_in_chrome(url, fullscreen=True):
     """
     Open URL in Chrome in a new window for video playback.
-    Minimizes the hub window before opening.
     """
     try:
         # Minimize hub window first so video takes focus
         minimize_hub_window()
-        
+
         chrome_cmd = CHROME_PATH if os.path.exists(CHROME_PATH) else "chrome"
-        
-        # Simple approach - just open in a new window
-        args = [chrome_cmd, "--new-window"]
+
+        # Open Chrome with the URL
+        # --autoplay-policy=no-user-gesture-required ensures audio isn't muted on Disney+ etc
+        # --enable-features=HardwareMediaKeyHandling enables global media key support (for Plex)
+        # --disable-background-mode prevents Chrome from running in background after close
+        args = [
+            chrome_cmd,
+            "--new-window",
+            "--autoplay-policy=no-user-gesture-required",
+            "--enable-features=HardwareMediaKeyHandling",
+            "--disable-background-mode",
+            "--disable-backgrounding-occluded-windows"
+        ]
         if fullscreen:
             args.append("--start-fullscreen")
         args.append(url)
@@ -180,13 +357,33 @@ def open_in_chrome(url, fullscreen=True):
         print(f"[CHROME] Error: {e}")
 
 
-def open_link_logic(title, url, ctype):
+def open_link_logic(title, url, ctype, show_title=None, plex_continue=False, save_url=None):
     """
     Platform-specific launch logic ported from comm-v10.py.
     Handles: Plex, YouTube, PlutoTV, Paramount+, Amazon, trailers, and generic services.
+
+    Args:
+        title: Display title (may include S#E# suffix for episodes)
+        url: URL to open
+        ctype: Content type (movies, shows, trailer)
+        show_title: Base show name for control bar (e.g. "Breaking Bad" not "Breaking Bad S1E5")
+                   Used to look up progress in last_watched.json
+        plex_continue: If True, this is a Plex "continue" action using base show URL
+        save_url: URL to save in last_watched (for Plex shows, this is the default show URL)
     """
-    print(f"Opening: {title} | {url} | Type: {ctype}")
-    
+    # Use show_title if provided, otherwise fall back to title
+    control_bar_title = show_title or title
+    # Use save_url if provided, otherwise fall back to url
+    url_to_save = save_url or url
+    print(f"Opening: {title} | {url} | Type: {ctype} | ControlBar: {control_bar_title} | PlexContinue: {plex_continue} | SaveUrl: {url_to_save[:60] if url_to_save else 'None'}...")
+
+    # Set the active show for URL tracking (like MenuFrame.active_show in old app)
+    # This allows the URL save server (port 8765) to know which show to save URLs for
+    set_active_show(control_bar_title)
+
+    # Track the current playback URL (for saving on exit)
+    set_current_playback_url(url)
+
     # Kill any existing control bar first
     kill_control_bar()
     
@@ -221,37 +418,47 @@ def open_link_logic(title, url, ctype):
             pyautogui.press('f')
             
         threading.Thread(target=_automate_trailer, daemon=True).start()
-        launch_control_bar("basic", show_title=title, delay=10.0)
+        launch_control_bar("basic", show_title=control_bar_title, delay=10.0)
         return  # Exit early so it doesn't fall through to other handlers
-    
+
     # --- PLEX ---
     if "plex.tv" in url or "plex.direct" in url:
         open_in_chrome(url)
 
         def _automate_plex():
-            print(f"[PLEX] Waiting for page load...")
+            print(f"[PLEX] Waiting for page load... (plex_continue={plex_continue})")
             time.sleep(7)
-            
+
             # Force Chrome/Plex to foreground
             force_foreground_window("Plex")
             force_foreground_window("Chrome")
             click_to_focus()
-            
-            # Plex key sequence: x (close overlay) -> enter (select) -> p (play)
-            print("[PLEX] Sending keys: x, enter, p")
-            pyautogui.press('x')
-            time.sleep(1)
-            pyautogui.press('enter')
-            time.sleep(1)
-            pyautogui.press('p')  # 'p' plays the video
-            
-            # Wait for video to start, then fullscreen the Plex player
-            time.sleep(2)
-            print("[PLEX] Sending 'f' to fullscreen the player...")
-            pyautogui.press('f')
-            
+
+            if plex_continue:
+                # Base show page: just press Enter to activate the "Play" button
+                # which resumes from where Plex left off
+                print("[PLEX CONTINUE] Pressing Enter to start playing...")
+                pyautogui.press('enter')
+                time.sleep(2)
+                print("[PLEX CONTINUE] Sending 'f' to fullscreen...")
+                pyautogui.press('f')
+            else:
+                # Episode/Movie page: use full automation sequence
+                # Plex key sequence: x (close overlay) -> enter (select) -> p (play)
+                print("[PLEX] Sending keys: x, enter, p")
+                pyautogui.press('x')
+                time.sleep(1)
+                pyautogui.press('enter')
+                time.sleep(1)
+                pyautogui.press('p')  # 'p' plays the video
+
+                # Wait for video to start, then fullscreen the Plex player
+                time.sleep(2)
+                print("[PLEX] Sending 'f' to fullscreen the player...")
+                pyautogui.press('f')
+
         threading.Thread(target=_automate_plex, daemon=True).start()
-        launch_control_bar("basic", show_title=title, delay=14.0)  # Increased delay to account for extra steps
+        launch_control_bar("basic", show_title=control_bar_title, delay=14.0 if not plex_continue else 10.0)
         
     # --- PLUTO TV ---
     elif "pluto.tv" in url:
@@ -283,7 +490,7 @@ def open_link_logic(title, url, ctype):
             print("[PLUTO] Automation complete.")
             
         threading.Thread(target=_automate_pluto, daemon=True).start()
-        launch_control_bar("basic", show_title=title, delay=16.0)
+        launch_control_bar("basic", show_title=control_bar_title, delay=16.0)
 
     # --- YOUTUBE ---
     elif "youtube.com" in url or "youtu.be" in url:
@@ -304,7 +511,7 @@ def open_link_logic(title, url, ctype):
             pyautogui.press('f')
             
         threading.Thread(target=_automate_youtube, daemon=True).start()
-        launch_control_bar("basic", show_title=title, delay=10.0)
+        launch_control_bar("basic", show_title=control_bar_title, delay=10.0)
 
     # --- PARAMOUNT+ / AMAZON (need click to dismiss overlays) ---
     elif "paramountplus.com" in url or "amazon.com" in url or "primevideo.com" in url:
@@ -327,27 +534,34 @@ def open_link_logic(title, url, ctype):
             time.sleep(2)
             
         threading.Thread(target=_automate_click, daemon=True).start()
-        launch_control_bar("basic", show_title=title, delay=8.0)
+        launch_control_bar("basic", show_title=control_bar_title, delay=8.0)
 
     # --- NETFLIX / DISNEY+ / HULU / MAX / OTHER ---
     else:
         # These services auto-play and auto-fullscreen when you navigate to watch URLs
         open_in_chrome(url)
-        
+
+        # Save the URL immediately for non-Plex streaming services
+        # This ensures Recently Watched and Continue work even if CDP tracking fails
+        # Use url_to_save (which may be the default Plex URL for Plex shows)
+        if is_allowed_streaming_url(url_to_save):
+            set_last_watched(control_bar_title, -1, -1, url_to_save)
+            print(f"[URL-SAVE] Saved on launch: {control_bar_title} → {url_to_save[:60]}...")
+
         def _automate_generic():
             print(f"[GENERIC] Waiting for page load...")
             time.sleep(5)
             force_foreground_window("Chrome")
             click_to_focus()
-            # F11 removed: Chrome is already launched with --start-fullscreen. 
+            # F11 removed: Chrome is already launched with --start-fullscreen.
             # Pressing F11 toggles it OFF if it is already on.
-            # try: 
+            # try:
             #     pyautogui.press('f11')
             #     print("[GENERIC] Sent F11 for browser fullscreen")
             # except: pass
-            
+
         threading.Thread(target=_automate_generic, daemon=True).start()
-        launch_control_bar("basic", show_title=title, delay=6.0)
+        launch_control_bar("basic", show_title=control_bar_title, delay=6.0)
 
 # Cache for episodes
 EPISODE_CACHE = {}
@@ -469,14 +683,47 @@ def get_last_watched(show_title=None):
     except: pass
     return None
 
+# Whitelist of allowed streaming domains for persistent URL tracking (control bar tracks these)
+ALLOWED_STREAMING_DOMAINS = [
+    "netflix.com", "disneyplus.com", "paramountplus.com", "primevideo.com",
+    "amazon.com", "hulu.com", "max.com", "hbomax.com", "pluto.tv",
+    "youtube.com", "youtu.be"
+]
+
+def _is_plex_url(url):
+    """Check if URL is a Plex URL."""
+    if not url:
+        return False
+    url_lower = url.lower()
+    return "plex.tv" in url_lower or "plex.direct" in url_lower
+
+def _should_track_url_changes(url):
+    """Check if URL changes should be tracked by control bar (non-Plex streaming services)."""
+    if not url:
+        return False
+    url_lower = url.lower()
+    # Don't track Plex - it handles its own continue
+    if _is_plex_url(url):
+        return False
+    # Only track known streaming services
+    return any(domain in url_lower for domain in ALLOWED_STREAMING_DOMAINS)
+
+def is_allowed_streaming_url(url):
+    """Check if URL is an allowed streaming service (non-Plex) for saving."""
+    # Alias for _should_track_url_changes - used in save logic
+    return _should_track_url_changes(url)
+
 def set_last_watched(show_title, season, episode, url):
+    # Always save to last_watched.json for Recently Watched display
+    # (Plex URLs are saved but the Continue button uses base show URL instead)
     try:
+        import time
         data = {}
         if os.path.exists(LAST_WATCHED_FILE):
             with open(LAST_WATCHED_FILE, 'r') as f:
                 try: data = json.load(f)
                 except: pass
-        
+
         # Remove existing to ensure most recent is at the end (Python 3.7+ dict order)
         if show_title in data:
             del data[show_title]
@@ -484,13 +731,81 @@ def set_last_watched(show_title, season, episode, url):
         data[show_title] = {
             "season": int(season) if season is not None else -1,
             "episode": int(episode) if episode is not None else -1,
-            "url": url
+            "url": url,
+            "timestamp": int(time.time() * 1000)  # JS-style timestamp for sorting
         }
-        
+
         with open(LAST_WATCHED_FILE, 'w') as f:
             json.dump(data, f, indent=2)
+        print(f"[SAVE] {show_title} → {url[:60]}...")
     except Exception as e:
         print(f"Error saving last watched: {e}")
+
+def _strip_saved_url(entry):
+    """
+    Drop the saved resume URL but keep the entry itself.
+
+    last_watched.json doubles as the Recently Watched list, so deleting the whole entry
+    would make the show disappear from that grid. With no url, the modal falls back to the
+    base link from data.json (or to the first episode for shows in episodes.json).
+    """
+    if isinstance(entry, dict):
+        entry.pop("url", None)
+        entry["season"] = -1
+        entry["episode"] = -1
+        return entry
+    # Legacy entries were a bare URL string with no timestamp - keep it that way
+    return {"season": -1, "episode": -1}
+
+def _load_last_watched_raw():
+    if os.path.exists(LAST_WATCHED_FILE):
+        try:
+            with open(LAST_WATCHED_FILE, 'r') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def _write_last_watched_raw(data):
+    with open(LAST_WATCHED_FILE, 'w') as f:
+        json.dump(data, f, indent=2)
+
+def reset_last_watched(show_title):
+    """Clear one show's saved resume URL. Returns True if an entry was actually cleared."""
+    if not show_title:
+        return False
+    try:
+        data = _load_last_watched_raw()
+        # set_last_watched() writes whatever case it was handed, so match loosely
+        wanted = show_title.lower().strip()
+        keys = [k for k in data if k.lower().strip() == wanted]
+        if not keys:
+            return False
+        for k in keys:
+            data[k] = _strip_saved_url(data[k])
+        _write_last_watched_raw(data)
+        print(f"[RESET] Cleared saved URL for: {show_title}")
+        return True
+    except Exception as e:
+        print(f"Error resetting last watched: {e}")
+        return False
+
+def clear_all_last_watched():
+    """Strip every saved resume URL, keeping the Recently Watched list populated."""
+    try:
+        data = _load_last_watched_raw()
+        count = 0
+        for k in list(data.keys()):
+            entry = data[k]
+            if isinstance(entry, str) or (isinstance(entry, dict) and entry.get("url")):
+                count += 1
+            data[k] = _strip_saved_url(entry)
+        _write_last_watched_raw(data)
+        print(f"[RESET] Cleared saved URLs for {count} show(s)")
+        return count
+    except Exception as e:
+        print(f"Error clearing last watched: {e}")
+        return 0
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -590,6 +905,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 self._send_error(str(e))
 
+        elif self.path == '/api/reset_progress':
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            try:
+                data = json.loads(post_data)
+                cleared = reset_last_watched(data.get('show'))
+                self._send_json({"status": "reset", "cleared": cleared})
+            except Exception as e:
+                self._send_error(str(e))
+
+        elif self.path == '/api/clear_progress':
+            try:
+                length = int(self.headers.get('Content-Length') or 0)
+                if length:
+                    self.rfile.read(length)
+                count = clear_all_last_watched()
+                self._send_json({"status": "cleared", "count": count})
+            except Exception as e:
+                self._send_error(str(e))
+
         elif self.path == '/api/open':
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
@@ -598,9 +933,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 title = data.get('title', '')
                 url = data.get('url', '')
                 ctype = data.get('type', 'movies')
-                
-                open_link_logic(title, url, ctype)
-                
+                # showTitle is the base show name for the control bar (e.g. "Breaking Bad" not "Breaking Bad S1E5")
+                show_title = data.get('showTitle', title)
+                # saveUrl is the URL to save in last_watched (for Plex shows, this is the default show URL)
+                save_url = data.get('saveUrl', url)
+                # plexContinue flag: true when using base show URL for Plex continue
+                plex_continue = data.get('plexContinue', False)
+
+                open_link_logic(title, url, ctype, show_title, plex_continue, save_url)
+
                 self._send_json({"status": "launched"})
             except Exception as e:
                 self._send_error(str(e))
@@ -621,7 +962,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             try:
                 # Path to control_bar.py relative to streaming/
                 control_bar_path = os.path.abspath(os.path.join(DIRECTORY, "..", "utils", "control_bar.py"))
-                subprocess.Popen([sys.executable, control_bar_path, "--mode", "basic"])
+                subprocess.Popen([sys.executable, control_bar_path, "--mode", "basic"],
+                                  creationflags=subprocess.CREATE_NO_WINDOW)
                 self._send_json({"status": "launched"})
             except Exception as e:
                 print(f"Error launching control bar: {e}")
@@ -666,6 +1008,18 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         elif self.path == '/close_app':
             try:
+                # SAVE URL BEFORE CLOSING: Get Chrome URL via CDP and save for the active show
+                show = get_active_show()
+                if show:
+                    url = get_chrome_url_via_cdp()
+                    if url and is_allowed_streaming_url(url):
+                        set_last_watched(show, -1, -1, url)
+                        print(f"[EXIT] Saved URL on close: {show} → {url[:60]}...")
+                    else:
+                        print(f"[EXIT] No saveable URL found (show={show}, url={url})")
+                else:
+                    print("[EXIT] No active show to save")
+
                 # Send response first before killing Chrome
                 self._send_json({"status": "closed"})
                 # Kill Chrome after response is sent
@@ -733,9 +1087,22 @@ def run_server():
 
         try:
             if os.path.exists(CHROME_PATH):
-                # Launch in App mode (starts windowed by default usually)
-                # ENABLE CDP: --remote-debugging-port=9222
-                subprocess.Popen([CHROME_PATH, "--remote-debugging-port=9222", "--new-window", "--start-fullscreen", "--app=" + url])
+                # Launch in App mode with all required flags
+                # --remote-debugging-port=9222 enables CDP for control_bar.py automation
+                # --autoplay-policy=no-user-gesture-required ensures audio isn't muted
+                # --enable-features=HardwareMediaKeyHandling enables media key support
+                # --disable-background-mode prevents Chrome from running in background after close
+                subprocess.Popen([
+                    CHROME_PATH,
+                    "--remote-debugging-port=9222",
+                    "--new-window",
+                    "--start-fullscreen",
+                    "--autoplay-policy=no-user-gesture-required",
+                    "--enable-features=HardwareMediaKeyHandling",
+                    "--disable-background-mode",
+                    "--disable-backgrounding-occluded-windows",
+                    "--app=" + url
+                ])
                 
                 # Wait for window to load
                 for _ in range(20): # Try for 10 seconds

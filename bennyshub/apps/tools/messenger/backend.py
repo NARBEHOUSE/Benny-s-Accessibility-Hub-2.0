@@ -157,6 +157,7 @@ class DiscordBackend:
         self.ui_reactions: Dict[int, List[Dict[str, Any]]] = {}
         self._dm_history_loading: set = set()
         self._seen_ids: set = set()
+        self._mirrored_msg_ids: set = set()
         self._warm_done = False
         # Flips true the instant on_ready fires — well before the (slow, can
         # take 30+s on a busy channel due to per-message member lookups) full
@@ -165,20 +166,31 @@ class DiscordBackend:
         # history is, so there's no reason to make Ben wait through the whole
         # warm-load before he can hear about it.
         self._connected = False
+        # Latest activity timestamp per thread, from either direction — drives
+        # the thread-list sort order (most recently active thread on top,
+        # whether the last message was incoming or one Ben sent himself).
+        self._thread_last_ts: Dict[str, float] = {}
         # Latest *incoming* (not from_me) message timestamp per thread. Used so
         # the UI can highlight DMs/channels with new activity even before their
-        # full message history has been loaded.
-        self._thread_last_ts: Dict[str, float] = {}
+        # full message history has been loaded. Kept separate from
+        # _thread_last_ts so sending a message never makes a thread look
+        # unread to Ben himself.
+        self._thread_last_incoming_ts: Dict[str, float] = {}
 
         # ----- TTS state (announces new messages when no UI is connected) -----
         self._tts_engine = None
         self._last_tts_by_user: Dict[int, float] = {}
         self._tts_rate_window_sec = 120
 
-    def _mark_incoming(self, tid: str, ts: float):
+    def _mark_activity(self, tid: str, ts: float, from_me: bool = False):
         try:
-            if ts and ts > self._thread_last_ts.get(tid, 0):
-                self._thread_last_ts[tid] = float(ts)
+            if not ts:
+                return
+            ts = float(ts)
+            if ts > self._thread_last_ts.get(tid, 0):
+                self._thread_last_ts[tid] = ts
+            if not from_me and ts > self._thread_last_incoming_ts.get(tid, 0):
+                self._thread_last_incoming_ts[tid] = ts
         except Exception:
             pass
 
@@ -337,8 +349,7 @@ class DiscordBackend:
                             )
                             self.ui_messages[tid].append(ui)
                             self._seen_ids.add(m.id)
-                            if not ui.from_me:
-                                self._mark_incoming(tid, ui.ts)
+                            self._mark_activity(tid, ui.ts, ui.from_me)
                             try:
                                 self.ui_reactions[m.id] = self._build_ui_reactions(m)
                             except Exception:
@@ -520,6 +531,7 @@ class DiscordBackend:
                 )
                 self.ui_messages[tid].append(ui)
                 self._seen_ids.add(msg.id)
+                self._mark_activity(tid, ui.ts, ui.from_me)
                 try:
                     self.ui_reactions[msg.id] = self._build_ui_reactions(msg)
                 except Exception:
@@ -653,6 +665,7 @@ class DiscordBackend:
                     self.ui_messages.setdefault(thread_id, []).append(ui)
                     have_ids.add(msg.id)
                     self._seen_ids.add(msg.id)
+                    self._mark_activity(thread_id, ui.ts, ui.from_me)
                     try:
                         self.ui_reactions[msg.id] = self._build_ui_reactions(msg)
                     except Exception:
@@ -699,6 +712,7 @@ class DiscordBackend:
                     await user.create_dm()
                     msg = await user.dm_channel.send(text)
                     self.dm_threads[str(uid)] = user
+                    disp = None
                     try:
                         disp = await self._resolve_member_display(uid)
                         if disp:
@@ -709,6 +723,8 @@ class DiscordBackend:
                     tid = f"dm:{uid}"
                     name = await self._safe_author(msg, tid)
                     self._push_ui_message_with_author(tid, msg, name)
+                    other_name = disp or getattr(user, "global_name", None) or getattr(user, "name", "user")
+                    await self._mirror_to_bridge(msg, uid, other_name, True)
             except Exception:
                 pass
 
@@ -764,6 +780,7 @@ class DiscordBackend:
                     await user.create_dm()
                     msg = await user.dm_channel.send(content)
                     self.dm_threads[str(uid)] = user
+                    disp = None
                     try:
                         disp = await self._resolve_member_display(uid)
                         if disp:
@@ -774,6 +791,8 @@ class DiscordBackend:
                     tid = f"dm:{uid}"
                     name = await self._safe_author(msg, tid)
                     self._push_ui_message_with_author(tid, msg, name)
+                    other_name = disp or getattr(user, "global_name", None) or getattr(user, "name", "user")
+                    await self._mirror_to_bridge(msg, uid, other_name, True)
             except Exception:
                 pass
 
@@ -901,6 +920,9 @@ class DiscordBackend:
         try:
             if not self.dm_bridge_chan_id:
                 return
+            if message.id in self._mirrored_msg_ids:
+                return
+            self._mirrored_msg_ids.add(message.id)
             bridge = self.client.get_channel(self.dm_bridge_chan_id)
             if not isinstance(bridge, discord.TextChannel):
                 try:
@@ -920,14 +942,23 @@ class DiscordBackend:
     def _maybe_stub_dm_from_bridge(self, message: discord.Message):
         """Parse a bridge-mirror line ('DM from X (id): ...' / 'To X (id): ...')
         to seed dm_threads/name cache with a contact — never touches
-        ui_messages, so it can't produce a duplicate chat message."""
+        ui_messages, so it can't produce a duplicate chat message. Also seeds
+        this DM's last-activity timestamp from the bridge line's own send
+        time (a close proxy for the real DM message's timestamp, in either
+        direction) so the thread list sorts by true recency even before the
+        real DM history has been fetched."""
         try:
             txt = message.content or ""
-            m = re.match(r"^(?:DM from|To) (.+?) \((\d+)\):", txt)
+            m = re.match(r"^(DM from|To) (.+?) \((\d+)\):", txt)
             if not m:
                 return
-            raw_name = m.group(1).strip()
-            uid = int(m.group(2))
+            direction = m.group(1)
+            raw_name = m.group(2).strip()
+            uid = int(m.group(3))
+            try:
+                self._mark_activity(f"dm:{uid}", message.created_at.timestamp(), from_me=(direction == "To"))
+            except Exception:
+                pass
             disp = None
             try:
                 if uid in self._name_cache:
@@ -1119,8 +1150,7 @@ class DiscordBackend:
             self._seen_ids.add(m.id)
         except Exception:
             pass
-        if not from_me:
-            self._mark_incoming(thread_id, ui.ts)
+        self._mark_activity(thread_id, ui.ts, from_me)
         try:
             self.ui_reactions[m.id] = self._build_ui_reactions(m)
         except Exception:
@@ -1277,7 +1307,8 @@ class DiscordBackend:
                 ch_name = f"#{ch.name}" if ch else f"Channel {chan_id}"
             entries.append({"tid": tid, "label": ch_name, "is_channel": True,
                             "is_main": (chan_id == self.chan_id),
-                            "last_ts": self._thread_last_ts.get(tid, 0)})
+                            "last_ts": self._thread_last_ts.get(tid, 0),
+                            "last_incoming_ts": self._thread_last_incoming_ts.get(tid, 0)})
         try:
             my_id = getattr(getattr(self.client, "user", None), "id", None)
             for uid_str, user in (self.dm_threads or {}).items():
@@ -1294,7 +1325,8 @@ class DiscordBackend:
                 base = getattr(user, "global_name", None) or getattr(user, "name", "user")
                 label = self.display_for_user_id(uid_int, base) if uid_int is not None else base
                 entries.append({"tid": tid, "label": label, "is_channel": False, "is_main": False,
-                                "last_ts": self._thread_last_ts.get(tid, 0)})
+                                "last_ts": self._thread_last_ts.get(tid, 0),
+                                "last_incoming_ts": self._thread_last_incoming_ts.get(tid, 0)})
         except Exception:
             pass
         return entries

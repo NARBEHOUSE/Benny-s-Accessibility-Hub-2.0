@@ -906,6 +906,15 @@
               <span class="pill" id="uisize-status">Default</span>
             </div>
           </button>
+
+          <button class="card-btn" id="games-sync-toggle">
+            <span class="kicker">Setting</span>
+            <div class="btn-title">Sync Games</div>
+            <div class="row">
+              <p class="desc">Download the latest games from bennyshub.com for offline play</p>
+              <span class="pill" id="games-sync-status">Not synced</span>
+            </div>
+          </button>
         </div>
         <p class="footer-note">Press <span class="kbd">spacebar</span> to move focus. Press <span class="kbd">return</span> to toggle settings. Use the Back button to return home.</p>
       </section>
@@ -1005,6 +1014,24 @@
     // App data and state
     let appsData = { tools: [], games: [] };
     let currentScreen = 'home';
+
+    // Games are sourced live from bennyshub.com so new/updated games show up
+    // automatically; the local apps/games/ cache (synced on demand from the
+    // same source) is the offline fallback. See README "Games" section.
+    const GAMES_LIVE_BASE = 'https://narbehouse.github.io/bennyshub';
+    const GAMES_LIVE_MANIFEST_URL = `${GAMES_LIVE_BASE}/apps/games/games.json`;
+    const GAMES_LIVE_FETCH_TIMEOUT_MS = 3000;
+    const GAMES_LAUNCH_PROBE_TIMEOUT_MS = 2500;
+
+    async function fetchWithTimeout(url, timeoutMs, opts = {}) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        return await fetch(url, { ...opts, signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+    }
     let filterState = {
       tools: { genre: 'all', page: 0 },
       games: { genre: 'all', page: 0 }
@@ -1039,28 +1066,99 @@
       return 2000;
     }
 
+    // A game's `path` looks like "apps/games/BENNYSFOOTBALL/index.html" - pull
+    // out the folder name so it can be checked against sync status.
+    function gameFolderFromPath(p) {
+      const parts = (p || '').split('/');
+      return parts.length > 2 ? parts[2] : null;
+    }
+
+    // Only games actually present on disk right now (auto-synced or manually
+    // dropped in by hand) are safe to offer as an offline fallback - a path
+    // merely being *listed* somewhere doesn't mean the files are really there.
+    async function getSyncedGameFolders() {
+      if (!(typeof window !== 'undefined' && window.electronAPI && window.electronAPI.games)) {
+        return new Set();
+      }
+      try {
+        const status = await window.electronAPI.games.getSyncStatus();
+        return new Set((status && status.onDisk) || []);
+      } catch (e) {
+        console.log('[Hub] Unable to read games sync status:', e.message);
+        return new Set();
+      }
+    }
+
     // Load JSON data for apps
     async function loadAppsData() {
       try {
         console.log('Loading apps data...');
-        const [toolsResponse, gamesResponse] = await Promise.all([
+        const [toolsResponse, localGamesResponse, syncedFolders] = await Promise.all([
           fetch('apps/tools/tools.json'),
-          fetch('apps/games/games.json')
+          fetch('apps/games/games.json'),
+          getSyncedGameFolders()
         ]);
-        
+
         if (!toolsResponse.ok) {
           console.error('Failed to fetch tools.json:', toolsResponse.status);
         }
-        if (!gamesResponse.ok) {
-          console.error('Failed to fetch games.json:', gamesResponse.status);
+        if (!localGamesResponse.ok) {
+          console.error('Failed to fetch local games.json:', localGamesResponse.status);
         }
-        
+
         const toolsData = await toolsResponse.json();
-        const gamesData = await gamesResponse.json();
-        
+        const localGamesData = await localGamesResponse.json();
+
         appsData.tools = toolsData.tools.sort((a, b) => a.title.localeCompare(b.title));
-        appsData.games = gamesData.games.sort((a, b) => a.title.localeCompare(b.title));
-        
+
+        // A candidate local path is only offered if that game's folder was
+        // actually synced.
+        function syncedLocalPath(candidatePath) {
+          const folder = gameFolderFromPath(candidatePath);
+          return folder && syncedFolders.has(folder) ? candidatePath : null;
+        }
+
+        // Prefer the live games list from bennyshub.com (picks up new/updated
+        // games automatically, with zero need to keep a local manifest in
+        // sync by hand). The local games.json only matters when the live
+        // manifest can't be reached at all, or for manually-added custom
+        // games - see README "Games".
+        let liveGames = null;
+        try {
+          const liveResponse = await fetchWithTimeout(GAMES_LIVE_MANIFEST_URL, GAMES_LIVE_FETCH_TIMEOUT_MS);
+          if (liveResponse.ok) {
+            const liveData = await liveResponse.json();
+            liveGames = liveData.games || [];
+          }
+        } catch (e) {
+          console.log('[Hub] Live games manifest unavailable, using local cache:', e.message);
+        }
+
+        if (liveGames) {
+          const liveIds = new Set(liveGames.map(g => g.id));
+          const fromLive = liveGames.map(g => ({
+            ...g,
+            gameLiveUrl: `${GAMES_LIVE_BASE}/${g.path}`,
+            gameLocalPath: syncedLocalPath(g.path),
+            // Thumbnails ship locally in this repo; fall back to the live
+            // copy (via onerror below) for games synced after this build.
+            image: g.image,
+            imageFallback: `${GAMES_LIVE_BASE}/${g.image}`
+          }));
+          // Games manually added to the local games.json (not on the live
+          // site at all) always show up too, live site reachable or not.
+          const customLocal = (localGamesData.games || [])
+            .filter(g => !liveIds.has(g.id))
+            .map(g => ({ ...g, gameLiveUrl: null, gameLocalPath: syncedLocalPath(g.path) }));
+          appsData.games = [...fromLive, ...customLocal].sort((a, b) => a.title.localeCompare(b.title));
+        } else {
+          appsData.games = (localGamesData.games || []).map(g => ({
+            ...g,
+            gameLiveUrl: null,
+            gameLocalPath: syncedLocalPath(g.path)
+          })).sort((a, b) => a.title.localeCompare(b.title));
+        }
+
         console.log('Apps data loaded:', appsData);
         console.log('Tools count:', appsData.tools.length);
         console.log('Games count:', appsData.games.length);
@@ -1118,6 +1216,10 @@
       // Support standalone apps with launchUrl instead of path
       const pathAttr = app.path ? `data-path="${app.path}"` : '';
       const launchAttr = app.launchUrl ? `data-launch-url="${app.launchUrl}"` : '';
+      // Games: prefer the live copy (data-game-live-url), fall back to the
+      // locally synced copy (data-game-local-path) if it can't be reached.
+      const gameLiveUrlAttr = app.gameLiveUrl ? `data-game-live-url="${app.gameLiveUrl}"` : '';
+      const gameLocalPathAttr = app.gameLocalPath ? `data-game-local-path="${app.gameLocalPath}"` : '';
       // Support server-based apps (like streaming)
       const serverAppAttr = app.serverApp ? `data-server-app='${JSON.stringify(app.serverApp)}'` : '';
       // Support external URLs (for apps with their own servers)
@@ -1129,12 +1231,12 @@
       
       if (hasImage) {
         return `
-          <button class="card-btn app-btn ${hasImgClass}" ${pathAttr} ${launchAttr} ${serverAppAttr} ${externalUrlAttr} ${launchExternalAttr} ${serverPortAttr} data-title="${app.title}">
+          <button class="card-btn app-btn ${hasImgClass}" ${pathAttr} ${launchAttr} ${gameLiveUrlAttr} ${gameLocalPathAttr} ${serverAppAttr} ${externalUrlAttr} ${launchExternalAttr} ${serverPortAttr} data-title="${app.title}">
             <div class="card-content">
               <div class="btn-title">${app.title}</div>
             </div>
             <div class="card-image-section">
-              <img src="${app.image}" alt="" loading="lazy">
+              <img src="${app.image}" alt="" loading="lazy" ${app.imageFallback ? `onerror="this.onerror=null;this.src='${app.imageFallback}'"` : ''}>
               <div class="card-action-overlay">
                  <div class="play-icon">
                     <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -1147,7 +1249,7 @@
 
       // Default card layout (no image)
       return `
-        <button class="card-btn app-btn" ${pathAttr} ${launchAttr} ${serverAppAttr} ${externalUrlAttr} ${launchExternalAttr} ${serverPortAttr} data-title="${app.title}">
+        <button class="card-btn app-btn" ${pathAttr} ${launchAttr} ${gameLiveUrlAttr} ${gameLocalPathAttr} ${serverAppAttr} ${externalUrlAttr} ${launchExternalAttr} ${serverPortAttr} data-title="${app.title}">
           <div class="btn-title">${app.title}</div>
           <div class="row">
             <span class="pill">${actionLabel}</span>
@@ -1206,6 +1308,8 @@
           
           const path = btn.getAttribute('data-path');
           const launchUrl = btn.getAttribute('data-launch-url');
+          const gameLiveUrl = btn.getAttribute('data-game-live-url');
+          const gameLocalPath = btn.getAttribute('data-game-local-path');
           const serverAppData = btn.getAttribute('data-server-app');
           const externalUrl = btn.getAttribute('data-external-url');
           const launchExternal = btn.getAttribute('data-launch-external');
@@ -1214,6 +1318,14 @@
           
           // Check if running in Electron
           const isElectron = typeof window !== 'undefined' && window.electronAPI;
+
+          // Games: try the live copy from bennyshub.com first, fall back to
+          // the locally synced copy if it can't be reached (offline, or a
+          // brand-new game that hasn't been synced yet has no local copy).
+          if (gameLiveUrl || gameLocalPath) {
+            await launchGameWithFallback(gameLiveUrl, gameLocalPath, title);
+            return;
+          }
 
           // Check if this is a server-port app (like ytsearch) - needs localhost for YouTube embed
           if (serverPort && isElectron) {
@@ -1579,6 +1691,61 @@
       speak(`Size changed to ${settings.uiSize}`);
     });
 
+    // Downloads a local offline copy of every game from bennyshub.com so
+    // games still work without an internet connection.
+    const gamesSyncStatusEl = document.getElementById('games-sync-status');
+    let gamesSyncInProgress = false;
+
+    async function refreshGamesSyncStatus() {
+      if (!(typeof window !== 'undefined' && window.electronAPI && window.electronAPI.games)) return;
+      try {
+        const status = await window.electronAPI.games.getSyncStatus();
+        if (status && status.allSyncedAt) {
+          const when = new Date(status.allSyncedAt);
+          gamesSyncStatusEl.textContent = `Synced ${when.toLocaleDateString()}`;
+        } else {
+          gamesSyncStatusEl.textContent = 'Not synced';
+        }
+      } catch (e) {
+        console.log('[Hub] Unable to read games sync status:', e.message);
+      }
+    }
+
+    document.getElementById('games-sync-toggle').addEventListener('click', async () => {
+      if (gamesSyncInProgress) return;
+      if (!(typeof window !== 'undefined' && window.electronAPI && window.electronAPI.games)) {
+        speak('Game syncing is only available in the desktop app.');
+        return;
+      }
+      gamesSyncInProgress = true;
+      gamesSyncStatusEl.textContent = 'Syncing...';
+      announce('Syncing games for offline play. This may take a few minutes.');
+      speak('Syncing games for offline play. This may take a few minutes.');
+
+      window.electronAPI.games.onSyncProgress(({ done, total }) => {
+        if (total) gamesSyncStatusEl.textContent = `Syncing ${done}/${total}...`;
+      });
+
+      try {
+        const result = await window.electronAPI.games.sync();
+        if (result && result.success) {
+          announce('Games synced for offline play.');
+          speak('Games are now synced for offline play.');
+        } else {
+          gamesSyncStatusEl.textContent = 'Sync failed';
+          speak('Game sync failed. Check your internet connection and try again.');
+        }
+      } catch (e) {
+        gamesSyncStatusEl.textContent = 'Sync failed';
+        speak('Game sync failed. Check your internet connection and try again.');
+      } finally {
+        gamesSyncInProgress = false;
+        refreshGamesSyncStatus();
+      }
+    });
+
+    refreshGamesSyncStatus();
+
     // Fullscreen management
     function enterFullscreen() {
       const elem = document.documentElement;
@@ -1593,6 +1760,29 @@
 
     // Track if current iframe is a server app
     let currentServerApp = null;
+
+    // Launch a game from bennyshub.com, falling back to the locally synced
+    // copy if the live site can't be reached within a short timeout.
+    async function launchGameWithFallback(liveUrl, localPath, title) {
+      if (!liveUrl) {
+        showIframe(localPath, title);
+        return;
+      }
+      try {
+        // mode: 'no-cors' - we only care whether the request completes, not
+        // whether we can read the (cross-origin) response body.
+        await fetchWithTimeout(liveUrl, GAMES_LAUNCH_PROBE_TIMEOUT_MS, { mode: 'no-cors' });
+        showIframe(liveUrl, title);
+      } catch (e) {
+        console.log('[Hub] Live game unreachable, falling back to local copy:', e.message);
+        if (localPath) {
+          showIframe(localPath, title);
+        } else {
+          announce(`${title} needs an internet connection and hasn't been synced for offline play yet.`);
+          speak(`${title} needs an internet connection and hasn't been downloaded for offline play yet.`);
+        }
+      }
+    }
 
     // Show iframe with tool/game
     function showIframe(src, title, isServerApp = false) {

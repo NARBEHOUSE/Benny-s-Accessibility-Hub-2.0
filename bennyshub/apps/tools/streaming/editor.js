@@ -2,6 +2,18 @@ let allData = [];
 let genreData = {}; // Map: "Action" -> "http://image.url"
 const TMDB_KEY_STORAGE = 'tmdb_api_key';
 
+// Content type options - controls playback behavior in app.js (e.g. movies always
+// play their data.json link directly; shows use last_watched for resume tracking)
+const CONTENT_TYPES = [
+    { value: 'movies', label: 'Movie' },
+    { value: 'shows', label: 'TV Show' },
+    { value: 'video', label: 'YouTube Video' },
+    { value: 'live', label: 'Live' },
+];
+function contentTypeOptionsHtml(selected) {
+    return CONTENT_TYPES.map(t => `<option value="${t.value}" ${t.value === selected ? 'selected' : ''}>${t.label}</option>`).join('');
+}
+
 // API Proxy helper - routes external API calls through local proxy to bypass CORS
 // Works in both Chrome (direct) and Electron (via localhost proxy)
 function getApiUrl(service, path) {
@@ -122,7 +134,10 @@ function setupForm() {
     document.getElementById('save-btn').addEventListener('click', saveItem);
     document.getElementById('cancel-btn').addEventListener('click', clearForm);
     document.getElementById('save-genres-btn') && document.getElementById('save-genres-btn').addEventListener('click', saveGenres);
-    
+
+    // Populate Content Type dropdown
+    document.getElementById('content-type').innerHTML = contentTypeOptionsHtml('movies');
+
     // Auto-detect service from URL
     document.getElementById('url').addEventListener('input', (e) => detectService(e.target.value));
     
@@ -200,25 +215,61 @@ function getSelectedIds() {
 // --- TMDB INTEGRATION ---
 async function handleTMDBFetch() {
     const key = document.getElementById('tmdb-key').value;
-    const title = document.getElementById('title').value;
+    let title = document.getElementById('title').value;
     const yearInput = document.getElementById('year').value.trim();
     const directorInput = document.getElementById('director').value.toLowerCase().trim();
-    
+
     if (!key) { showToast("Please enter a TMDB API Key."); return; }
     if (!title) { showToast("Please enter a Title to search."); return; }
-    
+
+    title = title.trim(); // Trim title just in case
+
     document.getElementById('btn-fetch-tmdb').textContent = "Searching...";
-    
+
     // Track if user provided specific criteria - if so, we MUST match them
     const hasSpecificCriteria = yearInput || directorInput;
-    
+
     try {
-        const res = await fetch(getApiUrl('tmdb', `3/search/multi?api_key=${key}&query=${encodeURIComponent(title)}`));
-        const data = await res.json();
-        
+        let data = { results: [] };
+
+        // 1. Try Search Multi
+        let res = await fetch(getApiUrl('tmdb', `3/search/multi?api_key=${key}&query=${encodeURIComponent(title)}&include_adult=false`));
+        if (res.ok) {
+            const multiData = await res.json();
+            if (multiData.results) data.results.push(...multiData.results);
+        }
+
+        // 2. ALSO Try Search Movie (combine results to be safe, sometimes multi misses specific movies)
+        res = await fetch(getApiUrl('tmdb', `3/search/movie?api_key=${key}&query=${encodeURIComponent(title)}&include_adult=false`));
+        if (res.ok) {
+            const movieData = await res.json();
+            if (movieData.results) {
+                // Add unique movies not already in list
+                 movieData.results.forEach(m => {
+                    if (!data.results.find(e => e.id === m.id)) {
+                        m.media_type = 'movie'; // Ensure type is set
+                        data.results.push(m);
+                    }
+                });
+            }
+        }
+
         if (data.results && data.results.length > 0) {
             let best = null;
-            let candidates = data.results.filter(x => x.media_type === 'movie' || x.media_type === 'tv');
+
+            // Filter candidates
+            let candidates = data.results.filter(x => x.media_type === 'movie' || x.media_type === 'tv' || !x.media_type);
+
+            // Sort candidates by exact title match first, then popularity
+            candidates.sort((a, b) => {
+                const aTitle = (a.title || a.name || "").toLowerCase();
+                const bTitle = (b.title || b.name || "").toLowerCase();
+                const qTitle = title.toLowerCase();
+                const aExact = aTitle === qTitle ? 1 : 0;
+                const bExact = bTitle === qTitle ? 1 : 0;
+                if (aExact !== bExact) return bExact - aExact; // Exact matches first
+                return (b.popularity || 0) - (a.popularity || 0); // Then popularity
+            });
 
             if (candidates.length === 0) {
                 showToast("No movies or TV shows found for that title.");
@@ -226,84 +277,100 @@ async function handleTMDBFetch() {
                 return;
             }
 
-            // Check each candidate against the user's criteria
+            // Iterate candidates to find the BEST match
+            // If checking ALL candidates to find the one that matches criteria
             for (const candidate of candidates) {
-                const type = candidate.media_type;
-                const detailsRes = await fetch(getApiUrl('tmdb', `3/${type}/${candidate.id}?api_key=${key}&append_to_response=credits`));
-                const details = await detailsRes.json();
-                
+                // Determine type if missing
+                const type = candidate.media_type || 'movie';
+
+                // Fetch Details for rigorous checking
+                // OPTIMIZATION: If no specific criteria, we don't strictly need details for the check,
+                // but we might want them for the populate.
+                // However, we loop here. Fetching details for every candidate is slow and rate-eaten.
+                // Only fetch details if we have criteria to check OR if it's the first one and we have no criteria.
+
+                let details = null;
+
+                // Optimization: ONLY fetch details if we actually need them to verify criteria OR if we're picking this one
+                if (hasSpecificCriteria || !best) {
+                     try {
+                        const detailsRes = await fetch(getApiUrl('tmdb', `3/${type}/${candidate.id}?api_key=${key}&append_to_response=credits`));
+                        if(detailsRes.ok) details = await detailsRes.json();
+                     } catch(err) {
+                         console.error("Error fetching details for candidate", candidate.id, err);
+                     }
+                }
+
+                if (!details) continue; // Skip invalid
+
                 // Check Year Match (STRICT if provided)
                 let yearMatch = true;
                 if (yearInput) {
                     const date = details.release_date || details.first_air_date || "";
                     const y = parseInt(date.substring(0, 4));
                     const targetY = parseInt(yearInput);
-                    // Exact year match only
-                    yearMatch = !isNaN(y) && !isNaN(targetY) && y === targetY;
+                    // allow +/- 1 year tolerance for release date diffs
+                    yearMatch = !isNaN(y) && !isNaN(targetY) && Math.abs(y - targetY) <= 1;
                 }
-                
+
                 // Check Director Match (STRICT if provided)
                 let directorMatch = true;
                 if (directorInput && details.credits) {
                     directorMatch = false; // Assume no match until found
-                    const dirs = details.credits.crew.filter(c => c.job === 'Director');
-                    const creators = details.created_by || [];
+                    const dirs = details.credits.crew ? details.credits.crew.filter(c => c.job === 'Director') : [];
+                    const creators = details.created_by || []; // For TV
                     const allDirectors = [...dirs.map(d => d.name.toLowerCase()), ...creators.map(c => c.name.toLowerCase())];
-                    
+
                     // Check if any director name matches (full name or last name)
                     for (const dirName of allDirectors) {
-                        // Full name match OR last name match
-                        if (dirName === directorInput || 
-                            dirName.includes(directorInput) || 
-                            directorInput.includes(dirName)) {
-                            directorMatch = true;
-                            break;
-                        }
-                        // Also check last name
-                        const dirParts = dirName.split(' ');
-                        const inputParts = directorInput.split(' ');
-                        const dirLastName = dirParts[dirParts.length - 1];
-                        const inputLastName = inputParts[inputParts.length - 1];
-                        if (dirLastName === inputLastName && dirLastName.length > 2) {
-                            directorMatch = true;
-                            break;
+                        if (dirName.includes(directorInput) || directorInput.includes(dirName)) {
+                            directorMatch = true; break;
                         }
                     }
                 }
-                
-                // Both criteria must match if they were provided
+
+                // If criteria match, this is our winner.
+                // Since candidates are sorted by relevance/popularity, the first one to match criteria is likely the best one.
                 if (yearMatch && directorMatch) {
                     best = candidate;
-                    break; // Found exact match
+                    best.media_type = type;
+                    best._details = details; // Cache details
+                    break;
                 }
-                
+
+                // If NO criteria were provided, just take the first result (sorted by exact match + popularity)
+                if (!hasSpecificCriteria) {
+                    best = candidate;
+                    best.media_type = type;
+                    best._details = details;
+                    break;
+                }
+
                 // Rate limit protection
-                await new Promise(r => setTimeout(r, 250));
+                await new Promise(r => setTimeout(r, 200));
             }
 
-            // If user provided criteria but no match found, DO NOT FALLBACK
-            if (!best && hasSpecificCriteria) {
-                let criteria = [];
-                if (yearInput) criteria.push(`year ${yearInput}`);
-                if (directorInput) criteria.push(`director "${directorInput}"`);
-                showToast(`No match found for "${title}" with ${criteria.join(' and ')}.\n\nTMDB may not have this exact movie, or the criteria don't match their records.\n\nTry removing some criteria or check spelling.`);
-                document.getElementById('btn-fetch-tmdb').textContent = "Auto-Fill (TMDB)";
-                return;
-            }
-            
-            // Only use first result if NO criteria were provided
-            if (!best && !hasSpecificCriteria) {
-                best = candidates[0];
-            }
-            
+            // If found
             if (best) {
-                const type = best.media_type;
-                const detailsRes = await fetch(getApiUrl('tmdb', `3/${type}/${best.id}?api_key=${key}&append_to_response=credits,videos`));
-                const details = await detailsRes.json();
-                
-                populateFormFromTMDB(details, type);
+                // If we cached details, use them, otherwise fetch
+                let finalDetails = best._details;
+                if (!finalDetails) {
+                     const detailsRes = await fetch(getApiUrl('tmdb', `3/${best.media_type}/${best.id}?api_key=${key}&append_to_response=credits,videos`));
+                     finalDetails = await detailsRes.json();
+                } else if (!finalDetails.videos) {
+                    // Fetch again to get videos if we reused details from check loop
+                     const detailsRes = await fetch(getApiUrl('tmdb', `3/${best.media_type}/${best.id}?api_key=${key}&append_to_response=credits,videos`));
+                     finalDetails = await detailsRes.json();
+                }
+
+                populateFormFromTMDB(finalDetails, best.media_type);
+                showToast(`Auto-filled: ${finalDetails.title || finalDetails.name}`);
             } else {
-                showToast("No movies or TV shows found matching your criteria.");
+                 if (hasSpecificCriteria) {
+                    showToast(`No match found matching year/director.`);
+                 } else {
+                    showToast("No movies found.");
+                 }
             }
         } else {
             showToast("No results found on TMDB for that title.");
@@ -312,7 +379,7 @@ async function handleTMDBFetch() {
         console.error(e);
         showToast("TMDB Error: " + e.message);
     }
-    
+
     document.getElementById('btn-fetch-tmdb').textContent = "Auto-Fill (TMDB)";
 }
 
@@ -361,7 +428,8 @@ function populateFormFromTMDB(data, type) {
     updateTrailerPreview(); 
     
     document.getElementById('title').value = (type === 'movie' ? data.title : data.name);
-    
+    document.getElementById('content-type').value = (type === 'movie') ? 'movies' : 'shows';
+
     const titleText = type === 'movie' ? data.title : data.name;
     
     // Check if URL is filled
@@ -518,18 +586,8 @@ async function handleBatchUpdate() {
     renderTable();
 }
 
-// LOGO MAPPING CONSTANTS - Using Wikimedia Thumbs
-const SERVICE_LOGOS = {
-    "Netflix": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/08/Netflix_2015_logo.svg/1024px-Netflix_2015_logo.svg.png",
-    "Disney+": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Disney%2B_logo.svg/1024px-Disney%2B_logo.svg.png",
-    "Hulu": "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Hulu_Logo.svg/1024px-Hulu_Logo.svg.png",
-    "Prime Video": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Amazon_Prime_Video_logo.svg/1024px-Amazon_Prime_Video_logo.svg.png",
-    "YouTube": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/1024px-YouTube_full-color_icon_%282017%29.svg.png", 
-    "Plex": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Plex_logo_2022.svg/800px-Plex_logo_2022.svg.png",
-    "Max": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ce/Max_logo.svg/1024px-Max_logo.svg.png",
-    "Paramount+": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Paramount_Plus.svg/1024px-Paramount_Plus.svg.png",
-    "PlutoTV": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Pluto_TV_logo_2024.svg/1024px-Pluto_TV_logo_2024.svg.png" 
-};
+// LOGO MAPPING CONSTANTS - Just use text for now
+const SERVICE_LOGOS = {};
 
 function detectService(url) {
     if (!url) return;
@@ -560,6 +618,13 @@ function updateServiceIcon() {
     const iconInput = document.getElementById('service_icon');
     const customGroup = document.getElementById('custom-icon-group');
     const preview = document.getElementById('service-icon-preview');
+
+    // Default Content Type to "YouTube Video" when that service is picked
+    // (doesn't override other selections - only nudges the default for YouTube)
+    if (service === 'YouTube') {
+        const contentType = document.getElementById('content-type');
+        if (contentType) contentType.value = 'video';
+    }
 
     if (service === "Other") {
         customGroup.style.display = 'block';
@@ -668,12 +733,9 @@ function renderTable() {
     filtered.forEach(item => {
         const tr = document.createElement('tr');
         
-        let serviceDisplay = item.service || '-';
-        if (SERVICE_LOGOS[item.service]) {
-            serviceDisplay = `<img src="${SERVICE_LOGOS[item.service]}" style="height: 30px; vertical-align: middle;" title="${item.service}">`;
-        } else if (item.service_icon) {
-            serviceDisplay = `<img src="${item.service_icon}" style="height: 30px; vertical-align: middle;" title="${item.service}">`;
-        }
+        // Just show service name as text - no images
+        const serviceName = item.service || '-';
+        let serviceDisplay = `<span style="color:#aaa; font-size:12px;">${serviceName}</span>`;
 
         tr.innerHTML = `
             <td style="text-align:center;">
@@ -786,8 +848,11 @@ function renderInlineEditor(item, row) {
                     </select>
                 </div>
                 <div class="form-group"><label>Service Icon URL</label><input type="text" id="service_icon-${sid}" value="${item.service_icon || ''}"></div>
+                <div class="form-group"><label>Content Type</label>
+                    <select id="content-type-${sid}">${contentTypeOptionsHtml(item.type)}</select>
+                </div>
             </div>
-            
+
             <div>
                  <div class="form-group"><label>Genre</label><input type="text" id="genre-${sid}" value="${item.genre || ''}"></div>
                  <div class="form-group"><label>Year</label><input type="number" id="year-${sid}" value="${item.year || ''}"></div>
@@ -1016,7 +1081,8 @@ async function autoFillInline(sid) {
                 }
                 document.getElementById(`director-${sid}`).value = director;
                 document.getElementById(`actors-${sid}`).value = actors;
-                
+                document.getElementById(`content-type-${sid}`).value = (type === 'movie') ? 'movies' : 'shows';
+
                 if (data.videos && data.videos.results) {
                     const t = data.videos.results.find(v => v.type === 'Trailer' && v.site === 'YouTube');
                     if (t) document.getElementById(`trailer-${sid}`).value = `https://www.youtube.com/watch?v=${t.key}`;
@@ -1074,6 +1140,7 @@ async function saveInlineItem(id) {
         url: document.getElementById(`url-${sid}`).value,
         service: document.getElementById(`service-${sid}`).value,
         service_icon: document.getElementById(`service_icon-${sid}`).value,
+        type: document.getElementById(`content-type-${sid}`).value,
         genre: document.getElementById(`genre-${sid}`).value,
         year: document.getElementById(`year-${sid}`).value,
         director: document.getElementById(`director-${sid}`).value,
@@ -1236,9 +1303,7 @@ async function saveItem() {
         return;
     }
 
-    let type = 'movies';
-    if (document.getElementById('service').value === 'YouTube') type = 'video';
-    else if (title.toLowerCase().includes('season') || title.toLowerCase().includes('simpsons')) type = 'shows';
+    const type = document.getElementById('content-type').value || 'movies';
 
     const newItem = {
         id: uuidv4(),
@@ -1335,6 +1400,7 @@ function clearForm() {
     document.getElementById('description').value = '';
     document.getElementById('service').value = '';
     document.getElementById('service_icon').value = '';
+    document.getElementById('content-type').value = 'movies';
     document.getElementById('form-title').textContent = 'Add New Video';
     updateServiceIcon(); // Reset UI
     document.getElementById('poster-preview').style.display = 'none';

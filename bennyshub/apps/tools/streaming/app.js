@@ -93,7 +93,74 @@ document.addEventListener('DOMContentLoaded', () => {
     
     loadData();
     setupInputListeners();
-    
+
+    // Listen for nav-signal when returning from watching content
+    // This ensures data is refreshed (recently watched order, updated URLs, etc.)
+    if (isElectron && window.electronAPI && window.electronAPI.onNavSignal) {
+        window.electronAPI.onNavSignal(async (signal) => {
+            console.log('[Streaming] Received nav-signal:', signal);
+
+            // Reload data from disk to get updated last_watched info
+            await loadData();
+
+            // Check if any modal/overlay is visually open by checking the DOM
+            // This is more reliable than checking currentState which might get out of sync
+            const itemModal = document.getElementById('item-modal');
+            const editorModal = document.getElementById('editor-modal');
+            const pauseMenu = document.getElementById('pause-menu');
+
+            const itemModalOpen = itemModal && !itemModal.classList.contains('hidden');
+            const editorModalOpen = editorModal && !editorModal.classList.contains('hidden');
+            const pauseMenuOpen = pauseMenu && !pauseMenu.classList.contains('hidden');
+
+            // If item modal is visually open, restore its state
+            if (itemModalOpen) {
+                console.log('[Streaming] Item modal is visible, restoring STATE.MODAL');
+                currentState = STATE.MODAL;
+                // Reset to first button and highlight it
+                highlightModal(0);
+                if (window.NarbeScanManager && window.NarbeScanManager.getSettings().autoScan) {
+                    startAutoScan();
+                }
+                return;
+            }
+
+            // If editor modal is open, restore its state
+            if (editorModalOpen) {
+                console.log('[Streaming] Editor modal is visible, restoring editor_confirm state');
+                currentState = 'editor_confirm';
+                highlightEditorModal(0);
+                if (window.NarbeScanManager && window.NarbeScanManager.getSettings().autoScan) {
+                    startAutoScan();
+                }
+                return;
+            }
+
+            // If pause menu is open, restore its state
+            if (pauseMenuOpen) {
+                console.log('[Streaming] Pause menu is visible, restoring STATE.PAUSE');
+                currentState = STATE.PAUSE;
+                highlightPause(0);
+                if (window.NarbeScanManager && window.NarbeScanManager.getSettings().autoScan) {
+                    startAutoScan();
+                }
+                return;
+            }
+
+            // If we're on the Recently Watched view, refresh it to show updated order
+            const viewTitle = document.getElementById('view-title');
+            if (viewTitle && viewTitle.textContent === "Recently Watched") {
+                console.log('[Streaming] Refreshing Recently Watched view');
+                await openRecent();
+            }
+
+            // Restart autoscan if it was enabled
+            if (window.NarbeScanManager && window.NarbeScanManager.getSettings().autoScan) {
+                startAutoScan();
+            }
+        });
+    }
+
     // Small delay to ensure voice manager is ready before first speak
     setTimeout(() => {
         openMainMenu();
@@ -909,6 +976,25 @@ async function showModal(item) {
     
     actionContainer.innerHTML = ''; // Clear loading
 
+    // Check if we have a saved URL in last_watched for this title.
+    // Movies always play the current link from data.json - last_watched exists to handle
+    // TV shows redirecting to a mid-navigation episode URL (Netflix/Disney+ etc. send you to
+    // a specific episode page once you hit Play), which doesn't apply to a movie's single link.
+    // Plex (movie or show) also skips this - Plex tracks watch progress itself, so pressing
+    // Play/Enter on its own page already resumes where you left off.
+    const isMovie = item.type && item.type.toLowerCase().includes('movie');
+    let lastWatched = null;
+    if (!isMovie && !isPlexUrl(item.url)) {
+        try {
+            if (isElectron) {
+                lastWatched = await window.electronAPI.streaming.getLastWatched(item.title);
+            } else {
+                const res = await fetch(`/api/last_watched?show=${encodeURIComponent(item.title)}`);
+                if (res.ok) lastWatched = await res.json();
+            }
+        } catch(e) { console.log('Could not get last watched:', e); }
+    }
+
     // 1. Play / Continue
     if (hasEpisodes) {
         // Continue Button
@@ -917,14 +1003,21 @@ async function showModal(item) {
 
         // Pick Episode Button
         const btnPick = createCustomModalBtn("Pick Episode", () => {
-             closeModal();
+             closeModal(true);
              openSeasonSelector(item.title, epsData);
         });
         actionContainer.appendChild(btnPick);
+    } else if (lastWatched && lastWatched.url) {
+        // No episodes in episodes.json, but we have a saved URL - use it!
+        const btnCont = createCustomModalBtn("Continue", () => {
+             closeModal(true);
+             launchContent(lastWatched.url, item.title, item.type);
+        }, true);
+        actionContainer.appendChild(btnCont);
     } else {
-        // Direct Play
+        // Direct Play (no saved progress, no episodes)
         const btnPlay = createCustomModalBtn("Play", () => {
-             closeModal();
+             closeModal(true);
              launchContent(item.url, item.title, item.type);
         }, true);
         actionContainer.appendChild(btnPlay);
@@ -947,7 +1040,15 @@ async function showModal(item) {
         actionContainer.appendChild(btnTrailer);
     }
 
-    // 4. Close
+    // 4. Start Over - only when there's actually a saved URL to throw away.
+    // lastWatched is only fetched for non-Plex shows, so movies and Plex content never
+    // get this button and don't pay the extra scan stop.
+    if (lastWatched && lastWatched.url) {
+        const btnStartOver = createCustomModalBtn("Start Over", () => startShowOver(item, epsData));
+        actionContainer.appendChild(btnStartOver);
+    }
+
+    // 5. Close
     const btnClose = createCustomModalBtn("Close", closeModal, false, true);
     actionContainer.appendChild(btnClose);
 
@@ -967,11 +1068,19 @@ function createCustomModalBtn(text, onClick, primary=false, danger=false) {
     return btn;
 }
 
-function closeModal() {
+function closeModal(suppressHighlight = false) {
     document.getElementById('item-modal').classList.add('hidden');
     currentState = STATE.ITEMS; // Return to items
     currentModalItem = null;
-    highlightItem(itemIndex); // Restore focus
+
+    // When launching content, don't highlight/speak anything
+    // Set itemIndex to -1 (no selection) so first spacebar will start scanning
+    if (suppressHighlight) {
+        itemIndex = -1;
+        clearHighlights();
+    } else {
+        highlightItem(itemIndex); // Restore focus
+    }
 }
 
 function highlightModal(idx) {
@@ -999,22 +1108,44 @@ function selectModalAction() {
     if (btns[modalIndex]) btns[modalIndex].click();
 }
 
+// Helper to check if URL is a Plex URL
+function isPlexUrl(url) {
+    if (!url) return false;
+    const lowerUrl = url.toLowerCase();
+    return lowerUrl.includes('plex.tv') || lowerUrl.includes('plex.direct');
+}
+
+// Helper to get the default Plex URL for a show (Season 0, Episode 0)
+function getDefaultPlexUrl(episodesData) {
+    if (!episodesData) return null;
+    // Check for Season 0 with Episode 0 (the default show URL)
+    const season0 = episodesData[0] || episodesData['0'];
+    if (season0 && season0.length > 0) {
+        const ep0 = season0.find(ep => ep.episode === 0);
+        if (ep0 && ep0.url) return ep0.url;
+    }
+    return null;
+}
+
 // Logic for opening content via server (replaces simple window.open)
-async function launchContent(url, title, type="movies", season=null, episode=null) {
+// spokenLabel overrides the default "Opening <title>" announcement, so callers like
+// Start Over can describe what they're actually doing without being talked over.
+async function launchContent(url, title, type="movies", season=null, episode=null, spokenLabel=null) {
     // Prevent double launching
     if (isLaunching) return;
-    
+
     // Set launching flag
     isLaunching = true;
     setTimeout(() => { isLaunching = false; }, 2500);
 
-    // Stop any active scanning
+    // Stop any active scanning (including autoScan)
     clearTimeout(scanTimer);
     clearInterval(backwardScanInterval);
     backwardScanInterval = null;
     isLongPress = false;
+    stopAutoScan();
 
-    speak("Opening " + title);
+    speak(spokenLabel || ("Opening " + title));
     
     // Determine identifying title for "Recently Watched"
     // For episodes, we want the Show Name, not "Show S1E1"
@@ -1022,18 +1153,29 @@ async function launchContent(url, title, type="movies", season=null, episode=nul
     if (type === 'shows' && season !== null && episodeShowTitle) {
         saveTitle = episodeShowTitle;
     }
-    // Logic: 
+    // Logic:
     // Movie -> type='movies', season=null -> uses title ("Matrix")
     // Show (Play/Continue) -> type='shows', season=null/-1 -> uses title ("The Office")
     // Show (Episode) -> type='shows', season=1 -> uses episodeShowTitle ("The Office")
-    
+
+    // For Plex TV shows with episodes, always save the default Plex URL (Season 0, Episode 0)
+    // instead of the specific episode URL. This lets Plex's own "Continue Watching" handle progress.
+    let saveUrl = url;
+    if (isPlexUrl(url) && type === 'shows' && currentEpisodesRaw) {
+        const defaultPlexUrl = getDefaultPlexUrl(currentEpisodesRaw);
+        if (defaultPlexUrl) {
+            console.log(`[Plex] Using default URL for ${saveTitle}: ${defaultPlexUrl}`);
+            saveUrl = defaultPlexUrl;
+        }
+    }
+
     try {
         if (isElectron) {
             await window.electronAPI.streaming.saveProgress({
                 show: saveTitle,
                 season: season,
                 episode: episode,
-                url: url
+                url: saveUrl
             });
         } else {
             await fetch('/api/save_progress', {
@@ -1043,7 +1185,7 @@ async function launchContent(url, title, type="movies", season=null, episode=nul
                     show: saveTitle,
                     season: season,
                     episode: episode,
-                    url: url
+                    url: saveUrl
                 })
             });
         }
@@ -1052,23 +1194,25 @@ async function launchContent(url, title, type="movies", season=null, episode=nul
     }
 
     try {
-        console.log("[Streaming] Launching content:", { title, url, type, showTitle: saveTitle });
+        console.log("[Streaming] Launching content:", { title, url, type, showTitle: saveTitle, saveUrl });
         if (isElectron) {
             await window.electronAPI.streaming.launch({
                 title: title || "Unknown",
                 url: url,
                 type: type || "movies",
-                showTitle: saveTitle  // Pass base show name for control bar (without S#E# suffix)
+                showTitle: saveTitle,  // Pass base show name for control bar (without S#E# suffix)
+                saveUrl: saveUrl       // URL to save in last_watched (default Plex URL for Plex shows)
             });
         } else {
             await fetch('/api/open', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    title: title || "Unknown", 
-                    url: url, 
+                body: JSON.stringify({
+                    title: title || "Unknown",
+                    url: url,
                     type: type || "movies",
-                    showTitle: saveTitle  // Pass base show name for control bar (without S#E# suffix)
+                    showTitle: saveTitle,  // Pass base show name for control bar (without S#E# suffix)
+                    saveUrl: saveUrl       // URL to save in last_watched (default Plex URL for Plex shows)
                 })
             });
         }
@@ -1091,6 +1235,16 @@ async function continueShow(item, epsData) {
     speak("Continuing " + item.title);
     episodeShowTitle = item.title; // Set global show title text for saving logic
     try {
+        // For Plex TV shows, use the base show URL so Plex's own "Continue Watching" takes over
+        // Plex tracks progress internally and will resume at the correct episode
+        const isPlex = item.service && item.service.toLowerCase() === 'plex';
+        if (isPlex && item.url && item.url.includes('plex.tv')) {
+            launchContent(item.url, item.title, "shows", null, null);
+            closeModal(true);
+            return;
+        }
+
+        // For non-Plex services, use our saved last watched episode
         let last = null;
         if (isElectron) {
             last = await window.electronAPI.streaming.getLastWatched(item.title);
@@ -1098,7 +1252,7 @@ async function continueShow(item, epsData) {
             const res = await fetch(`/api/last_watched?show=${encodeURIComponent(item.title)}`);
             if (res.ok) last = await res.json();
         }
-        
+
         if (last && last.url) {
              launchContent(last.url, item.title, "shows", last.season, last.episode);
         } else {
@@ -1112,10 +1266,67 @@ async function continueShow(item, epsData) {
                 speak("No episodes found.");
             }
         }
-        closeModal();
-    } catch(e) { 
+        closeModal(true);
+    } catch(e) {
         console.error('Error continuing:', e);
-        speak("Error continuing."); 
+        speak("Error continuing.");
+    }
+}
+
+// --- START OVER (reset saved progress) ---
+
+// Find the very first episode of a show. Mirrors openSeasonSelector's convention of
+// treating Season 0 as specials/extras rather than the real start of the show, so
+// "Start Over" doesn't drop you onto a bonus feature.
+function getFirstEpisode(epsData) {
+    if (!epsData) return null;
+
+    const numbered = Object.keys(epsData).map(Number).filter(n => !isNaN(n));
+    let seasons = numbered.filter(n => n > 0).sort((a, b) => a - b);
+    // Only fall back to Season 0 if there is genuinely nothing else
+    if (seasons.length === 0) seasons = numbered.sort((a, b) => a - b);
+
+    for (const s of seasons) {
+        const eps = epsData[s] || epsData[String(s)];
+        if (eps && eps.length > 0) {
+            const first = [...eps].sort((a, b) => (a.episode || 0) - (b.episode || 0))[0];
+            if (first && first.url) return { season: s, ep: first };
+        }
+    }
+    return null;
+}
+
+// Streaming services autoplay into the *next* show when one ends, and the control bar's
+// watcher saves whatever URL Chrome landed on - so "Continue" can end up pointing at
+// something else entirely. Start Over drops that saved URL and plays from the beginning.
+// The launch immediately re-saves the position, so the show keeps its Recently Watched
+// slot; it just points at the start again.
+async function startShowOver(item, epsData) {
+    try {
+        if (isElectron) {
+            await window.electronAPI.streaming.resetProgress(item.title);
+        } else {
+            await fetch('/api/reset_progress', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ show: item.title })
+            });
+        }
+    } catch(e) {
+        console.error('Error resetting progress:', e);
+    }
+
+    closeModal(true);
+
+    const first = getFirstEpisode(epsData);
+    if (first) {
+        episodeShowTitle = item.title; // launchContent saves under the show name, not "Show S1E1"
+        launchContent(first.ep.url, item.title, "shows", first.season, first.ep.episode,
+                      `Starting ${item.title} from the beginning`);
+    } else {
+        // No episode list - fall back to the show's base link from data.json
+        launchContent(item.url, item.title, item.type, null, null,
+                      `Starting ${item.title} from the beginning`);
     }
 }
 
@@ -1557,6 +1768,9 @@ function handleGlobalBack() {
 // Note: scan-manager.js handles global cooldown for Space/Enter
 function setupInputListeners() {
     document.addEventListener('keydown', (e) => {
+        // Check if scan-manager already blocked this event (anti-tremor/cooldown)
+        if (e.defaultPrevented) return;
+
         if (e.code === 'Enter') {
             e.preventDefault(); 
             if (e.repeat) return;
@@ -1613,6 +1827,7 @@ function setupInputListeners() {
     
     document.addEventListener('keyup', (e) => {
         // ALWAYS clear timers immediately on keyup to prevent ghost actions
+        // (even if the event was blocked by scan-manager)
         if (e.code === 'Space') {
             clearTimeout(scanTimer);
             clearInterval(backwardScanInterval);
@@ -1622,6 +1837,10 @@ function setupInputListeners() {
             clearTimeout(pauseTimer);
             clearTimeout(keyboardEnterTimer);
         }
+
+        // Check if scan-manager already blocked this event (anti-tremor/cooldown)
+        // If blocked, the narbe-input-cancelled event will handle any needed actions
+        if (e.defaultPrevented) return;
 
         if (e.code === 'Enter') {
             // Timer cleared above
@@ -1695,7 +1914,113 @@ function setupInputListeners() {
         clearTimeout(scanTimer);
         clearInterval(backwardScanInterval);
         backwardScanInterval = null;
-        isLongPress = false; 
+        isLongPress = false;
+    });
+
+    // Refresh data when window regains focus (backup for nav-signal)
+    // This handles cases where the user returns from external apps
+    let lastFocusRefresh = 0;
+    window.addEventListener('focus', async () => {
+        const now = Date.now();
+        // Debounce: only refresh if at least 2 seconds since last refresh
+        if (now - lastFocusRefresh < 2000) return;
+        lastFocusRefresh = now;
+
+        console.log('[Streaming] Window regained focus, refreshing data');
+        await loadData();
+
+        // Check if any modal/overlay is visually open - don't refresh view if so
+        const itemModal = document.getElementById('item-modal');
+        const editorModal = document.getElementById('editor-modal');
+        const pauseMenu = document.getElementById('pause-menu');
+
+        const itemModalOpen = itemModal && !itemModal.classList.contains('hidden');
+        const editorModalOpen = editorModal && !editorModal.classList.contains('hidden');
+        const pauseMenuOpen = pauseMenu && !pauseMenu.classList.contains('hidden');
+
+        // If item modal is visually open, restore its state
+        if (itemModalOpen) {
+            console.log('[Streaming] Item modal is visible on focus, restoring STATE.MODAL');
+            currentState = STATE.MODAL;
+            highlightModal(0);
+            if (window.NarbeScanManager && window.NarbeScanManager.getSettings().autoScan) {
+                startAutoScan();
+            }
+            return;
+        }
+
+        // If editor modal is open, restore its state
+        if (editorModalOpen) {
+            console.log('[Streaming] Editor modal is visible on focus, restoring editor_confirm state');
+            currentState = 'editor_confirm';
+            highlightEditorModal(0);
+            if (window.NarbeScanManager && window.NarbeScanManager.getSettings().autoScan) {
+                startAutoScan();
+            }
+            return;
+        }
+
+        // If pause menu is open, restore its state
+        if (pauseMenuOpen) {
+            console.log('[Streaming] Pause menu is visible on focus, restoring STATE.PAUSE');
+            currentState = STATE.PAUSE;
+            highlightPause(0);
+            if (window.NarbeScanManager && window.NarbeScanManager.getSettings().autoScan) {
+                startAutoScan();
+            }
+            return;
+        }
+
+        // If on Recently Watched view, refresh it
+        const viewTitle = document.getElementById('view-title');
+        if (viewTitle && viewTitle.textContent === "Recently Watched") {
+            console.log('[Streaming] Refreshing Recently Watched view on focus');
+            await openRecent();
+        }
+
+        // Restart autoscan if enabled
+        if (window.NarbeScanManager && window.NarbeScanManager.getSettings().autoScan) {
+            startAutoScan();
+        }
+    });
+
+    // Listen for cancelled inputs from scan-manager (e.g., too-short presses blocked by anti-tremor)
+    // This ensures our timers are cleared even when keyup events are blocked
+    document.addEventListener('narbe-input-cancelled', (e) => {
+        if (e.detail && (e.detail.key === ' ' || e.detail.code === 'Space')) {
+            // Clear spacebar-related timers
+            const wasLongPress = isLongPress;
+            clearTimeout(scanTimer);
+            clearInterval(backwardScanInterval);
+            backwardScanInterval = null;
+            isLongPress = false;
+            spacePressedTime = 0;
+            // If cancelled due to 'too-short', still perform forward scan - user intended to press
+            if (e.detail.reason === 'too-short' && !wasLongPress) {
+                if (window.keyboardController && window.keyboardController.isOpen) {
+                    window.keyboardController.scanForward();
+                } else {
+                    scanForward();
+                }
+            }
+        }
+        if (e.detail && (e.detail.key === 'Enter' || e.detail.code === 'Enter' || e.detail.code === 'NumpadEnter')) {
+            // Clear Enter-related timers
+            const wasPauseTriggered = pauseTriggered;
+            clearTimeout(pauseTimer);
+            clearTimeout(keyboardEnterTimer);
+            pauseTriggered = false;
+            // If cancelled due to 'too-short', still perform select action - user intended to press
+            if (e.detail.reason === 'too-short' && !wasPauseTriggered) {
+                if (currentState === STATE.PAUSE) {
+                    handlePauseSelect();
+                } else if (window.keyboardController && window.keyboardController.isOpen) {
+                    window.keyboardController.select();
+                } else {
+                    handleSelect();
+                }
+            }
+        }
     });
 }
 
@@ -2006,24 +2331,62 @@ function closeEditorModal() {
 }
 
 function startEditor() {
-    // Launch editor in Chrome via Electron API (or fallback to direct URL)
+    // Close the warning modal immediately
+    closeEditorModal();
+
+    // Launch editor in Chrome via Electron API
+    // NEVER load in iframe - editors have focus issues in Electron iframes
     const isElectron = typeof window !== 'undefined' && window.electronAPI;
+
     if (isElectron && window.electronAPI.editor) {
+        console.log('[Editor] Attempting to open streaming editor via electronAPI bridge...');
         window.electronAPI.editor.open('streaming').then(result => {
-            if (result.success) {
+            if (result && result.success) {
                 console.log('[Editor] Opened streaming editor in Chrome:', result.url);
+                speak("Editor opened in Chrome");
             } else {
-                console.error('[Editor] Failed to open editor:', result.error);
-                // Fallback to direct navigation
-                window.location.href = 'editor.html';
+                console.error('[Editor] Failed to open editor:', result ? result.error : 'No result');
+                speak("Could not open editor. Please try again.");
+                alert("Could not open the editor in Chrome. Make sure Chrome is installed.");
             }
         }).catch(err => {
             console.error('[Editor] Error:', err);
-            window.location.href = 'editor.html';
+            speak("Error opening editor");
+            alert("Error opening editor: " + err.message);
         });
+    } else if (window.parent && window.parent !== window) {
+        // Fallback: Try postMessage directly to parent (in case bridge didn't load)
+        console.log('[Editor] Trying direct postMessage to parent...');
+        const requestId = Date.now();
+
+        const handleResponse = (event) => {
+            if (event.data && event.data.type === 'electronAPI:response' && event.data.id === requestId) {
+                window.removeEventListener('message', handleResponse);
+                if (event.data.result && event.data.result.success) {
+                    console.log('[Editor] Opened via postMessage');
+                    speak("Editor opened in Chrome");
+                } else {
+                    console.error('[Editor] postMessage failed:', event.data.error);
+                    alert("Could not open editor: " + (event.data.error || "Unknown error"));
+                }
+            }
+        };
+        window.addEventListener('message', handleResponse);
+
+        window.parent.postMessage({
+            type: 'electronAPI:call',
+            id: requestId,
+            method: 'editor.open',
+            args: ['streaming']
+        }, '*');
+
+        // Timeout after 5 seconds
+        setTimeout(() => {
+            window.removeEventListener('message', handleResponse);
+        }, 5000);
     } else {
-        // Non-Electron fallback
-        window.location.href = 'editor.html';
+        // Not in Electron at all - just open in new tab
+        window.open('editor.html', '_blank');
     }
 }
 
@@ -2081,6 +2444,32 @@ function clearSearchHistory() {
             speak("Search History Cleared");
         } catch(e) {
             speak("Failed to clear history");
+        }
+    };
+    doClear();
+}
+
+// Strips the saved resume URL from every show at once. Shows stay in Recently Watched -
+// they just go back to playing their base link instead of a saved position.
+function clearAllProgress() {
+    const doClear = async () => {
+        try {
+            let count = 0;
+            if (isElectron) {
+                const res = await window.electronAPI.streaming.clearAllProgress();
+                count = (res && res.count) || 0;
+            } else {
+                const res = await fetch('/api/clear_progress', {method: 'POST'});
+                if (res.ok) {
+                    const body = await res.json();
+                    count = body.count || 0;
+                }
+            }
+            speak(count === 1 ? "Watch progress cleared for 1 show"
+                              : `Watch progress cleared for ${count} shows`);
+        } catch(e) {
+            console.error('Error clearing progress:', e);
+            speak("Failed to clear watch progress");
         }
     };
     doClear();

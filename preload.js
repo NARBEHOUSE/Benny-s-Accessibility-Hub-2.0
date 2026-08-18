@@ -38,6 +38,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getEpisodes: (showTitle) => ipcRenderer.invoke('streaming:getEpisodes', showTitle),
     getLastWatched: (showTitle) => ipcRenderer.invoke('streaming:getLastWatched', showTitle),
     saveProgress: (data) => ipcRenderer.invoke('streaming:saveProgress', data),
+    resetProgress: (showTitle) => ipcRenderer.invoke('streaming:resetProgress', showTitle),
+    clearAllProgress: () => ipcRenderer.invoke('streaming:clearAllProgress'),
     getSearchHistory: () => ipcRenderer.invoke('streaming:getSearchHistory'),
     saveSearch: (term) => ipcRenderer.invoke('streaming:saveSearch', term),
     clearSearchHistory: () => ipcRenderer.invoke('streaming:clearSearchHistory'),
@@ -46,9 +48,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // ============ EXTERNAL APP LAUNCHERS ============
   launch: {
+    messenger: () => ipcRenderer.invoke('launch:messenger'),
+    search: () => ipcRenderer.invoke('launch:search'),
     ytsearchServer: () => ipcRenderer.invoke('launch:ytsearch-server'),
+    editor: (editorName) => ipcRenderer.invoke('launch:editor', editorName),
     openWindow: (data) => ipcRenderer.invoke('launch:window', data),
     aiBridge: () => ipcRenderer.invoke('launch:ai-bridge')
+  },
+
+  // ============ GAMES SYNC (offline cache of the live bennyshub.com games) ============
+  games: {
+    sync: (gameId) => ipcRenderer.invoke('games:sync', gameId),
+    getSyncStatus: () => ipcRenderer.invoke('games:get-sync-status'),
+    onSyncProgress: (callback) => {
+      ipcRenderer.removeAllListeners('games:sync-progress');
+      ipcRenderer.on('games:sync-progress', (_event, progress) => callback(progress));
+    }
   },
 
   // ============ IN-IFRAME MESSENGER API ============

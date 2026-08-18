@@ -3,7 +3,7 @@
  * 
  * Handles all backend operations:
  * - File I/O for keyboard predictions, journal entries
- * - Launching external Python apps (messenger)
+ * - Launching external Python apps (messenger, search)
  * - Window management
  * - Streaming platform automation
  * - Local HTTP server for YouTube embeds and other HTTP-dependent features
@@ -33,17 +33,23 @@ const STREAMING_EPISODES_PATH = path.join(STREAMING_DIR, 'episodes.json');
 const STREAMING_LAST_WATCHED_PATH = path.join(STREAMING_DATA_DIR, 'last_watched.json');
 const STREAMING_SEARCH_HISTORY_PATH = path.join(STREAMING_DIR, 'search_history.json');
 const RT_CONVO_CONTEXT_PATH = path.join(APPS_DIR, 'rt-convo', 'context.json');
-const RT_CONVO_STT_KEY_PATH = path.join(APPS_DIR, 'rt-convo', 'REDACTED-CREDENTIAL-FILENAME.json');
+const RT_CONVO_STT_KEY_PATH = path.join(APPS_DIR, 'rt-convo', 'google-credentials.json');
 
 // Shared settings paths
 const VOICE_SETTINGS_PATH = path.join(BENNYSHUB_DIR, 'shared', 'voice-settings.json');
 
 // External Python scripts
+const SEARCH_SCRIPT = path.join(APPS_DIR, 'search', 'narbe_scan_browser.py');
 const CONTROL_BAR_SCRIPT = path.join(APPS_DIR, 'streaming', 'utils', 'control_bar.py');
 const YTSEARCH_SERVER_SCRIPT = path.join(APPS_DIR, 'ytsearch', 'server.py');
 const AI_BRIDGE_SCRIPT = path.join(APPS_DIR, 'ai-messenger', 'bridge.py');
 
-// Messenger runs inside the hub as an iframe. The hub spawns the
+// New HTML5 Electron messenger (replaces the old PySide6 ben_discord_app.py).
+// Launched as its own Electron process; main.js spawns the python backend itself.
+const MESSENGER_APP_MAIN = path.join(APPS_DIR, 'messenger', 'main.js');
+const ELECTRON_BIN = path.join(__dirname, 'node_modules', 'electron', 'dist', 'electron.exe');
+
+// Messenger run INSIDE the hub as an iframe (preferred). The hub spawns the
 // python WebSocket backend itself and the frontend (index.html) loads in the
 // hub's app iframe like every other tool, so the hub stops scanning in the
 // background and the iframe keeps focus.
@@ -341,6 +347,7 @@ function handleAiCall(req, res) {
         const chunks = [];
         proxyRes.on('data', chunk => chunks.push(chunk));
         proxyRes.on('end', () => {
+          if (res.headersSent) return; // the timeout below may have already answered
           res.writeHead(proxyRes.statusCode, {
             'Content-Type': proxyRes.headers['content-type'] || 'application/json',
             'Access-Control-Allow-Origin': '*'
@@ -349,9 +356,18 @@ function handleAiCall(req, res) {
         });
       });
       proxyReq.on('error', (err) => {
+        if (res.headersSent) return;
         console.error('[AI-CALL] Error:', err.message);
         res.writeHead(502, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
         res.end(JSON.stringify({ error: err.message }));
+      });
+      // Same reasoning as the ai:call IPC handler: a slow/silent provider
+      // should not hang the renderer's fetch() forever.
+      proxyReq.setTimeout(45000, () => {
+        proxyReq.destroy();
+        if (res.headersSent) return;
+        res.writeHead(504, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+        res.end(JSON.stringify({ error: 'The AI request timed out. Try again in a moment.' }));
       });
       if (bodyBuf.length) proxyReq.write(bodyBuf);
       proxyReq.end();
@@ -1295,16 +1311,22 @@ function startNavSignalWatcher() {
           console.log('[NAV-SIGNAL] Received:', signal);
           
           // Restore and focus the main window, ensure fullscreen
-          if (mainWindow) {
-            mainWindow.restore();
-            mainWindow.focus();
-            mainWindow.show();
-            mainWindow.setFullScreen(true);  // Always restore fullscreen
-            
-            // Send navigation event to renderer
-            mainWindow.webContents.send('nav-signal', signal);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            try {
+              mainWindow.restore();
+              mainWindow.focus();
+              mainWindow.show();
+              mainWindow.setFullScreen(true);  // Always restore fullscreen
+
+              // Send navigation event to renderer
+              mainWindow.webContents.send('nav-signal', signal);
+            } catch (e) {
+              console.error('[NAV-SIGNAL] Failed to apply signal to mainWindow:', e);
+            }
+          } else {
+            console.error('[NAV-SIGNAL] mainWindow missing/destroyed, could not deliver signal:', signal);
           }
-          
+
           // Delete the signal file after processing
           try {
             fs.unlinkSync(NAV_SIGNAL_PATH);
@@ -1314,7 +1336,7 @@ function startNavSignalWatcher() {
         }
       }
     } catch (e) {
-      // Signal file doesn't exist or invalid JSON - that's fine
+      console.error('[NAV-SIGNAL] Error reading/parsing signal file:', e);
     }
   }, 300);
 }
@@ -1411,7 +1433,7 @@ ipcMain.handle('voice:saveSettings', async (event, settings) => {
 
 // ============ KEYBOARD API ============
 
-const NGRAM_LIMITS = { frequent_words: 3000, bigrams: 5000, trigrams: 2000 };
+const NGRAM_LIMITS = { frequent_words: 60000, bigrams: 80000, trigrams: 40000 };
 
 function pruneNgrams(data) {
   for (const [key, limit] of Object.entries(NGRAM_LIMITS)) {
@@ -1543,6 +1565,45 @@ ipcMain.handle('streaming:saveProgress', async (event, { show, season, episode, 
   const key = show.toLowerCase().trim();
   data[key] = { season, episode, url, timestamp: Date.now() };
   return saveJSON(STREAMING_LAST_WATCHED_PATH, data);
+});
+
+// Drop the saved resume URL from one entry, leaving the key and timestamp in place.
+// last_watched.json doubles as the Recently Watched list, so deleting the whole entry
+// would make the show vanish from that grid. Without a url, showModal falls back to the
+// base link from data.json (or continueShow falls back to the first episode).
+function stripSavedUrl(entry) {
+  if (entry && typeof entry === 'object') {
+    delete entry.url;
+    entry.season = -1;
+    entry.episode = -1;
+    return entry;
+  }
+  // Legacy entries were a bare URL string with no timestamp - keep it that way
+  return { season: -1, episode: -1 };
+}
+
+ipcMain.handle('streaming:resetProgress', async (event, showTitle) => {
+  if (!showTitle) return { success: false, error: 'No show title given' };
+  const data = loadJSON(STREAMING_LAST_WATCHED_PATH, {});
+  const key = showTitle.toLowerCase().trim();
+  if (!(key in data)) return { success: true, cleared: false };
+  data[key] = stripSavedUrl(data[key]);
+  saveJSON(STREAMING_LAST_WATCHED_PATH, data);
+  console.log(`[STREAMING] Reset progress for: ${key}`);
+  return { success: true, cleared: true };
+});
+
+ipcMain.handle('streaming:clearAllProgress', async () => {
+  const data = loadJSON(STREAMING_LAST_WATCHED_PATH, {});
+  let count = 0;
+  for (const key of Object.keys(data)) {
+    const entry = data[key];
+    if (typeof entry === 'string' || (entry && entry.url)) count++;
+    data[key] = stripSavedUrl(entry);
+  }
+  saveJSON(STREAMING_LAST_WATCHED_PATH, data);
+  console.log(`[STREAMING] Cleared saved URLs for ${count} show(s)`);
+  return { success: true, count };
 });
 
 ipcMain.handle('streaming:getSearchHistory', async () => {
@@ -1690,7 +1751,27 @@ function launchControlBar(mode, showTitle) {
   }
 }
 
-// ============ IN-IFRAME MESSENGER ============
+// ============ EXTERNAL APP LAUNCHERS ============
+
+ipcMain.handle('launch:messenger', async () => {
+  try {
+    // Launch the new HTML5 Electron messenger as its own process. Its main.js
+    // spawns the python backend and opens the fullscreen scan UI.
+    if (fs.existsSync(MESSENGER_APP_MAIN) && fs.existsSync(ELECTRON_BIN)) {
+      spawn(ELECTRON_BIN, [MESSENGER_APP_MAIN], {
+        cwd: path.dirname(MESSENGER_APP_MAIN),
+        detached: true,
+        stdio: 'ignore'
+      }).unref();
+      return { success: true };
+    }
+    return { success: false, error: 'Messenger app not found' };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+// ============ IN-IFRAME MESSENGER (preferred) ============
 // The messenger frontend runs inside the hub's app iframe. These handlers give
 // it the same capabilities its standalone Electron preload (benAPI) provided:
 // a python WebSocket backend, file IO for keyboard predictions, config, and
@@ -2211,7 +2292,7 @@ ipcMain.handle('messenger:open-video', (_, url) => {
   try {
     const launcher = path.join(MESSENGER_DIR, 'play_video.py');
     if (fs.existsSync(launcher)) {
-      spawn('python', [launcher, url, '--app-title', "NARBE Benny's Access Hub"],
+      spawn('python', [launcher, url, '--app-title', 'NARBE Benny’s Access Hub'],
         { detached: true, stdio: 'ignore', windowsHide: true }).unref();
     } else {
       try { shell.openExternal(url); } catch (_) {}
@@ -2234,6 +2315,22 @@ ipcMain.handle('launch:ai-bridge', async () => {
       return { success: true };
     }
     return { success: false, error: 'Bridge script not found' };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('launch:search', async () => {
+  try {
+    if (fs.existsSync(SEARCH_SCRIPT)) {
+      spawn('python', [SEARCH_SCRIPT], {
+        cwd: path.dirname(SEARCH_SCRIPT),
+        detached: true,
+        stdio: 'ignore'
+      });
+      return { success: true };
+    }
+    return { success: false, error: 'Search script not found' };
   } catch (e) {
     return { success: false, error: e.message };
   }
@@ -2458,6 +2555,108 @@ ipcMain.handle('window:toggleFullscreen', async () => {
   }
 });
 
+// ============ GAMES SYNC ============
+// Games are sourced live from bennyshub.com (github.com/NARBEHOUSE/Narbehouse.github.io)
+// so a single copy of each game's code lives in one place. This downloads an offline
+// copy into bennyshub/apps/games/ so games still work without an internet connection.
+// See README "Games" section for the full picture.
+const GAMES_REPO_OWNER = 'NARBEHOUSE';
+const GAMES_REPO_NAME = 'Narbehouse.github.io';
+const GAMES_REPO_BRANCH = 'main';
+const GAMES_REPO_PATH_PREFIX = 'bennyshub/apps/games/';
+const GAMES_DIR = path.join(BENNYSHUB_DIR, 'apps', 'games');
+const GAMES_SYNC_META_PATH = path.join(GAMES_DIR, '.sync-meta.json');
+
+async function githubFetchJson(url) {
+  const res = await fetch(url, { headers: { 'User-Agent': 'bennys-hub-games-sync' } });
+  if (!res.ok) throw new Error(`GitHub API request failed: ${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+async function downloadGameFile(url, destPath) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to download ${url}: ${res.status}`);
+  const buffer = Buffer.from(await res.arrayBuffer());
+  fs.mkdirSync(path.dirname(destPath), { recursive: true });
+  fs.writeFileSync(destPath, buffer);
+}
+
+// Downloads every file under bennyshub/apps/games/ from the live site into the local
+// cache, or just one game's folder when `gameId` is given (matches the folder name,
+// e.g. "BENNYSFOOTBALL"). Reports progress via 'games:sync-progress' on mainWindow.
+ipcMain.handle('games:sync', async (event, gameId) => {
+  try {
+    const treeUrl = `https://api.github.com/repos/${GAMES_REPO_OWNER}/${GAMES_REPO_NAME}/git/trees/${GAMES_REPO_BRANCH}?recursive=1`;
+    const tree = await githubFetchJson(treeUrl);
+    if (!tree.tree) throw new Error('Unexpected response from GitHub tree API');
+
+    let files = tree.tree.filter(
+      (entry) => entry.type === 'blob' && entry.path.startsWith(GAMES_REPO_PATH_PREFIX)
+    );
+
+    if (gameId) {
+      const folderPrefix = `${GAMES_REPO_PATH_PREFIX}${gameId}/`;
+      files = files.filter((entry) => entry.path.startsWith(folderPrefix));
+      if (files.length === 0) {
+        return { success: false, error: `No files found for game "${gameId}"` };
+      }
+    }
+
+    const total = files.length;
+    let done = 0;
+
+    for (const entry of files) {
+      const relativePath = entry.path.slice(GAMES_REPO_PATH_PREFIX.length);
+      const destPath = path.join(GAMES_DIR, relativePath);
+      const rawUrl = `https://raw.githubusercontent.com/${GAMES_REPO_OWNER}/${GAMES_REPO_NAME}/${GAMES_REPO_BRANCH}/${entry.path}`;
+      await downloadGameFile(rawUrl, destPath);
+      done += 1;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('games:sync-progress', { done, total, current: relativePath });
+      }
+    }
+
+    let meta = {};
+    try { meta = JSON.parse(fs.readFileSync(GAMES_SYNC_META_PATH, 'utf8')); } catch (_) {}
+    const now = new Date().toISOString();
+    meta.games = meta.games || {};
+    if (gameId) {
+      meta.games[gameId] = now;
+    } else {
+      files.forEach((entry) => {
+        const folder = entry.path.slice(GAMES_REPO_PATH_PREFIX.length).split('/')[0];
+        if (folder) meta.games[folder] = now;
+      });
+      meta.allSyncedAt = now;
+    }
+    fs.writeFileSync(GAMES_SYNC_META_PATH, JSON.stringify(meta, null, 2), 'utf8');
+
+    return { success: true, filesDownloaded: total };
+  } catch (e) {
+    console.error('[GAMES-SYNC] Failed:', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
+// Reports which game folders are actually present on disk right now (covers
+// both auto-synced games and ones a user manually dropped in themselves) -
+// the renderer only trusts a local fallback path when it's in `onDisk`.
+ipcMain.handle('games:get-sync-status', async () => {
+  let meta = { allSyncedAt: null, games: {} };
+  try {
+    meta = JSON.parse(fs.readFileSync(GAMES_SYNC_META_PATH, 'utf8'));
+  } catch (_) {}
+
+  let onDisk = [];
+  try {
+    onDisk = fs.readdirSync(GAMES_DIR, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+  } catch (_) {}
+
+  return { allSyncedAt: meta.allSyncedAt || null, games: meta.games || {}, onDisk };
+});
+
 // ============ UTILITY ============
 
 // Get the local server URL for loading apps
@@ -2513,6 +2712,13 @@ ipcMain.handle('ai:call', async (event, { url, headers, body }) => {
         });
       });
       req.on('error', (err) => resolve({ ok: false, error: err.message }));
+      // AI image responses can be ~1.4MB of base64 and slow providers can
+      // simply never answer — without this, the renderer's `await` hangs
+      // forever with no way back for the user (see editor-ai.js's post()).
+      req.setTimeout(45000, () => {
+        req.destroy();
+        resolve({ ok: false, error: 'The AI request timed out. Try again in a moment.' });
+      });
       if (bodyBuf.length) req.write(bodyBuf);
       req.end();
     } catch (err) {

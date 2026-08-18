@@ -30,26 +30,27 @@
   let callId = 0;
 
   // Create the bridge API
-  function createBridgeMethod(methodPath) {
+  // timeout: optional ms override (default 15000; use 30000+ for slow operations like search)
+  function createBridgeMethod(methodPath, timeout) {
+    var ms = (typeof timeout === 'number') ? timeout : 15000;
     return function(...args) {
       return new Promise((resolve, reject) => {
         const id = ++callId;
         pendingCalls[id] = { resolve, reject };
-        
+
         window.parent.postMessage({
           type: 'electronAPI:call',
           id: id,
           method: methodPath,
           args: args
         }, '*');
-        
-        // Timeout after 10 seconds
+
         setTimeout(() => {
           if (pendingCalls[id]) {
             delete pendingCalls[id];
             reject(new Error('Bridge call timeout: ' + methodPath));
           }
-        }, 10000);
+        }, ms);
       });
     };
   }
@@ -94,12 +95,21 @@
       getEpisodes: createBridgeMethod('streaming.getEpisodes'),
       getLastWatched: createBridgeMethod('streaming.getLastWatched'),
       saveProgress: createBridgeMethod('streaming.saveProgress'),
+      resetProgress: createBridgeMethod('streaming.resetProgress'),
+      clearAllProgress: createBridgeMethod('streaming.clearAllProgress'),
       getSearchHistory: createBridgeMethod('streaming.getSearchHistory'),
       saveSearch: createBridgeMethod('streaming.saveSearch'),
       clearSearchHistory: createBridgeMethod('streaming.clearSearchHistory'),
       launch: createBridgeMethod('streaming.launch')
     },
-    
+
+    // Launch API
+    launch: {
+      messenger: createBridgeMethod('launch.messenger'),
+      search: createBridgeMethod('launch.search'),
+      editor: createBridgeMethod('launch.editor')
+    },
+
     // In-iframe Messenger API (backend + file IO for the messenger frontend)
     messenger: {
       startBackend: createBridgeMethod('messenger.startBackend'),
@@ -109,7 +119,18 @@
       updateNgrams: createBridgeMethod('messenger.updateNgrams'),
       openVideo:    createBridgeMethod('messenger.openVideo')
     },
-    
+
+    // In-iframe Search API
+    search: {
+      startBackend: createBridgeMethod('search.startBackend'),
+      getConfig:    createBridgeMethod('search.getConfig'),
+      doSearch:     createBridgeMethod('search.doSearch',    30000),
+      predict:      createBridgeMethod('search.predict',      5000),
+      getHistory:   createBridgeMethod('search.getHistory'),
+      saveHistory:  createBridgeMethod('search.saveHistory'),
+      clearHistory: createBridgeMethod('search.clearHistory'),
+    },
+
     // Editor API
     editor: {
       list: createBridgeMethod('editor.list'),
@@ -144,7 +165,21 @@
     controlBar: {
       close: createBridgeMethod('controlBar.close')
     },
-    
+
+    news: {
+      fetchHighlights: createBridgeMethod('news.fetchHighlights')
+    },
+
+    // Calendar API
+    calendar: {
+      getSettings: createBridgeMethod('calendar.getSettings'),
+      saveSettings: createBridgeMethod('calendar.saveSettings'),
+      fetchWeek: createBridgeMethod('calendar.fetchWeek')
+    },
+
+    openExternal: createBridgeMethod('openExternal'),
+    getServerUrl: createBridgeMethod('getServerUrl'),
+
     // Mark as bridge
     isElectron: true,
     isBridge: true
